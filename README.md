@@ -43,6 +43,12 @@ Demo plates: **AB12 CDE** (Nissan Navara D40), **VX16 ABC** (Vauxhall Astra K), 
 
 Run the backend tests with `mvn test`.
 
+## GitHub Pages
+
+The frontend is deployed to GitHub Pages by the workflow in `.github/workflows/deploy-pages.yml` whenever a commit is pushed to `main`. In the repository settings, set **Pages → Build and deployment → Source** to **GitHub Actions**. The site URL is `https://jeet1703.github.io/Speedyfix/`.
+
+GitHub Pages only serves static files; it does not run the Java backend. Until the backend is deployed separately and the frontend is configured with its API URL, API-powered pages and actions (including the homepage data, product catalogue, basket, and checkout) will not work on the published site.
+
 ## API
 
 | Method | Path | Purpose |

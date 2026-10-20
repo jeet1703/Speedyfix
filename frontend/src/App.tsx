@@ -26,7 +26,7 @@ export default function App() {
   return (
     <SiteProvider>
       <StoreProvider>
-        <BrowserRouter>
+        <BrowserRouter basename={import.meta.env.BASE_URL}>
           <ScrollToTop />
           <Routes>
             <Route path="/" element={<HomePage />} />
