@@ -1,0 +1,24 @@
+server:
+  port: 8080
+
+spring:
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 16MB
+
+site:
+  name: SpeedyFix Engine Solutions
+  tagline: House of quality spare parts
+  phone: "[UK NUMBER]"
+  whatsapp: "[WhatsApp number]"
+  email: "[email address]"
+  company-name: "[Registered company name]"
+  address: "[UK trading address]"
+  # Set to a YouTube embed URL (https://www.youtube.com/embed/<id>) once the client supplies the video.
+  video-url: ""
+  # Shown on every product page. Confirm the warranty terms and dispatch location with the client.
+  warranty: "[Warranty period]"
+  ships-from: "[UK warehouse]"
+  cors-allowed-origins:
+    - http://localhost:5173
