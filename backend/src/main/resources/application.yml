@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: ${PORT:8080}
 
 spring:
   servlet:
@@ -22,3 +22,4 @@ site:
   ships-from: "[UK warehouse]"
   cors-allowed-origins:
     - http://localhost:5173
+    - https://jeet1703.github.io

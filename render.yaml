@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: speedyfix-backend
+    runtime: docker
+    dockerContext: ./backend
+    dockerfilePath: ./backend/Dockerfile
+    plan: free
+    region: frankfurt
+    healthCheckPath: /api/site
+    autoDeploy: true
+    # Only redeploy when backend code changes, not on frontend pushes.
+    buildFilter:
+      paths:
+        - backend/**
