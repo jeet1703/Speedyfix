@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { Slide } from '../api/types';
 import { Icon } from './Icons';
 
@@ -32,8 +33,8 @@ export function HeroSlider({ slides }: { slides: Slide[] }) {
             <h1 className="hero__title">{s.title}</h1>
             <p className="hero__text">{s.text}</p>
             <div className="hero__actions">
-              <a className="btn btn--primary" href={s.primaryHref} tabIndex={i === index ? 0 : -1}>{s.primaryLabel}</a>
-              <a className="btn btn--outline-light" href={s.secondaryHref} tabIndex={i === index ? 0 : -1}>{s.secondaryLabel}</a>
+              <Link className="btn btn--primary" to={s.primaryHref} tabIndex={i === index ? 0 : -1}>{s.primaryLabel}</Link>
+              <Link className="btn btn--outline-light" to={s.secondaryHref} tabIndex={i === index ? 0 : -1}>{s.secondaryLabel}</Link>
             </div>
           </div>
         </div>
