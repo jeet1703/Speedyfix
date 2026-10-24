@@ -1,5 +1,7 @@
 server:
   port: ${PORT:8080}
+  # Render sits behind a proxy: use its X-Forwarded-* headers for https links and the client address.
+  forward-headers-strategy: framework
 
 spring:
   servlet:
@@ -8,7 +10,7 @@ spring:
       max-request-size: 16MB
 
 site:
-  name: SpeedyFix Engine Solutions
+  name: SpeedyFix Auto Sales
   tagline: House of quality spare parts
   phone: "[UK NUMBER]"
   whatsapp: "[WhatsApp number]"
@@ -23,3 +25,15 @@ site:
   cors-allowed-origins:
     - http://localhost:5173
     - https://jeet1703.github.io
+
+admin:
+  # Master staff sign-in. Set ADMIN_PASSWORD (12+ characters) as a secret; without it the admin can't be signed in to.
+  email: ${ADMIN_EMAIL:prabhjeetsinghhh@gmail.com}
+  password: ${ADMIN_PASSWORD:}
+  name: ${ADMIN_NAME:Master admin}
+  # Signs the staff JWTs (32+ characters, a secret). Without it a random key is used, so a restart signs everyone out.
+  jwt-secret: ${ADMIN_JWT_SECRET:}
+  # Starting values for the Settings page. Staff can change them there (held in memory until a redeploy).
+  lookup-cost: ${ADMIN_LOOKUP_COST:0}
+  lookup-budget: ${ADMIN_LOOKUP_BUDGET:0}
+  buying-team-email: ${ADMIN_BUYING_TEAM_EMAIL:}

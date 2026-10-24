@@ -10,13 +10,13 @@ export function VideoSection({ videoUrl }: { videoUrl: string }) {
     <section className="section video" aria-labelledby="video-title">
       <div className="container video__inner">
         <div className="video__copy">
-          <p className="eyebrow">Inside SpeedyFix</p>
+          <p className="eyebrow">Inside SpeedyFix Auto Sales</p>
           <h2 id="video-title" className="h-display">See how we test every part</h2>
           <p>A short film from our workshop: how parts are removed, cleaned, tested and graded before they’re listed.</p>
         </div>
         <div className="video__player">
           {playing && hasVideo ? (
-            <iframe src={`${videoUrl}?autoplay=1`} title="SpeedyFix workshop video" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen />
+            <iframe src={`${videoUrl}?autoplay=1`} title="SpeedyFix Auto Sales workshop video" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen />
           ) : (
             <>
               <img src={POSTER} alt="" loading="lazy" />

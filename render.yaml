@@ -12,3 +12,13 @@ services:
     buildFilter:
       paths:
         - backend/**
+    envVars:
+      # Staff sign-in password (12+ characters). Set it in the Render dashboard; it isn't stored in the repo.
+      - key: ADMIN_PASSWORD
+        sync: false
+      # Master admin email (defaults to the one in application.yml if left unset).
+      - key: ADMIN_EMAIL
+        sync: false
+      # Signs staff JWTs, so sessions survive a redeploy. Render generates a random value.
+      - key: ADMIN_JWT_SECRET
+        generateValue: true

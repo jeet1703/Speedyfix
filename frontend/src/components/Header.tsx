@@ -18,7 +18,7 @@ const NAV = [
 
 export function Header({ menu }: { menu: MenuGroup[] }) {
   const { basket, setBasketOpen } = useStore();
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const [productsOpen, setProductsOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -39,11 +39,11 @@ export function Header({ menu }: { menu: MenuGroup[] }) {
     };
   }, [productsOpen]);
 
-  // Close the menus whenever the page changes.
+  // Close the menus whenever the page changes, including a new category on the shop page.
   useEffect(() => {
     setProductsOpen(false);
     setMobileOpen(false);
-  }, [pathname]);
+  }, [pathname, search]);
 
   const count = basket?.itemCount ?? 0;
   const current = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href));

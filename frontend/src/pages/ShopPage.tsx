@@ -22,6 +22,9 @@ const CONDITIONS = [
   { value: 'NEW', label: 'New' }
 ];
 
+/** Digits and at most one decimal point, so "12.5.0" can't reach the API as an invalid price. */
+const priceInput = (value: string) => value.replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1');
+
 /** /products, filtered by the query string (category, q, condition, minPrice, maxPrice, fitsOnly, sort, page). */
 export function ShopPage() {
   const [params, setParams] = useSearchParams();
@@ -137,9 +140,9 @@ export function ShopPage() {
             <h2 className="widget__title">Filter by price</h2>
             <div className="price-range">
               <label className="sr-only" htmlFor="min-price">Minimum price in pounds</label>
-              <input id="min-price" className="input" inputMode="numeric" placeholder="£ Min" value={min} onChange={(e) => setMin(e.target.value.replace(/[^\d.]/g, ''))} />
+              <input id="min-price" className="input" inputMode="decimal" placeholder="£ Min" value={min} onChange={(e) => setMin(priceInput(e.target.value))} />
               <label className="sr-only" htmlFor="max-price">Maximum price in pounds</label>
-              <input id="max-price" className="input" inputMode="numeric" placeholder="£ Max" value={max} onChange={(e) => setMax(e.target.value.replace(/[^\d.]/g, ''))} />
+              <input id="max-price" className="input" inputMode="decimal" placeholder="£ Max" value={max} onChange={(e) => setMax(priceInput(e.target.value))} />
             </div>
             <button type="submit" className="btn btn--dark btn--sm">Filter</button>
           </form>

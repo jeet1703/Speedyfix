@@ -4,7 +4,7 @@ import { PageTitle } from '../components/PageTitle';
 
 /** Pages that need the client's own copy, and pages planned for the next build phase. */
 const PAGES: Record<string, { title: string; text: string }> = {
-  '/about': { title: 'About us', text: '[About SpeedyFix copy from the client]' },
+  '/about': { title: 'About us', text: '[About SpeedyFix Auto Sales copy from the client]' },
   '/returns': { title: 'Returns and warranty', text: '[Returns and warranty policy from the client]' },
   '/terms': { title: 'Terms and conditions', text: '[Terms and conditions from the client’s legal adviser]' },
   '/privacy': { title: 'Privacy policy', text: '[Privacy policy from the client’s legal adviser]' },

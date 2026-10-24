@@ -1,4 +1,4 @@
-# SpeedyFix v2: what is left to design
+# SpeedyFix Auto Sales v2: what is left to design
 
 Status as of 22 October 2026, based on the routes in `frontend/src/App.tsx`, the placeholder text in the code, and the links in the header, top bar and footer.
 

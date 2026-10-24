@@ -11,7 +11,7 @@ export function Layout({ title, children }: { title?: string; children: ReactNod
   const { data, error, retry } = useSite();
 
   useEffect(() => {
-    document.title = title ? `${title} | SpeedyFix Engine Solutions` : 'SpeedyFix Engine Solutions | Engines and engine parts';
+    document.title = title ? `${title} | SpeedyFix Auto Sales` : 'SpeedyFix Auto Sales | Engines and engine parts';
   }, [title]);
 
   if (error && !data) {

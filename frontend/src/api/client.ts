@@ -2,7 +2,7 @@ import type {
   Basket, HomeData, LookupResult, Order, OrderForm, PartRequestReceived, Product, ProductDetail, ShopResult, SiteData
 } from './types';
 
-const BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
+export const BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
 
 /** Error carrying the shopper-facing message from the API's problem details. */
 export class ApiError extends Error {
@@ -11,7 +11,7 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
   // FormData sets its own multipart Content-Type, boundary included.
   const json = !(init?.body instanceof FormData);
@@ -33,6 +33,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     }
     throw new ApiError(res.status, detail);
   }
+  if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
 }
 

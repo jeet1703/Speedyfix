@@ -15,8 +15,8 @@ FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
 # Run as a non-privileged user
-RUN addgroup -S speedyfix && adduser -S speedyfix -G speedyfix
-USER speedyfix
+RUN addgroup -S speedyfixautosales && adduser -S speedyfixautosales -G speedyfixautosales
+USER speedyfixautosales
 
 # Copy executable jar from builder stage
 COPY --from=build /app/target/*.jar app.jar

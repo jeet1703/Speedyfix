@@ -3,7 +3,7 @@ import { Icon } from './Icons';
 
 export function Features({ items }: { items: Feature[] }) {
   return (
-    <section className="features" aria-label="Why buy from SpeedyFix">
+    <section className="features" aria-label="Why buy from SpeedyFix Auto Sales">
       <ul className="container features__list">
         {items.map((f) => (
           <li key={f.title} className="feature">

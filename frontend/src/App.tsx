@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { BasketPage } from './pages/BasketPage';
 import { CheckoutPage } from './pages/CheckoutPage';
@@ -12,6 +12,9 @@ import { ShopPage } from './pages/ShopPage';
 import { WishlistPage } from './pages/WishlistPage';
 import { SiteProvider } from './state/SiteContext';
 import { StoreProvider } from './state/StoreContext';
+
+// The staff admin is a separate bundle, loaded only when someone opens /admin.
+const AdminApp = lazy(() => import('./admin/AdminApp'));
 
 /** New pages start at the top; filter changes on the same page keep the scroll position. */
 function ScrollToTop() {
@@ -38,6 +41,7 @@ export default function App() {
             <Route path="/request-a-part" element={<RequestPartPage />} />
             <Route path="/wishlist" element={<WishlistPage />} />
             <Route path="/contact" element={<ContactPage />} />
+            <Route path="/admin/*" element={<Suspense fallback={<main className="state" aria-busy="true"><p>Loading admin…</p></main>}><AdminApp /></Suspense>} />
             <Route path="*" element={<ComingSoon />} />
           </Routes>
         </BrowserRouter>

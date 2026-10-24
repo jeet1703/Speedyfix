@@ -1,4 +1,4 @@
-# SpeedyFix Engine Solutions — v2 storefront (React + Java)
+# SpeedyFix Auto Sales — v2 storefront (React + Java)
 
 The v2 "catalogue layout" storefront from the Figma design, built as:
 
@@ -24,20 +24,35 @@ The v2 "catalogue layout" storefront from the Figma design, built as:
 
 About, returns, terms, privacy, delivery and FAQ pages show bracketed placeholders until the client supplies the copy. Account and trade pages are the next build phase.
 
+## Staff admin (`/admin`)
+
+Signed-in staff manage the catalogue. Staff sign in with an email and password: the master account is `ADMIN_EMAIL` (default `prabhjeetsinghhh@gmail.com`) and `ADMIN_PASSWORD` (12+ characters); without a password, sign-in stays switched off. Sign-in returns a JWT (HS256) signed with `ADMIN_JWT_SECRET` (32+ characters; without it a random key is used and a restart signs everyone out). Signing out revokes the token. Sessions last 12 hours or until the tab closes, and five wrong passwords from one address lock it out for 15 minutes. The admin is a separate bundle, loaded only when someone opens `/admin`, and is marked `noindex`.
+
+- **Dashboard**: parts needing fitment or photos, shopper plate searches with no matching stock (vehicle only, never the plate), plate lookups this month against the spend cap, the work queue, and an email of unmatched vehicles to the buying team
+- **Products**: every part, drafts included, searchable and filtered by work status
+- **Add part / Edit part**: OE number and cross-references, fitment suggested from other parts with the same OE number (high confidence) or the same engine code (medium), a donor plate adds that exact vehicle, part details, up to 4 photos (JPG, PNG or WebP, checked by file signature), a publish checklist and a shopper preview. Drafts can be saved without a price or photo; publishing needs an OE number or engine code, a price and a photo. Live parts can be taken off sale.
+- **Part requests**: shoppers' requests with contact details and photos, moved from New to Quoted to Closed
+- **Vehicle lookup tester**: which vehicle a plate identifies, the parts confirmed for it, and unconfirmed parts with the same engine code. Staff checks aren't counted as shopper searches.
+- **Settings**: cost per plate lookup, monthly cap and buying team email (starting values from `ADMIN_LOOKUP_COST`, `ADMIN_LOOKUP_BUDGET`, `ADMIN_BUYING_TEAM_EMAIL`)
+
+Like the rest of the prototype, parts, photos, requests and settings are held in memory, so a redeploy resets them. Staff photo uploads share a 64 MB budget.
+
 ## Run it locally
 
 Prerequisites: Java 21, Maven 3.9+, Node 20+.
 
 ```bash
-# 1. Backend on http://localhost:8080
+# 1. Backend on http://localhost:8080 (ADMIN_PASSWORD switches on the staff admin; sign in with ADMIN_EMAIL)
 cd backend
-mvn spring-boot:run
+ADMIN_PASSWORD='choose-a-long-password' mvn spring-boot:run
 
 # 2. Frontend on http://localhost:5173 (proxies /api to the backend)
 cd frontend
 npm install
 npm run dev
 ```
+
+On Windows PowerShell, set the password first with `$env:ADMIN_PASSWORD='choose-a-long-password'`. The admin is at http://localhost:5173/admin; sign in with the master email and that password.
 
 Demo plates: **AB12 CDE** (Nissan Navara D40), **VX16 ABC** (Vauxhall Astra K), **JG17 XEE** (Jaguar XE).
 
@@ -47,7 +62,13 @@ Run the backend tests with `mvn test`.
 
 The frontend is deployed to GitHub Pages by the workflow in `.github/workflows/deploy-pages.yml` whenever a commit is pushed to `main`. In the repository settings, set **Pages → Build and deployment → Source** to **GitHub Actions**. The site URL is `https://jeet1703.github.io/Speedyfix/`.
 
-GitHub Pages only serves static files; it does not run the Java backend. Until the backend is deployed separately and the frontend is configured with its API URL, API-powered pages and actions (including the homepage data, product catalogue, basket, and checkout) will not work on the published site.
+GitHub Pages only serves static files. The Java backend runs separately on Render (see below), and the Pages build points at it through `VITE_API_URL` (a repository Actions variable, falling back to `https://speedyfix-backend.onrender.com`).
+
+## Render (backend)
+
+`render.yaml` is a Render Blueprint for the backend: a Docker web service built from `backend/Dockerfile`, health-checked on `/api/site`, redeployed only when `backend/` changes. Set `ADMIN_PASSWORD` (and `ADMIN_EMAIL` if the master email changes) in the Render dashboard to switch on the admin; the Blueprint generates `ADMIN_JWT_SECRET`. On Render's free plan the service sleeps after 15 minutes without traffic; `KeepAlive` pings the service's own `RENDER_EXTERNAL_URL` every 14 minutes to prevent that (it does nothing when that variable isn't set, e.g. locally).
+
+Everything (baskets, orders, part requests) is held in memory, so a restart or redeploy clears it. Idle baskets are dropped after 7 days, and stored part-request photos are capped at 64 MB, so the 512 MB free instance can't run out of memory.
 
 ## API
 
@@ -69,6 +90,21 @@ GitHub Pages only serves static files; it does not run the Java backend. Until t
 | POST | `/api/orders` `{ basketId, name, email, phone, line1, line2, town, postcode, notes }` | Place an order (UK postcode checked; stock taken all-or-nothing) |
 | GET | `/api/orders/{reference}` | Order received page |
 | POST | `/api/part-requests` (multipart) | Request a part. The plate is stored masked (`AB12 ***`) with the vehicle it identified |
+| GET | `/api/product-photos/{id}` | A photo staff uploaded for a part |
+
+Admin routes need `Authorization: Bearer <JWT>` from `POST /api/admin/session`, except that sign-in call itself:
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| POST / GET / DELETE | `/api/admin/session` | Sign in `{ "email", "password" }` (returns a JWT), check the session, sign out (revokes the JWT) |
+| GET | `/api/admin/dashboard` | Counts, work queue and unmatched vehicle searches |
+| GET | `/api/admin/products`, `/api/admin/products/{id}`, `/api/admin/categories` | Every part with its work status; one part for editing; categories |
+| POST | `/api/admin/products`, `/api/admin/products/{id}` (multipart) | Create or update a part: `part` is the form as JSON, plus up to 4 `photos` |
+| GET | `/api/admin/fitment?oe=&engineCode=&productId=` | Suggested vehicles with source and confidence |
+| POST | `/api/admin/plate-check` `{ "registration" }` | Vehicle, confirmed parts and same-engine parts for a plate |
+| GET / PATCH | `/api/admin/part-requests`, `/api/admin/part-requests/{ref}` `{ "status" }` | Part requests; set New, Quoted or Closed |
+| GET | `/api/admin/part-requests/{ref}/photos/{index}` | A shopper's photo |
+| GET / PUT | `/api/admin/settings` | Lookup cost, monthly cap, buying team email |
 
 Errors are RFC 7807 problem details; `detail` is written for shoppers and shown as-is in the UI.
 
