@@ -10,9 +10,8 @@ import { SearchPanel } from './SearchPanel';
 
 const NAV = [
   { label: 'Home', href: '/' },
+  { label: 'Request a Part', href: '/request-a-part' },
   { label: 'About us', href: '/about' },
-  { label: 'Request a part', href: '/request-a-part' },
-  { label: 'Returns and warranty', href: '/returns' },
   { label: 'Contact', href: '/contact' }
 ];
 
@@ -25,6 +24,15 @@ export function Header({ menu }: { menu: MenuGroup[] }) {
   const productsRef = useRef<HTMLLIElement>(null);
   // Hover opens the menu; a click that follows a hover keeps it open instead of toggling it shut.
   const openedByHover = useRef(false);
+  // Leaving closes the menu after a short pause, so the pointer can cross the gap between the button and the
+  // panel (and wobble out briefly) without the menu vanishing. Coming back in cancels it.
+  const closeTimer = useRef<number>();
+  const cancelClose = () => window.clearTimeout(closeTimer.current);
+  const closeSoon = () => {
+    cancelClose();
+    closeTimer.current = window.setTimeout(() => { openedByHover.current = false; setProductsOpen(false); }, 250);
+  };
+  useEffect(() => () => window.clearTimeout(closeTimer.current), []);
 
   useEffect(() => {
     if (!productsOpen) return;
@@ -58,11 +66,10 @@ export function Header({ menu }: { menu: MenuGroup[] }) {
         <nav aria-label="Main" className={'nav' + (mobileOpen ? ' nav--open' : '')} id="main-nav">
           <ul>
             {NAV.slice(0, 2).map(navLink)}
-            <li ref={productsRef} className="nav__products"
-              onMouseLeave={() => { openedByHover.current = false; setProductsOpen(false); }}>
+            <li ref={productsRef} className="nav__products" onMouseEnter={cancelClose} onMouseLeave={closeSoon}>
               <button type="button" aria-expanded={productsOpen} aria-controls="products-menu"
                 className={current('/products') ? 'is-current' : undefined}
-                onMouseEnter={() => { if (!productsOpen) openedByHover.current = true; setProductsOpen(true); }}
+                onMouseEnter={() => { cancelClose(); if (!productsOpen) openedByHover.current = true; setProductsOpen(true); }}
                 onClick={() => {
                   if (openedByHover.current) { openedByHover.current = false; setProductsOpen(true); }
                   else setProductsOpen((o) => !o);

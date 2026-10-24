@@ -5,13 +5,10 @@ import { PageTitle } from '../components/PageTitle';
 /** Pages that need the client's own copy, and pages planned for the next build phase. */
 const PAGES: Record<string, { title: string; text: string }> = {
   '/about': { title: 'About us', text: '[About SpeedyFix Auto Sales copy from the client]' },
-  '/returns': { title: 'Returns and warranty', text: '[Returns and warranty policy from the client]' },
   '/terms': { title: 'Terms and conditions', text: '[Terms and conditions from the client’s legal adviser]' },
   '/privacy': { title: 'Privacy policy', text: '[Privacy policy from the client’s legal adviser]' },
   '/delivery': { title: 'Delivery partners', text: '[Courier names] and delivery details from the client.' },
-  '/faq': { title: 'FAQs', text: '[Frequently asked questions from the client]' },
-  '/account': { title: 'My account', text: 'Accounts are in the next build phase. You can shop and check out without one.' },
-  '/trade': { title: 'Trade accounts', text: 'Trade accounts are in the next build phase. Call us to discuss trade pricing.' }
+  '/faq': { title: 'FAQs', text: '[Frequently asked questions from the client]' }
 };
 
 export function ComingSoon() {

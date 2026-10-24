@@ -1,4 +1,6 @@
-import type { ReplyBy, Vehicle } from '../api/types';
+import type { Order, OrderStatus, ReplyBy, Vehicle } from '../api/types';
+
+export type { Order, OrderStatus };
 
 export type ProductStatus = 'DRAFT' | 'LIVE';
 export type WorkStatus = 'NEEDS_FITMENT' | 'MISSING_PHOTO' | 'DRAFT' | 'LIVE';
@@ -23,8 +25,10 @@ export interface ProductRow {
   id: string;
   name: string;
   categoryName: string;
-  oeNumber: string | null;
+  partNumber: string | null;
   engineCode: string | null;
+  brand: string | null;
+  subType: string | null;
   price: number | null;
   stock: number;
   imageUrl: string | null;
@@ -52,9 +56,11 @@ export interface ProductDetail {
   condition: Condition;
   grade: string | null;
   price: number | null;
-  oeNumber: string | null;
-  crossReferences: string[];
+  partNumber: string | null;
   engineCode: string | null;
+  brand: string | null;
+  subType: string | null;
+  refinements: string[];
   shipping: Shipping;
   stock: number;
   bestSeller: boolean;
@@ -74,9 +80,11 @@ export interface ProductFormData {
   condition: Condition;
   grade: string;
   price: number | null;
-  oeNumber: string;
-  crossReferences: string[];
+  partNumber: string;
   engineCode: string;
+  brand: string;
+  subType: string;
+  refinements: string[];
   shipping: Shipping;
   stock: number;
   bestSeller: boolean;
@@ -86,6 +94,21 @@ export interface ProductFormData {
 }
 
 export interface Dashboard {
+  tasks: {
+    awaitingPayment: number;
+    awaitingDispatch: number;
+    newPartRequests: number;
+    needFitment: number;
+    missingPhotos: number;
+    outOfStock: number;
+  };
+  /** change: % up or down on the period before; null when that period took nothing. */
+  sales: { period: string; orders: number; total: number; change: number | null }[];
+  /** The last 31 UK days, oldest first; date is YYYY-MM-DD. */
+  dailySales: { date: string; orders: number; total: number }[];
+  orders: { all: number; awaitingPayment: number; awaitingDispatch: number; dispatched: number; cancelled: number };
+  customers: { total: number; newThisWeek: number };
+  listings: { active: number; drafts: number; outOfStock: number };
   needFitment: number;
   missingPhotos: number;
   noMatchSearches: number;
@@ -134,6 +157,17 @@ export interface SettingsView {
   staffEmail: string;
   sessionHours: number;
   demoVehicles: number;
+}
+
+export interface CustomerRow {
+  id: string;
+  name: string;
+  email: string;
+  pictureUrl: string | null;
+  joinedAt: string;
+  lastSignInAt: string;
+  signIns: number;
+  recentSearches: string[];
 }
 
 export interface CategoryOption {

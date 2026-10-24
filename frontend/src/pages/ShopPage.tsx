@@ -1,12 +1,13 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../api/client';
-import type { ShopResult, ShopSort } from '../api/types';
+import type { Facet, ShopResult, ShopSort } from '../api/types';
 import { Layout } from '../components/Layout';
 import { PageTitle } from '../components/PageTitle';
 import { Pagination } from '../components/Pagination';
 import { PlateFinder } from '../components/PlateFinder';
 import { ProductCard } from '../components/ProductCard';
+import { useAccount } from '../state/AccountContext';
 import { useStore } from '../state/StoreContext';
 
 const SORTS: { value: ShopSort; label: string }[] = [
@@ -25,10 +26,22 @@ const CONDITIONS = [
 /** Digits and at most one decimal point, so "12.5.0" can't reach the API as an invalid price. */
 const priceInput = (value: string) => value.replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1');
 
-/** /products, filtered by the query string (category, q, condition, minPrice, maxPrice, fitsOnly, sort, page). */
+/** The eBay-style filters: each takes several values, repeated in the URL (?brand=Nissan&brand=Toyota). */
+const FACETS = [
+  { param: 'refinement', title: 'Featured refinements', key: 'refinements' },
+  { param: 'brand', title: 'Brand', key: 'brands' },
+  { param: 'subType', title: 'Sub type', key: 'subTypes' }
+] as const;
+const FACET_PREVIEW = 6;
+
+/**
+ * /products, filtered by the query string (category, q, condition, minPrice, maxPrice, fitsOnly, brand, subType,
+ * refinement, sort, page).
+ */
 export function ShopPage() {
   const [params, setParams] = useSearchParams();
   const { vehicle } = useStore();
+  const { recordSearch } = useAccount();
   const [result, setResult] = useState<ShopResult | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -46,6 +59,12 @@ export function ShopPage() {
       .finally(() => live && setLoading(false));
     return () => { live = false; };
   }, [query, vehicle?.id]);
+
+  // Searches made from any search box land here, so this is where they join the shopper's history.
+  const searched = params.get('q');
+  useEffect(() => {
+    if (searched) recordSearch(searched);
+  }, [searched, recordSearch]);
 
   // Keep the price boxes in step when the URL changes (e.g. "Clear filters").
   useEffect(() => {
@@ -75,7 +94,20 @@ export function ShopPage() {
   const fitsOnly = params.get('fitsOnly') === 'true';
   const categoryName = result?.categories.find((c) => c.id === category)?.name;
   const title = q ? `Results for “${q}”` : categoryName ?? 'Products';
-  const hasFilters = conditions.length > 0 || params.has('minPrice') || params.has('maxPrice') || fitsOnly;
+  const hasFilters = conditions.length > 0 || params.has('minPrice') || params.has('maxPrice') || fitsOnly
+    || FACETS.some((f) => params.has(f.param));
+  const clearAll = { condition: null, minPrice: null, maxPrice: null, fitsOnly: null, brand: null, subType: null, refinement: null };
+
+  /** Ticks or unticks one value of a multi-value filter, keeping its other values. */
+  function toggleFacet(param: string, value: string) {
+    const next = new URLSearchParams(params);
+    const values = next.getAll(param);
+    next.delete(param);
+    const kept = values.includes(value) ? values.filter((v) => v !== value) : [...values, value];
+    kept.forEach((v) => next.append(param, v));
+    next.delete('page');
+    setParams(next);
+  }
 
   function toggleCondition(value: string) {
     const next = conditions.includes(value) ? conditions.filter((c) => c !== value) : [...conditions, value];
@@ -116,6 +148,11 @@ export function ShopPage() {
             </ul>
           </section>
 
+          {result && FACETS.map((f) => (
+            <FacetWidget key={f.param} title={f.title} facets={result[f.key]} selected={params.getAll(f.param)}
+              onToggle={(v) => toggleFacet(f.param, v)} />
+          ))}
+
           {vehicle && (
             <section className="widget">
               <h2 className="widget__title">Your vehicle</h2>
@@ -148,7 +185,7 @@ export function ShopPage() {
           </form>
 
           {hasFilters && (
-            <button type="button" className="link-btn" onClick={() => update({ condition: null, minPrice: null, maxPrice: null, fitsOnly: null })}>
+            <button type="button" className="link-btn" onClick={() => update(clearAll)}>
               Clear filters
             </button>
           )}
@@ -172,10 +209,10 @@ export function ShopPage() {
           {result && result.total === 0 && !error && (
             <div className="empty">
               <h2>No parts match{q ? ` “${q}”` : ' these filters'}</h2>
-              <p>Try fewer filters, search by OE number or engine code, or ask us to find it for you.</p>
+              <p>Try fewer filters, search by part number or engine code, or ask us to find it for you.</p>
               <div className="empty__actions">
-                {hasFilters && <button type="button" className="btn btn--outline" onClick={() => update({ condition: null, minPrice: null, maxPrice: null, fitsOnly: null })}>Clear filters</button>}
-                <Link className="btn btn--primary" to="/request-a-part">Request a part</Link>
+                {hasFilters && <button type="button" className="btn btn--outline" onClick={() => update(clearAll)}>Clear filters</button>}
+                <Link className="btn btn--primary" to="/request-a-part">Request a Part</Link>
               </div>
             </div>
           )}
@@ -190,5 +227,35 @@ export function ShopPage() {
         </section>
       </div>
     </Layout>
+  );
+}
+
+/** One eBay-style filter: a checkbox per value with its count, the first few shown until "Show more". */
+function FacetWidget({ title, facets, selected, onToggle }: {
+  title: string;
+  facets: Facet[];
+  selected: string[];
+  onToggle: (value: string) => void;
+}) {
+  const [all, setAll] = useState(false);
+  // A ticked value stays listed even when the other filters leave it with no parts.
+  const listed = [...facets, ...selected.filter((v) => !facets.some((f) => f.value.toLowerCase() === v.toLowerCase())).map((value) => ({ value, count: 0 }))];
+  if (listed.length === 0) return null;
+  const shown = all ? listed : listed.slice(0, FACET_PREVIEW);
+  return (
+    <fieldset className="widget">
+      <legend className="widget__title">{title}</legend>
+      {shown.map((f) => (
+        <label key={f.value} className="check">
+          <input type="checkbox" checked={selected.some((v) => v.toLowerCase() === f.value.toLowerCase())} onChange={() => onToggle(f.value)} />
+          {f.value} <span className="check__count">({f.count})</span>
+        </label>
+      ))}
+      {listed.length > FACET_PREVIEW && (
+        <button type="button" className="link-btn" aria-expanded={all} onClick={() => setAll((a) => !a)}>
+          {all ? 'Show less' : `Show more (${listed.length - FACET_PREVIEW})`}
+        </button>
+      )}
+    </fieldset>
   );
 }

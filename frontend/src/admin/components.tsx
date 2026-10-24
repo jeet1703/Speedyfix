@@ -1,4 +1,4 @@
-import type { Confidence, PartRequestStatus, ProductRow, WorkStatus } from './types';
+import type { Confidence, OrderStatus, PartRequestStatus, ProductRow, WorkStatus } from './types';
 
 const WORK_LABEL: Record<WorkStatus, string> = {
   NEEDS_FITMENT: 'Needs fitment',
@@ -22,7 +22,18 @@ export function RequestPill({ status }: { status: PartRequestStatus }) {
   return <span className={`pill pill--${tone}`}>{REQUEST_LABEL[status]}</span>;
 }
 
-/** Work-queue filters, shared by the dashboard and the products page. */
+export const ORDER_LABEL: Record<OrderStatus, string> = {
+  AWAITING_PAYMENT: 'Awaiting payment',
+  AWAITING_DISPATCH: 'Awaiting dispatch',
+  DISPATCHED: 'Dispatched',
+  CANCELLED: 'Cancelled'
+};
+
+export function OrderPill({ status }: { status: OrderStatus }) {
+  return <span className={`pill pill--${status.toLowerCase().replace('_', '-')}`}>{ORDER_LABEL[status]}</span>;
+}
+
+/** Work-queue filters, shared by the overview and the listings page. */
 export type QueueFilter = 'all' | 'needs-fitment' | 'missing-photo' | 'draft' | 'live';
 
 export const QUEUE_FILTERS: { value: QueueFilter; label: string }[] = [

@@ -79,7 +79,7 @@ export function RequestPartPage() {
             </div>
             <div className="field">
               <label htmlFor="rq-part">Part you need</label>
-              <input id="rq-part" name="part" className="input" placeholder="e.g. turbocharger, or the OE number" maxLength={200} required />
+              <input id="rq-part" name="part" className="input" placeholder="e.g. turbocharger, or the part number" maxLength={200} required />
             </div>
             <div className="field">
               <label htmlFor="rq-notes">Anything else we should know<span className="field__optional"> (optional)</span></label>

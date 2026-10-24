@@ -23,7 +23,7 @@ export function ContactPage() {
         <aside className="panel panel--dark" aria-labelledby="contact-part-title">
           <h2 id="contact-part-title" className="panel__title">Looking for a part?</h2>
           <p>Send your reg and the part you need, and we’ll reply with a price and lead time.</p>
-          <Link className="btn btn--primary" to="/request-a-part">Request a part</Link>
+          <Link className="btn btn--primary" to="/request-a-part">Request a Part</Link>
         </aside>
       </div>
     </Layout>

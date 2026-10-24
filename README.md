@@ -21,16 +21,22 @@ The v2 "catalogue layout" storefront from the Figma design, built as:
 - **Basket page** (`/basket`), **checkout** (`/checkout`) with field validation, and **order received** (`/order-received/:reference`). Placing an order takes the parts out of stock and empties the basket. **No payment is taken** until a payment provider is chosen.
 - **Request a part** (`/request-a-part`): reg, part, notes, up to 4 photos, contact details and reply preference
 - **Wishlist** and **Contact** pages
+- **Shop filters like eBay's**: Brand, Sub type and Featured refinements, each with counts that respect the other filters
+- **My account** (`/account`): sign in with Google (needs `GOOGLE_CLIENT_ID`); signed-in shoppers keep their 10 most recent searches, guests keep them in the browser. Recent searches show in the search panel.
 
-About, returns, terms, privacy, delivery and FAQ pages show bracketed placeholders until the client supplies the copy. Account and trade pages are the next build phase.
+About, terms, privacy, delivery and FAQ pages show bracketed placeholders until the client supplies the copy.
 
-## Staff admin (`/admin`)
+## Staff admin: Seller Hub (`/admin`)
 
 Signed-in staff manage the catalogue. Staff sign in with an email and password: the master account is `ADMIN_EMAIL` (default `prabhjeetsinghhh@gmail.com`) and `ADMIN_PASSWORD` (12+ characters); without a password, sign-in stays switched off. Sign-in returns a JWT (HS256) signed with `ADMIN_JWT_SECRET` (32+ characters; without it a random key is used and a restart signs everyone out). Signing out revokes the token. Sessions last 12 hours or until the tab closes, and five wrong passwords from one address lock it out for 15 minutes. The admin is a separate bundle, loaded only when someone opens `/admin`, and is marked `noindex`.
 
-- **Dashboard**: parts needing fitment or photos, shopper plate searches with no matching stock (vehicle only, never the plate), plate lookups this month against the spend cap, the work queue, and an email of unmatched vehicles to the buying team
-- **Products**: every part, drafts included, searchable and filtered by work status
-- **Add part / Edit part**: OE number and cross-references, fitment suggested from other parts with the same OE number (high confidence) or the same engine code (medium), a donor plate adds that exact vehicle, part details, up to 4 photos (JPG, PNG or WebP, checked by file signature), a publish checklist and a shopper preview. Drafts can be saved without a price or photo; publishing needs an OE number or engine code, a price and a photo. Live parts can be taken off sale.
+Laid out like eBay Seller Hub, with tabs across the top.
+
+- **Overview**: like Seller Hub's: a Listings card (active, drafts, out of stock, needing fitment or photos), an Orders card (orders by status, new part requests, customers signed in) and a Sales card with a 31-day daily sales chart and today / 7 / 31 / 90-day totals with change on the period before; then listings to finish, shopper plate searches with no matching stock (vehicle only, never the plate), plate lookups against the spend cap, and an email of unmatched vehicles to the buying team
+- **Orders**: every order with status tabs; an order page to mark it paid, dispatch it with courier and tracking number, or cancel it (stock goes back)
+- **Listings**: Active, Out of stock, Drafts, Needs attention and All tabs, searchable
+- **Customers**: every shopper who has signed in with Google: joined, last signed in, sign-in count and recent searches
+- **Create listing / Edit listing**: part number, fitment suggested from other parts with the same part number (high confidence) or the same engine code (medium), part details including brand, sub type and up to 5 featured refinements, up to 4 photos (JPG, PNG or WebP, checked by file signature), a checklist and a shopper preview. Drafts can be saved without a price or photo; listing needs a part number or engine code, a price and a photo. Live listings can be ended.
 - **Part requests**: shoppers' requests with contact details and photos, moved from New to Quoted to Closed
 - **Vehicle lookup tester**: which vehicle a plate identifies, the parts confirmed for it, and unconfirmed parts with the same engine code. Staff checks aren't counted as shopper searches.
 - **Settings**: cost per plate lookup, monthly cap and buying team email (starting values from `ADMIN_LOOKUP_COST`, `ADMIN_LOOKUP_BUDGET`, `ADMIN_BUYING_TEAM_EMAIL`)
@@ -86,21 +92,26 @@ Everything (baskets, orders, part requests) is held in memory, so a restart or r
 | PATCH | `/api/baskets/{id}/items/{productId}` `{ "quantity" }` | Change quantity (0 removes) |
 | DELETE | `/api/baskets/{id}/items/{productId}` | Remove a part |
 | GET | `/api/site` | Business details and Products menu (header and footer on every page) |
-| GET | `/api/shop?category=&q=&condition=USED,NEW&minPrice=&maxPrice=&fitsOnly=&vehicleId=&sort=&page=&pageSize=&ids=` | Shop page: filtered, sorted, paged results and category counts. `sort` is `best-selling`, `newest`, `price-low` or `price-high` |
+| GET | `/api/shop?category=&q=&condition=USED,NEW&minPrice=&maxPrice=&fitsOnly=&vehicleId=&brand=&subType=&refinement=&sort=&page=&pageSize=&ids=` | Shop page: filtered, sorted, paged results, category counts, and Brand / Sub type / Featured refinement values with counts. `brand`, `subType` and `refinement` repeat for several values. `sort` is `best-selling`, `newest`, `price-low` or `price-high` |
 | POST | `/api/orders` `{ basketId, name, email, phone, line1, line2, town, postcode, notes }` | Place an order (UK postcode checked; stock taken all-or-nothing) |
 | GET | `/api/orders/{reference}` | Order received page |
 | POST | `/api/part-requests` (multipart) | Request a part. The plate is stored masked (`AB12 ***`) with the vehicle it identified |
 | GET | `/api/product-photos/{id}` | A photo staff uploaded for a part |
+| POST | `/api/account/google` `{ "credential" }` | Sign in with a Google ID token; returns a shopper token |
+| GET / DELETE | `/api/account`, `/api/account/session` | The signed-in shopper; sign out |
+| GET / POST / DELETE | `/api/account/searches` `{ "query" }` | Recent searches (10, newest first); add one; clear them |
 
 Admin routes need `Authorization: Bearer <JWT>` from `POST /api/admin/session`, except that sign-in call itself:
 
 | Method | Path | Purpose |
 | --- | --- | --- |
 | POST / GET / DELETE | `/api/admin/session` | Sign in `{ "email", "password" }` (returns a JWT), check the session, sign out (revokes the JWT) |
-| GET | `/api/admin/dashboard` | Counts, work queue and unmatched vehicle searches |
+| GET | `/api/admin/dashboard` | Overview: tasks, sales, listing counts, work queue and unmatched vehicle searches |
 | GET | `/api/admin/products`, `/api/admin/products/{id}`, `/api/admin/categories` | Every part with its work status; one part for editing; categories |
 | POST | `/api/admin/products`, `/api/admin/products/{id}` (multipart) | Create or update a part: `part` is the form as JSON, plus up to 4 `photos` |
-| GET | `/api/admin/fitment?oe=&engineCode=&productId=` | Suggested vehicles with source and confidence |
+| GET | `/api/admin/fitment?partNumber=&engineCode=&productId=` | Suggested vehicles with source and confidence |
+| GET | `/api/admin/customers` | Shoppers who have signed in with Google, with their recent searches |
+| GET / PATCH | `/api/admin/orders`, `/api/admin/orders/{ref}` `{ "status", "courier", "trackingNumber" }` | Orders; mark paid (`AWAITING_DISPATCH`), `DISPATCHED` or `CANCELLED` |
 | POST | `/api/admin/plate-check` `{ "registration" }` | Vehicle, confirmed parts and same-engine parts for a plate |
 | GET / PATCH | `/api/admin/part-requests`, `/api/admin/part-requests/{ref}` `{ "status" }` | Part requests; set New, Quoted or Closed |
 | GET | `/api/admin/part-requests/{ref}/photos/{index}` | A shopper's photo |
@@ -127,7 +138,6 @@ Delivery rules: any pallet item (engines, gearboxes) costs £79; otherwise track
 | Orders and part requests | In memory, lost on restart | Database with access control and a retention policy (they hold personal data); email part requests to the sales team |
 | Payments | Checkout places the order without taking payment | Connect the chosen provider |
 | Product descriptions | Generated from condition and grade | The client's copy for each part |
-| Accounts, trade accounts | Not built | Next phase |
 
 Placeholders in square brackets (e.g. `[UK NUMBER]`, `[Courier names]`) need the client's real details.
 

@@ -6,8 +6,9 @@ import java.util.List;
 
 /**
  * A part in the catalogue. Prices are in GBP and include VAT.
- * fitsVehicleIds lists the vehicles staff have confirmed the part fits. crossReferences are other OE numbers
- * for the same part. Only LIVE parts are shown to shoppers; a draft may not have a price or photo yet.
+ * fitsVehicleIds lists the vehicles staff have confirmed the part fits. brand, subType and refinements drive the
+ * shop's eBay-style filters (Brand, Sub type, Featured refinements). Only LIVE parts are shown to shoppers; a draft
+ * may not have a price or photo yet.
  */
 public record Product(
         String id,
@@ -16,9 +17,11 @@ public record Product(
         Condition condition,
         String grade,
         BigDecimal price,
-        String oeNumber,
-        List<String> crossReferences,
+        String partNumber,
         String engineCode,
+        String brand,
+        String subType,
+        List<String> refinements,
         String imageUrl,
         List<String> fitsVehicleIds,
         Shipping shipping,
@@ -29,12 +32,12 @@ public record Product(
 
     public Product {
         fitsVehicleIds = fitsVehicleIds == null ? List.of() : List.copyOf(fitsVehicleIds);
-        crossReferences = crossReferences == null ? List.of() : List.copyOf(crossReferences);
+        refinements = refinements == null ? List.of() : List.copyOf(refinements);
     }
 
     public Product withStock(int newStock) {
-        return new Product(id, name, categoryId, condition, grade, price, oeNumber, crossReferences, engineCode, imageUrl, fitsVehicleIds,
-                shipping, newStock, bestSeller, addedOn, status);
+        return new Product(id, name, categoryId, condition, grade, price, partNumber, engineCode, brand, subType, refinements,
+                imageUrl, fitsVehicleIds, shipping, newStock, bestSeller, addedOn, status);
     }
 
     public boolean live() {
@@ -46,10 +49,10 @@ public record Product(
         return imageUrl != null && !Images.isSample(imageUrl);
     }
 
-    /** The reference shoppers search by: the OE number when known, otherwise the engine code. */
+    /** The reference shoppers search by: the part number when known, otherwise the engine code. */
     public String reference() {
-        if (oeNumber != null && !oeNumber.isBlank()) {
-            return "OE " + oeNumber;
+        if (partNumber != null && !partNumber.isBlank()) {
+            return "Part no. " + partNumber;
         }
         if (engineCode != null && !engineCode.isBlank()) {
             return "Engine code " + engineCode;

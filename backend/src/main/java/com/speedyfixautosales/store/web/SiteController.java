@@ -4,6 +4,7 @@ import com.speedyfixautosales.store.catalog.CatalogRepository;
 import com.speedyfixautosales.store.catalog.MenuGroup;
 import com.speedyfixautosales.store.config.SiteProperties;
 import java.util.List;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -13,17 +14,21 @@ public class SiteController {
 
     private final SiteProperties site;
     private final CatalogRepository repository;
+    private final String googleClientId;
 
-    public SiteController(SiteProperties site, CatalogRepository repository) {
+    public SiteController(SiteProperties site, CatalogRepository repository,
+                          @Value("${account.google-client-id:}") String googleClientId) {
         this.site = site;
         this.repository = repository;
+        this.googleClientId = googleClientId.trim();
     }
 
-    public record SiteResponse(HomeResponse.Site site, List<MenuGroup> menu) {
+    /** googleClientId is public (Google's button needs it in the browser); empty until Google sign-in is set up. */
+    public record SiteResponse(HomeResponse.Site site, List<MenuGroup> menu, String googleClientId) {
     }
 
     @GetMapping("/api/site")
     public SiteResponse site() {
-        return new SiteResponse(HomeResponse.Site.from(site), repository.menu());
+        return new SiteResponse(HomeResponse.Site.from(site), repository.menu(), googleClientId);
     }
 }

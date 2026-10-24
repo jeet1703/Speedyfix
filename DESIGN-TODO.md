@@ -9,7 +9,6 @@ These links already appear in the header, top bar or footer, but they all open t
 | Page | Route | Linked from | What is needed |
 | --- | --- | --- | --- |
 | My account | `/account` | Top bar (twice), header icon, footer | Sign in, create account, forgotten password, order history, saved vehicles, addresses. Planned for the next build phase. |
-| Trade accounts | `/trade` | Top bar, footer | Trade application form, trade pricing explanation, trade sign-in. Next build phase. |
 | About us | `/about` | Header, footer ("Read more") | Layout for company story, workshop photos, team or facilities. Needs client copy. |
 | Returns and warranty | `/returns` | Header, footer | Long-form policy layout, plus a returns request flow if the client wants one. |
 | Delivery partners | `/delivery` | Footer | Courier names, pallet vs parcel rules (£79 pallet; £9.95 parcel, free from £100), dispatch times. |
@@ -57,5 +56,5 @@ The long-form pages (About, Returns, Delivery, FAQ, Terms, Privacy) could share 
 2. Dedicated 404 page and loading states.
 3. Favicon, share image, and the decision on the footer payment logos.
 4. Payment step, once the provider is chosen.
-5. Accounts and trade accounts (next build phase).
+5. Customer accounts (sign in with Google is built; order history and saved vehicles next).
 6. Transactional emails.

@@ -80,9 +80,16 @@ export interface Site {
 export interface SiteData {
   site: Site;
   menu: MenuGroup[];
+  /** Google's OAuth client id for Sign in with Google; empty until it's set up on the server. */
+  googleClientId: string;
 }
 
 export type ShopSort = 'best-selling' | 'newest' | 'price-low' | 'price-high';
+
+export interface Facet {
+  value: string;
+  count: number;
+}
 
 export interface ShopResult {
   items: Product[];
@@ -91,12 +98,17 @@ export interface ShopResult {
   pageSize: number;
   pageCount: number;
   categories: { id: string; name: string; count: number }[];
+  brands: Facet[];
+  subTypes: Facet[];
+  refinements: Facet[];
 }
 
 export interface ProductDetail {
   product: Product;
-  oeNumber: string | null;
+  partNumber: string | null;
   engineCode: string | null;
+  brand: string | null;
+  subType: string | null;
   priceExVat: number;
   description: string;
   fitsVehicles: string[];
@@ -117,7 +129,7 @@ export interface OrderForm {
 export interface Order {
   reference: string;
   placedAt: string;
-  status: 'AWAITING_PAYMENT';
+  status: OrderStatus;
   customer: { name: string; email: string; phone: string };
   address: { line1: string; line2: string | null; town: string; postcode: string };
   notes: string | null;
@@ -126,6 +138,23 @@ export interface Order {
   subtotal: number;
   total: number;
   vatIncluded: number;
+  dispatch: { courier: string; trackingNumber: string | null; dispatchedAt: string } | null;
+}
+
+export type OrderStatus = 'AWAITING_PAYMENT' | 'AWAITING_DISPATCH' | 'DISPATCHED' | 'CANCELLED';
+
+export interface Customer {
+  id: string;
+  email: string;
+  name: string;
+  pictureUrl: string | null;
+  joinedAt: string;
+}
+
+export interface AccountSession {
+  token: string;
+  expiresAt: string;
+  customer: Customer;
 }
 
 export type ReplyBy = 'WHATSAPP' | 'PHONE' | 'EMAIL';

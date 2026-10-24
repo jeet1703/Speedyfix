@@ -38,7 +38,7 @@ export function ProductPage() {
           <p>{error}</p>
           <div className="empty__actions">
             <Link className="btn btn--primary" to="/products">Browse all parts</Link>
-            <Link className="btn btn--outline" to="/request-a-part">Request a part</Link>
+            <Link className="btn btn--outline" to="/request-a-part">Request a Part</Link>
           </div>
         </div>
       </Layout>
@@ -82,7 +82,9 @@ export function ProductPage() {
           <dl className="product__meta">
             <div><dt>SKU:</dt><dd>{p.id.toUpperCase()}</dd></div>
             <div><dt>Category:</dt><dd>{p.categoryName}</dd></div>
-            {detail.oeNumber && <div><dt>OE number:</dt><dd className="mono">{detail.oeNumber}</dd></div>}
+            {detail.partNumber && <div><dt>Part number:</dt><dd className="mono">{detail.partNumber}</dd></div>}
+            {detail.brand && <div><dt>Brand:</dt><dd>{detail.brand}</dd></div>}
+            {detail.subType && <div><dt>Sub type:</dt><dd>{detail.subType}</dd></div>}
             {detail.engineCode && <div><dt>Engine code:</dt><dd className="mono">{detail.engineCode}</dd></div>}
           </dl>
           <Perks shipping={p.shipping} />
@@ -163,7 +165,7 @@ function FitCheck({ detail, vehicle }: { detail: ProductDetail; vehicle: Vehicle
           <span>
             {fit === 'FITS' && <>Fits your {vehicle.make} {vehicle.model}, {vehicle.engine}.</>}
             {fit === 'DOES_NOT_FIT' && <>Doesn’t fit your {vehicle.make} {vehicle.model}. <Link to="/products?fitsOnly=true">See parts that fit</Link>.</>}
-            {fit === 'UNCONFIRMED' && <>Fit for your {vehicle.make} {vehicle.model} isn’t confirmed yet. Ask us and we’ll check it by OE number before you order.</>}
+            {fit === 'UNCONFIRMED' && <>Fit for your {vehicle.make} {vehicle.model} isn’t confirmed yet. Ask us and we’ll check it by part number before you order.</>}
             {' '}{!editing && <button type="button" className="link-btn" onClick={() => setEditing(true)}>Check another reg</button>}
           </span>
         </p>
@@ -237,7 +239,7 @@ function DescriptionTab({ detail }: { detail: ProductDetail }) {
     ...(p.grade ? [['Grade', p.grade] as [string, string]] : []),
     ['Warranty', data?.site.warranty ?? ''],
     ['Ships from', data?.site.shipsFrom ?? ''],
-    ['Fits', detail.fitsVehicles.length ? `${detail.fitsVehicles.join('; ')} (check your reg above)` : 'Not confirmed yet. Check by OE number or ask us.']
+    ['Fits', detail.fitsVehicles.length ? `${detail.fitsVehicles.join('; ')} (check your reg above)` : 'Not confirmed yet. Check by part number or ask us.']
   ];
   return (
     <>
@@ -258,9 +260,9 @@ function FitmentTab({ detail, vehicle }: { detail: ProductDetail; vehicle: Vehic
           <ul className="fit-list">{detail.fitsVehicles.map((v) => <li key={v}><Icon name="check" size={18} />{v}</li>)}</ul>
         </>
       ) : (
-        <p className="tabs__text">We haven’t confirmed which vehicles this part fits yet. Match it by OE number, or <Link to="/request-a-part">send us your reg</Link> and we’ll check.</p>
+        <p className="tabs__text">We haven’t confirmed which vehicles this part fits yet. Match it by part number, or <Link to="/request-a-part">send us your reg</Link> and we’ll check.</p>
       )}
-      {detail.oeNumber && <p className="tabs__text">OE number: <span className="mono">{detail.oeNumber}</span></p>}
+      {detail.partNumber && <p className="tabs__text">Part number: <span className="mono">{detail.partNumber}</span></p>}
       {detail.engineCode && <p className="tabs__text">Engine code: <span className="mono">{detail.engineCode}</span></p>}
       {!vehicle && <p className="tabs__text">Add your reg above to see whether it fits your car.</p>}
     </>

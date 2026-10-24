@@ -3,8 +3,8 @@ import type { Site } from '../api/types';
 import { Logo } from './Logo';
 
 const COLUMNS = [
-  { title: 'Links', links: [['Home', '/'], ['About us', '/about'], ['My account', '/account'], ['Trade accounts', '/trade'], ['Contact us', '/contact']] },
-  { title: 'Information', links: [['Terms and conditions', '/terms'], ['Privacy policy', '/privacy'], ['Delivery partners', '/delivery'], ['Returns and warranty', '/returns'], ['FAQs', '/faq']] }
+  { title: 'Links', links: [['Home', '/'], ['About us', '/about'], ['My account', '/account'], ['Contact us', '/contact']] },
+  { title: 'Information', links: [['Terms and conditions', '/terms'], ['Privacy policy', '/privacy'], ['Delivery partners', '/delivery'], ['FAQs', '/faq']] }
 ];
 
 export function Footer({ site }: { site: Site }) {
@@ -35,7 +35,7 @@ export function Footer({ site }: { site: Site }) {
       <div className="container footer__base">
         <p>© {new Date().getFullYear()} {site.name}. All prices in GBP and include VAT.</p>
         <ul className="footer__pay" aria-label="Payment methods">
-          {['Visa', 'Mastercard', 'Apple Pay', 'Google Pay'].map((p) => <li key={p}>{p}</li>)}
+          {['Visa', 'Mastercard', 'PayPal', 'Apple Pay', 'Google Pay'].map((p) => <li key={p}>{p}</li>)}
         </ul>
       </div>
     </footer>

@@ -80,13 +80,13 @@ function PartsTable({ title, rows, empty, note }: { title: string; rows: Product
         <div className="table-wrap">
           <table className="table">
             <thead>
-              <tr><th scope="col">Part</th><th scope="col">OE number</th><th scope="col" className="num">Price</th><th scope="col" className="num">Stock</th><th scope="col">Status</th><th scope="col"><span className="sr-only">Action</span></th></tr>
+              <tr><th scope="col">Part</th><th scope="col">Part number</th><th scope="col" className="num">Price</th><th scope="col" className="num">Stock</th><th scope="col">Status</th><th scope="col"><span className="sr-only">Action</span></th></tr>
             </thead>
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id}>
                   <td>{r.name}</td>
-                  <td className="mono">{r.oeNumber ?? '—'}</td>
+                  <td className="mono">{r.partNumber ?? '—'}</td>
                   <td className="num">{gbpOrDash(r.price)}</td>
                   <td className="num">{r.stock}</td>
                   <td><WorkPill status={r.workStatus} /></td>

@@ -16,7 +16,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * The Add part / Edit part form. A draft can be saved without a price or photo; AdminCatalogService checks
+ * The Create listing / Edit listing form. A draft can be saved without a price or photo; AdminCatalogService checks
  * what publishing needs. keepPhotoIds lists the part's current photos to keep (null keeps them all).
  */
 public record ProductForm(
@@ -26,10 +26,12 @@ public record ProductForm(
         @Pattern(regexp = "^$|^[ABC]$", message = "Grade must be A, B or C.") String grade,
         @DecimalMin(value = "0.01", message = "Enter a price above £0.") @DecimalMax(value = "99999.99", message = "Enter a price under £100,000.")
         @Digits(integer = 5, fraction = 2, message = "Enter the price in pounds and pence, like 149.00.") BigDecimal price,
-        @Size(max = 40, message = "Keep the OE number under 40 characters.") String oeNumber,
-        @Size(max = AdminCatalogService.MAX_CROSS_REFERENCES, message = "Add up to 5 cross-reference numbers.")
-        List<@Size(max = 40, message = "Keep each cross-reference under 40 characters.") String> crossReferences,
+        @Size(max = 40, message = "Keep the part number under 40 characters.") String partNumber,
         @Size(max = 20, message = "Keep the engine code under 20 characters.") String engineCode,
+        @Size(max = 60, message = "Keep the brand under 60 characters.") String brand,
+        @Size(max = 60, message = "Keep the sub type under 60 characters.") String subType,
+        @Size(max = AdminCatalogService.MAX_REFINEMENTS, message = "Add up to 5 featured refinements.")
+        List<@Size(max = 60, message = "Keep each featured refinement under 60 characters.") String> refinements,
         @NotNull(message = "Choose how the part ships.") Shipping shipping,
         @NotNull(message = "Enter the stock quantity.") @Min(value = 0, message = "Stock can’t be below 0.") @Max(value = 999, message = "Stock must be 999 or fewer.") Integer stock,
         boolean bestSeller,

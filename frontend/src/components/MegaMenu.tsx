@@ -22,7 +22,7 @@ export function MegaMenu({ groups, id, onNavigate }: { groups: MenuGroup[]; id: 
         <Link className="btn btn--dark btn--block" to="/products" onClick={onNavigate}>Shop all parts</Link>
         <Link className="megamenu__promo" to="/request-a-part" onClick={onNavigate}>
           <span>Can’t find the part?</span>
-          <strong>Request a part</strong>
+          <strong>Request a Part</strong>
         </Link>
       </div>
     </div>

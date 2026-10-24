@@ -1,18 +1,20 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import type { Crumb } from '../components/PageTitle';
 import { useAdminAuth } from './AdminAuth';
 
-const NAV = [
-  { label: 'Dashboard', to: '/admin', match: (p: string) => p === '/admin' },
-  { label: 'Products', to: '/admin/products', match: (p: string) => p.startsWith('/admin/products') && p !== '/admin/products/new' },
-  { label: 'Add part', to: '/admin/products/new', match: (p: string) => p === '/admin/products/new' },
+/** Seller Hub-style tabs. Marketing, payments and the like aren't in scope for this shop. */
+const TABS = [
+  { label: 'Overview', to: '/admin', match: (p: string) => p === '/admin' },
+  { label: 'Orders', to: '/admin/orders', match: (p: string) => p.startsWith('/admin/orders') },
+  { label: 'Listings', to: '/admin/listings', match: (p: string) => p.startsWith('/admin/listings') || p.startsWith('/admin/products') },
+  { label: 'Customers', to: '/admin/customers', match: (p: string) => p.startsWith('/admin/customers') },
   { label: 'Part requests', to: '/admin/part-requests', match: (p: string) => p.startsWith('/admin/part-requests') },
-  { label: 'Vehicle lookup tester', to: '/admin/vehicle-lookup', match: (p: string) => p.startsWith('/admin/vehicle-lookup') },
+  { label: 'Vehicle lookup', to: '/admin/vehicle-lookup', match: (p: string) => p.startsWith('/admin/vehicle-lookup') },
   { label: 'Settings', to: '/admin/settings', match: (p: string) => p.startsWith('/admin/settings') }
 ];
 
-/** Dark sidebar and page header around every signed-in admin page. title sets the browser tab and the h1. */
+/** Seller Hub-style frame around every signed-in admin page: top bar, tab row, then the page. title sets the tab and the h1. */
 export function AdminLayout({ title, crumbs, actions, children }: {
   title: string;
   crumbs?: Crumb[];
@@ -21,43 +23,34 @@ export function AdminLayout({ title, crumbs, actions, children }: {
 }) {
   const { pathname } = useLocation();
   const { staff, signOut } = useAdminAuth();
-  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
-    document.title = `${title} | SpeedyFix Auto Sales admin`;
+    document.title = `${title} | SpeedyFix Auto Sales Seller Hub`;
   }, [title]);
-
-  useEffect(() => setMenuOpen(false), [pathname]);
 
   return (
     <div className="admin">
       <a href="#admin-main" className="skip-link">Skip to content</a>
-      <aside className="admin-side">
-        <div className="admin-side__top">
-          <Link to="/admin" className="admin-logo" aria-label="SpeedyFix Auto Sales admin, dashboard">
+      <header className="hub-bar">
+        <div className="hub-bar__inner">
+          <Link to="/admin" className="admin-logo" aria-label="SpeedyFix Auto Sales Seller Hub, overview">
             <span className="admin-logo__mark">SPEEDY<span>FIX</span></span>
-            <span className="admin-logo__sub">Admin</span>
+            <span className="admin-logo__sub">Seller Hub</span>
           </Link>
-          <button type="button" className="admin-side__toggle" aria-expanded={menuOpen} aria-controls="admin-nav"
-            onClick={() => setMenuOpen((o) => !o)}>
-            Menu
-          </button>
+          <div className="hub-bar__user">
+            <span>{staff?.email}<span className="hub-bar__role"> · {staff?.role === 'MASTER' ? 'Master admin' : 'Staff'}</span></span>
+            <a href={import.meta.env.BASE_URL} target="_blank" rel="noreferrer">View shop</a>
+            <button type="button" className="hub-bar__signout" onClick={() => void signOut()}>Sign out</button>
+          </div>
         </div>
-        <nav id="admin-nav" className={'admin-nav' + (menuOpen ? ' admin-nav--open' : '')} aria-label="Admin">
+        <nav className="hub-tabs" aria-label="Seller Hub">
           <ul>
-            {NAV.map((item) => (
-              <li key={item.to}>
-                <Link to={item.to} aria-current={item.match(pathname) ? 'page' : undefined}>{item.label}</Link>
-              </li>
+            {TABS.map((t) => (
+              <li key={t.to}><Link to={t.to} aria-current={t.match(pathname) ? 'page' : undefined}>{t.label}</Link></li>
             ))}
           </ul>
         </nav>
-        <div className={'admin-side__foot' + (menuOpen ? ' admin-side__foot--open' : '')}>
-          <p>Signed in as {staff?.name}</p>
-          <p className="admin-side__role">{staff?.role === 'MASTER' ? 'Master admin' : 'Catalogue staff'}</p>
-          <button type="button" className="admin-side__signout" onClick={() => void signOut()}>Sign out</button>
-        </div>
-      </aside>
+      </header>
 
       <main id="admin-main" className="admin-main" tabIndex={-1}>
         <header className="admin-head">
