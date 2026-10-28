@@ -56,7 +56,6 @@
 .video__player { position: relative; aspect-ratio: 16 / 9; border-radius: var(--radius); overflow: hidden; background: var(--ink); }
 .video__player img, .video__player iframe { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border: 0; }
 .video__play { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 84px; height: 84px; border: 0; border-radius: 50%; background: var(--accent); color: var(--ink); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding-left: 4px; }
-.video__pending { position: absolute; left: 16px; right: 16px; bottom: 16px; background: rgba(20, 23, 26, 0.82); color: #fff; font-size: 13px; padding: 10px 12px; border-radius: 4px; }
 @media (max-width: 900px) { .video__inner { grid-template-columns: 1fr; gap: 24px; } }
 
 /* Section headings */
