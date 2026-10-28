@@ -34,9 +34,6 @@ export function Footer({ site }: { site: Site }) {
       </div>
       <div className="container footer__base">
         <p>© {new Date().getFullYear()} {site.name}. All prices in GBP and include VAT.</p>
-        <ul className="footer__pay" aria-label="Payment methods">
-          {['Visa', 'Mastercard', 'PayPal', 'Apple Pay', 'Google Pay'].map((p) => <li key={p}>{p}</li>)}
-        </ul>
       </div>
     </footer>
   );
