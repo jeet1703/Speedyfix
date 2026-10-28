@@ -83,6 +83,8 @@ export interface SiteData {
   menu: MenuGroup[];
   /** Google's OAuth client id for Sign in with Google; empty until it's set up on the server. */
   googleClientId: string;
+  /** True until DVSA is connected, while only the sample plates resolve. */
+  demoPlates: boolean;
 }
 
 export type ShopSort = 'best-selling' | 'newest' | 'price-low' | 'price-high';

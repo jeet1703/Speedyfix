@@ -39,7 +39,8 @@ public class AdminSettingsController {
     }
 
     /** Settings plus read-only facts about this server, shown on the Settings page. */
-    public record SettingsView(AdminSettings.Values values, String staffName, String staffEmail, long sessionHours, int demoVehicles) {
+    public record SettingsView(AdminSettings.Values values, String staffName, String staffEmail, long sessionHours, int demoVehicles,
+                               boolean demoPlates) {
     }
 
     @GetMapping
@@ -56,6 +57,7 @@ public class AdminSettingsController {
 
     private SettingsView view(HttpServletRequest request) {
         AdminAuthService.Staff staff = AdminAuthInterceptor.staff(request);
-        return new SettingsView(settings.get(), staff.name(), staff.email(), AdminAuthService.SESSION_LENGTH.toHours(), vehicles.all().size());
+        return new SettingsView(settings.get(), staff.name(), staff.email(), AdminAuthService.SESSION_LENGTH.toHours(), vehicles.all().size(),
+                vehicles.demoPlates());
     }
 }

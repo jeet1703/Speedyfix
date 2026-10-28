@@ -65,7 +65,7 @@ export function Header({ menu }: { menu: MenuGroup[] }) {
         <Logo />
         <nav aria-label="Main" className={'nav' + (mobileOpen ? ' nav--open' : '')} id="main-nav">
           <ul>
-            {NAV.slice(0, 2).map(navLink)}
+            {NAV.slice(0, 1).map(navLink)}
             <li ref={productsRef} className="nav__products" onMouseEnter={cancelClose} onMouseLeave={closeSoon}>
               <button type="button" aria-expanded={productsOpen} aria-controls="products-menu"
                 className={current('/products') ? 'is-current' : undefined}
@@ -78,7 +78,7 @@ export function Header({ menu }: { menu: MenuGroup[] }) {
               </button>
               {productsOpen && <MegaMenu id="products-menu" groups={menu} onNavigate={() => setProductsOpen(false)} />}
             </li>
-            {NAV.slice(2).map(navLink)}
+            {NAV.slice(1).map(navLink)}
           </ul>
         </nav>
         <div className="header__actions">

@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { PlateField } from '../../components/PlateField';
+import { useSite } from '../../state/SiteContext';
 import { adminApi, errorMessage } from '../adminApi';
 import { AdminLayout } from '../AdminLayout';
 import { gbpOrDash, WorkPill } from '../components';
@@ -12,6 +13,7 @@ export function VehicleTesterPage() {
   const [result, setResult] = useState<PlateCheck | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const site = useSite();
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -45,7 +47,9 @@ export function VehicleTesterPage() {
           <button type="submit" className="btn btn--dark" disabled={busy}>{busy ? 'Checking…' : 'Check plate'}</button>
         </form>
         {error && <p id="tester-error" className="field-error" role="alert">{error}</p>}
-        <p className="field__hint">The vehicle data is demo data for now: AB12 CDE, VX16 ABC and JG17 XEE resolve. Connect a licensed UK vehicle data provider before launch.</p>
+        <p className="field__hint">{site.data?.demoPlates
+          ? 'The vehicle data is demo data for now: AB12 CDE, VX16 ABC and JG17 XEE resolve. Add the DVSA keys to look up real plates.'
+          : 'Plates are looked up with the DVSA MOT History API: make, model, year, engine size and fuel. DVSA doesn’t give engine codes.'}</p>
       </section>
 
       {result && v && (

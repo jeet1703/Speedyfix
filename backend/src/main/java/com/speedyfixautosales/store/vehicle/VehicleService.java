@@ -61,6 +61,11 @@ public class VehicleService {
         return lookup.all();
     }
 
+    /** True while plates come from the sample list rather than DVSA, so pages can suggest the demo plates. */
+    public boolean demoPlates() {
+        return lookup.demo();
+    }
+
     static String normalise(String registration) {
         return registration == null ? "" : registration.toUpperCase(Locale.UK).replaceAll("[^A-Z0-9]", "");
     }

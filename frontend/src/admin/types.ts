@@ -157,6 +157,7 @@ export interface SettingsView {
   staffEmail: string;
   sessionHours: number;
   demoVehicles: number;
+  demoPlates: boolean;
 }
 
 export interface CustomerRow {

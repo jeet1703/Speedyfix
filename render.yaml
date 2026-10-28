@@ -38,3 +38,13 @@ services:
         sync: false
       - key: DATABASE_PASSWORD
         sync: false
+      # DVSA MOT History API for real number plate lookups (all four from DVSA's approval email). Without them the
+      # site uses demo plates.
+      - key: DVSA_CLIENT_ID
+        sync: false
+      - key: DVSA_CLIENT_SECRET
+        sync: false
+      - key: DVSA_API_KEY
+        sync: false
+      - key: DVSA_TOKEN_URL
+        sync: false

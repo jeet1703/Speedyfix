@@ -82,8 +82,10 @@ export function SettingsPage() {
             <dl className="facts facts--stack">
               <div><dt>Signed in as</dt><dd>{view.staffName} ({view.staffEmail})</dd></div>
               <div><dt>Sign-in</dt><dd>Email and password for the master account (the ADMIN_EMAIL and ADMIN_PASSWORD secrets). Sessions last {view.sessionHours} hours.</dd></div>
-              <div><dt>Vehicle data</dt><dd>Demo data, {view.demoVehicles} sample vehicles. Connect a licensed UK vehicle data provider before launch.</dd></div>
-              <div><dt>Storage</dt><dd>Parts, photos, orders, requests and these settings are held in memory, so a redeploy resets them.</dd></div>
+              <div><dt>Vehicle data</dt><dd>{view.demoPlates
+                ? `Demo data, ${view.demoVehicles} sample vehicles. Add the DVSA MOT History API keys to look up real plates.`
+                : 'Real UK plates from the DVSA MOT History API. Each plate is looked up once and remembered for 30 days.'}</dd></div>
+              <div><dt>Storage</dt><dd>Orders, customers, baskets, part requests and these settings are held in memory for now, so a redeploy resets them.</dd></div>
             </dl>
           </section>
         </div>
