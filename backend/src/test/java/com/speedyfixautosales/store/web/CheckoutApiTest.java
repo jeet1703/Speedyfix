@@ -38,13 +38,13 @@ class CheckoutApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(2))
                 .andExpect(jsonPath("$.items[0].id").value("yd25-engine"))
-                .andExpect(jsonPath("$.categories", hasSize(10)));
+                .andExpect(jsonPath("$.categories", hasSize(11)));
     }
 
     @Test
     void shopShowsOnlyPartsThatFitWhenAsked() throws Exception {
         mvc.perform(get("/api/shop").param("vehicleId", "navara").param("fitsOnly", "true"))
-                .andExpect(jsonPath("$.total").value(3))
+                .andExpect(jsonPath("$.total").value(4))
                 .andExpect(jsonPath("$.items[0].fit").value("FITS"));
     }
 
@@ -52,7 +52,7 @@ class CheckoutApiTest {
     void shopPagesAndSortsByPrice() throws Exception {
         mvc.perform(get("/api/shop").param("sort", "price-high").param("pageSize", "4").param("page", "2"))
                 .andExpect(jsonPath("$.page").value(2))
-                .andExpect(jsonPath("$.pageCount").value(4))
+                .andExpect(jsonPath("$.pageCount").value(5))
                 .andExpect(jsonPath("$.items", hasSize(4)))
                 .andExpect(jsonPath("$.items[0].id").value("rb25-turbo"));
     }

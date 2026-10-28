@@ -8,6 +8,7 @@ import { Layout } from '../components/Layout';
 import { PlateFinder } from '../components/PlateFinder';
 import { ProductCarousel } from '../components/ProductCarousel';
 import { Reviews } from '../components/Reviews';
+import { HomeSkeleton } from '../components/Skeleton';
 import { VideoSection } from '../components/VideoSection';
 import { useStore } from '../state/StoreContext';
 
@@ -34,7 +35,7 @@ export function HomePage() {
           <button type="button" className="btn btn--primary" onClick={() => load(vehicle?.id)}>Try again</button>
         </div>
       )}
-      {!data && !error && <div className="state" aria-busy="true"><p>Loading the store…</p></div>}
+      {!data && !error && <HomeSkeleton />}
       {data && (
         <>
           <HeroSlider slides={data.slides} />

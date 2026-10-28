@@ -3,12 +3,13 @@ import { useSite } from '../state/SiteContext';
 import { BasketDrawer } from './BasketDrawer';
 import { Footer } from './Footer';
 import { Header } from './Header';
+import { HomeSkeleton, Skeleton } from './Skeleton';
 import { Toast } from './Toast';
 import { TopBar } from './TopBar';
 
 /** Header, footer, basket drawer and toast around every page. title sets the browser tab. */
 export function Layout({ title, children }: { title?: string; children: ReactNode }) {
-  const { data, error, retry } = useSite();
+  const { data, error, waking, retry } = useSite();
 
   useEffect(() => {
     document.title = title ? `${title} | SpeedyFix Auto Sales` : 'SpeedyFix Auto Sales | Engines and engine parts';
@@ -24,7 +25,23 @@ export function Layout({ title, children }: { title?: string; children: ReactNod
     );
   }
   if (!data) {
-    return <main className="state" aria-busy="true"><p>Loading the store…</p></main>;
+    // The header and footer need the site details, so until they arrive the whole page is a skeleton.
+    return (
+      <main aria-busy="true" aria-label="Loading the store">
+        <div className="layout-skeleton__top"><div className="container"><Skeleton width={220} height={12} /></div></div>
+        <div className="container layout-skeleton__header">
+          <Skeleton width={180} height={40} />
+          <Skeleton className="layout-skeleton__search" height={48} />
+          <Skeleton width={120} height={40} />
+        </div>
+        {waking && (
+          <p className="container layout-skeleton__waking" role="status">
+            Waking up the store. This can take up to a minute the first time…
+          </p>
+        )}
+        <HomeSkeleton />
+      </main>
+    );
   }
 
   return (

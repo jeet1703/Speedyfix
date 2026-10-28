@@ -1,6 +1,8 @@
 import type {
-  Basket, HomeData, LookupResult, Order, OrderForm, PartRequestReceived, Product, ProductDetail, ShopResult, SiteData
+  AccountSession, Basket, Customer, HomeData, LookupResult, Order, OrderForm, PartRequestReceived, Product, ProductDetail,
+  ShopResult, SiteData
 } from './types';
+import { progress } from './progress';
 
 export const BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
 
@@ -12,6 +14,15 @@ export class ApiError extends Error {
 }
 
 export async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  progress.start();
+  try {
+    return await send<T>(path, init);
+  } finally {
+    progress.done();
+  }
+}
+
+async function send<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
   // FormData sets its own multipart Content-Type, boundary included.
   const json = !(init?.body instanceof FormData);
@@ -71,8 +82,20 @@ export const api = {
     request<Order>('/api/orders', { method: 'POST', body: JSON.stringify({ basketId, ...form }) }),
   getOrder: (reference: string) => request<Order>(`/api/orders/${encodeURIComponent(reference)}`),
 
-  requestPart: (form: FormData) => request<PartRequestReceived>('/api/part-requests', { method: 'POST', body: form })
+  requestPart: (form: FormData) => request<PartRequestReceived>('/api/part-requests', { method: 'POST', body: form }),
+
+  /** credential is the ID token Google's Sign in button hands back. */
+  signInWithGoogle: (credential: string) =>
+    request<AccountSession>('/api/account/google', { method: 'POST', body: JSON.stringify({ credential }) }),
+  me: (token: string) => request<Customer>('/api/account', { headers: bearer(token) }),
+  signOut: (token: string) => request<void>('/api/account/session', { method: 'DELETE', headers: bearer(token) }),
+  searches: (token: string) => request<string[]>('/api/account/searches', { headers: bearer(token) }),
+  recordSearch: (token: string, query: string) =>
+    request<string[]>('/api/account/searches', { method: 'POST', headers: bearer(token), body: JSON.stringify({ query }) }),
+  clearSearches: (token: string) => request<void>('/api/account/searches', { method: 'DELETE', headers: bearer(token) })
 };
+
+const bearer = (token: string) => ({ Authorization: `Bearer ${token}` });
 
 const whole = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 });
 const exact = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' });

@@ -1,0 +1,17 @@
+# PostgreSQL, switched on with SPRING_PROFILES_ACTIVE=postgres.
+# Locally the defaults match compose.yaml (`docker compose up -d db`). On the live server, set DATABASE_URL,
+# DATABASE_USERNAME and DATABASE_PASSWORD from the hosted database's connection details.
+spring:
+  autoconfigure:
+    exclude: ""
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/speedyfix}
+    username: ${DATABASE_USERNAME:speedyfix}
+    password: ${DATABASE_PASSWORD:speedyfix-local-db}
+    hikari:
+      # Small pool: the starter database plans allow a limited number of connections.
+      maximum-pool-size: 5
+  flyway:
+    # Creates or upgrades the tables from db/migration on start-up, on any database.
+    enabled: true
+    locations: classpath:db/migration

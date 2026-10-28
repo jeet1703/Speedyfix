@@ -4,7 +4,10 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Set;
 
-/** Filters for the shop page. Every field is optional; page is 1-based. */
+/**
+ * Filters for the shop page. Every field is optional; page is 1-based. brands, subTypes and refinements are the
+ * eBay-style filters (Brand, Sub type, Featured refinements) and match case-insensitively.
+ */
 public record ShopQuery(
         String category,
         String q,
@@ -13,6 +16,9 @@ public record ShopQuery(
         BigDecimal maxPrice,
         boolean fitsOnly,
         String vehicleId,
+        Set<String> brands,
+        Set<String> subTypes,
+        Set<String> refinements,
         Sort sort,
         int page,
         int pageSize,
@@ -24,6 +30,9 @@ public record ShopQuery(
 
     public ShopQuery {
         conditions = conditions == null ? Set.of() : Set.copyOf(conditions);
+        brands = brands == null ? Set.of() : Set.copyOf(brands);
+        subTypes = subTypes == null ? Set.of() : Set.copyOf(subTypes);
+        refinements = refinements == null ? Set.of() : Set.copyOf(refinements);
         sort = sort == null ? Sort.BEST_SELLING : sort;
         page = Math.max(1, page);
         pageSize = Math.max(1, Math.min(pageSize, 48));

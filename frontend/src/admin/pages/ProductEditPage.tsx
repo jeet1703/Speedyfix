@@ -2,11 +2,11 @@ import { useEffect, useRef, useState, type DragEvent, type FormEvent } from 'rea
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { Vehicle } from '../../api/types';
 import { Icon } from '../../components/Icons';
-import { PlateField } from '../../components/PlateField';
 import { adminApi, errorMessage } from '../adminApi';
 import { AdminLayout } from '../AdminLayout';
 import { ConfidencePill } from '../components';
 import type { CategoryOption, Condition, Fitment, ProductDetail, ProductStatus, Shipping } from '../types';
+import { CardsSkeleton } from '../../components/Skeleton';
 
 const CONDITIONS: { value: Condition; label: string }[] = [
   { value: 'USED', label: 'Used, tested' },
@@ -24,7 +24,7 @@ const SHIPPING: { value: Shipping; label: string }[] = [
   { value: 'PALLET', label: 'Pallet (engines, gearboxes)' }
 ];
 const MAX_PHOTOS = 4;
-const MAX_REFS = 5;
+const MAX_REFINEMENTS = 5;
 const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const gbp = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' });
 
@@ -41,7 +41,7 @@ interface NewPhoto {
   url: string;
 }
 
-/** /admin/products/new and /admin/products/:id. Remounted per id (see AdminApp), so state starts fresh. */
+/** Create listing (/admin/products/new) and Edit listing (/admin/products/:id). Remounted per id (see AdminApp). */
 export function ProductEditPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -52,10 +52,7 @@ export function ProductEditPage() {
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
 
-  const [oe, setOe] = useState('');
-  const [refs, setRefs] = useState<string[]>([]);
-  const [newRef, setNewRef] = useState<string | null>(null);
-  const [donor, setDonor] = useState('');
+  const [partNumber, setPartNumber] = useState('');
   const [rows, setRows] = useState<FitRow[]>([]);
   const [manualId, setManualId] = useState('');
   const [fitNote, setFitNote] = useState('');
@@ -70,6 +67,10 @@ export function ProductEditPage() {
   const [stock, setStock] = useState('1');
   const [shipping, setShipping] = useState<Shipping>('PARCEL');
   const [engineCode, setEngineCode] = useState('');
+  const [brand, setBrand] = useState('');
+  const [subType, setSubType] = useState('');
+  const [refinements, setRefinements] = useState<string[]>([]);
+  const [newRefinement, setNewRefinement] = useState<string | null>(null);
   const [bestSeller, setBestSeller] = useState(false);
 
   const [kept, setKept] = useState<{ id: string; url: string }[]>([]);
@@ -105,8 +106,10 @@ export function ProductEditPage() {
 
   function fill(d: ProductDetail) {
     setDetail(d);
-    setOe(d.oeNumber ?? '');
-    setRefs(d.crossReferences);
+    setPartNumber(d.partNumber ?? '');
+    setBrand(d.brand ?? '');
+    setSubType(d.subType ?? '');
+    setRefinements(d.refinements);
     setRows(d.vehicles.map((fit) => ({ fit, ticked: true })));
     setName(d.name);
     setCategoryId(d.categoryId);
@@ -136,42 +139,19 @@ export function ProductEditPage() {
     e.preventDefault();
     setFitNote('');
     setFitError('');
-    if (!oe.trim() && refs.length === 0) {
-      setFitError('Enter the OE part number first.');
+    if (!partNumber.trim()) {
+      setFitError('Enter the part number first.');
       return;
     }
     setFinding(true);
     try {
-      const found = await adminApi.fitment([oe.trim(), ...refs], '', id ?? null);
+      const found = await adminApi.fitment(partNumber.trim(), '', id ?? null);
       merge(found, (f) => f.confidence === 'HIGH');
       setFitNote(found.length
-        ? `Found ${found.length} ${found.length === 1 ? 'vehicle' : 'vehicles'} from parts with this OE number.`
-        : 'No vehicles are confirmed for this OE number yet. Look up a donor plate or add vehicles by hand.');
+        ? `Found ${found.length} ${found.length === 1 ? 'vehicle' : 'vehicles'} from parts with this part number.`
+        : 'No vehicles are confirmed for this part number yet. Apply the engine-code rule or add vehicles by hand.');
     } catch (err) {
       setFitError(errorMessage(err, 'We couldn’t search for vehicles. Try again.'));
-    } finally {
-      setFinding(false);
-    }
-  }
-
-  async function lookUpDonor(e: FormEvent) {
-    e.preventDefault();
-    setFitNote('');
-    setFitError('');
-    if (!donor.trim()) {
-      setFitError('Enter the donor vehicle’s registration.');
-      return;
-    }
-    setFinding(true);
-    try {
-      const result = await adminApi.plateCheck(donor);
-      merge([result.fitment], () => true);
-      setRows((prev) => prev.map((r) => (r.fit.vehicleId === result.fitment.vehicleId ? { ...r, ticked: true } : r)));
-      if (!engineCode && result.vehicle.engineCode) setEngineCode(result.vehicle.engineCode);
-      setFitNote(`Added ${result.vehicle.make} ${result.vehicle.model} from the donor plate.`);
-      setDonor('');
-    } catch (err) {
-      setFitError(errorMessage(err, 'We couldn’t look up that plate. Try again.'));
     } finally {
       setFinding(false);
     }
@@ -186,7 +166,7 @@ export function ProductEditPage() {
     }
     setFinding(true);
     try {
-      const found = await adminApi.fitment([], engineCode.trim(), id ?? null);
+      const found = await adminApi.fitment('', engineCode.trim(), id ?? null);
       merge(found, () => false);
       setFitNote(found.length
         ? `Found ${found.length} ${found.length === 1 ? 'vehicle' : 'vehicles'} with engine ${engineCode.trim()}. Tick the ones you’ve checked.`
@@ -205,10 +185,12 @@ export function ProductEditPage() {
     setManualId('');
   }
 
-  function addRef() {
-    const ref = (newRef ?? '').trim();
-    if (ref && !refs.includes(ref) && refs.length < MAX_REFS) setRefs([...refs, ref]);
-    setNewRef(null);
+  function addRefinement() {
+    const value = (newRefinement ?? '').trim();
+    if (value && !refinements.some((r) => r.toLowerCase() === value.toLowerCase()) && refinements.length < MAX_REFINEMENTS) {
+      setRefinements([...refinements, value]);
+    }
+    setNewRefinement(null);
   }
 
   function addFiles(files: File[]) {
@@ -239,8 +221,8 @@ export function ProductEditPage() {
   const photoCount = kept.length + added.length;
   const usesSample = photoCount === 0 && !!detail?.samplePhoto;
   const photoOk = photoCount > 0 || usesSample;
-  const refOk = !!(oe.trim() || engineCode.trim());
-  const blocker = !photoOk ? 'add a photo first' : !priceOk ? 'add a price first' : !refOk ? 'add an OE number first' : '';
+  const refOk = !!(partNumber.trim() || engineCode.trim());
+  const blocker = !photoOk ? 'add a photo first' : !priceOk ? 'add a price first' : !refOk ? 'add a part number first' : '';
   const isLive = detail?.status === 'LIVE';
 
   async function save(status: ProductStatus) {
@@ -254,13 +236,13 @@ export function ProductEditPage() {
     setSaving(true);
     try {
       const saved = await adminApi.saveProduct(id ?? null, {
-        name: name.trim(), categoryId, condition, grade, price: priceValue, oeNumber: oe.trim(), crossReferences: refs,
-        engineCode: engineCode.trim(), shipping, stock: stockValue, bestSeller,
+        name: name.trim(), categoryId, condition, grade, price: priceValue, partNumber: partNumber.trim(),
+        engineCode: engineCode.trim(), brand: brand.trim(), subType: subType.trim(), refinements, shipping, stock: stockValue, bestSeller,
         vehicleIds: ticked.map((r) => r.fit.vehicleId), keepPhotoIds: kept.map((p) => p.id), status
       }, added.map((p) => p.file));
       const message = status === 'LIVE'
-        ? (isLive ? 'Changes saved. The part is live in the shop.' : 'Published. The part is now in the shop.')
-        : (isLive ? 'Taken off sale. The part is saved as a draft.' : 'Saved as a draft. Shoppers can’t see it yet.');
+        ? (isLive ? 'Changes saved. The listing is live in the shop.' : 'Listed. The part is now in the shop.')
+        : (isLive ? 'Listing ended. The part is saved as a draft.' : 'Saved as a draft. Shoppers can’t see it yet.');
       if (!id) {
         navigate(`/admin/products/${encodeURIComponent(saved.id)}`, { replace: true, state: { saved: message } });
       } else {
@@ -269,17 +251,17 @@ export function ProductEditPage() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     } catch (err) {
-      setSaveError(errorMessage(err, 'We couldn’t save the part. Try again.'));
+      setSaveError(errorMessage(err, 'We couldn’t save the listing. Try again.'));
     } finally {
       setSaving(false);
     }
   }
 
-  const title = id ? (detail ? 'Edit part' : 'Loading part…') : 'Add part';
+  const title = id ? (detail ? 'Edit listing' : 'Loading listing…') : 'Create listing';
   const actions = (id && !detail) ? null : isLive ? (
     <>
       <a className="btn btn--outline" href={`${import.meta.env.BASE_URL}products/${encodeURIComponent(id!)}`} target="_blank" rel="noreferrer">View in shop</a>
-      <button type="button" className="btn btn--outline" disabled={saving} onClick={() => void save('DRAFT')}>Take off sale</button>
+      <button type="button" className="btn btn--outline" disabled={saving} onClick={() => void save('DRAFT')}>End listing</button>
       <button type="button" className="btn btn--primary" disabled={saving || !!blocker} onClick={() => void save('LIVE')}>
         {blocker ? `Save changes (${blocker})` : saving ? 'Saving…' : 'Save changes'}
       </button>
@@ -288,26 +270,26 @@ export function ProductEditPage() {
     <>
       <button type="button" className="btn btn--outline" disabled={saving} onClick={() => void save('DRAFT')}>{saving ? 'Saving…' : 'Save draft'}</button>
       <button type="button" className="btn btn--primary" disabled={saving || !!blocker} onClick={() => void save('LIVE')}>
-        {blocker ? `Publish (${blocker})` : 'Publish'}
+        {blocker ? `List it (${blocker})` : 'List it'}
       </button>
     </>
   );
 
   if (loadError && id && !detail) {
     return (
-      <AdminLayout title="Edit part" crumbs={[{ label: 'Catalogue', to: '/admin/products' }, { label: 'Edit part' }]}>
+      <AdminLayout title="Edit listing" crumbs={[{ label: 'Listings', to: '/admin/listings' }, { label: 'Edit listing' }]}>
         <p className="notice notice--error" role="alert">{loadError}</p>
       </AdminLayout>
     );
   }
 
   const previewImage = added[0]?.url ?? kept[0]?.url ?? (usesSample ? detail?.imageUrl : null);
-  const reference = oe.trim() ? `OE ${oe.trim()}` : engineCode.trim() ? `Engine code ${engineCode.trim()}` : '';
+  const reference = partNumber.trim() ? `Part no. ${partNumber.trim()}` : engineCode.trim() ? `Engine code ${engineCode.trim()}` : '';
   const manualOptions = vehicles.filter((v) => !rows.some((r) => r.fit.vehicleId === v.id));
 
   return (
-    <AdminLayout title={title} crumbs={[{ label: 'Catalogue', to: '/admin/products' }, { label: id ? 'Edit part' : 'Add part' }]} actions={actions}>
-      {id && !detail ? <p className="admin-muted" aria-busy="true">Loading…</p> : (
+    <AdminLayout title={title} crumbs={[{ label: 'Listings', to: '/admin/listings' }, { label: id ? 'Edit listing' : 'Create listing' }]} actions={actions}>
+      {id && !detail ? <CardsSkeleton cards={3} /> : (
         <div className="edit-cols">
           <div className="edit-main">
             {notice && <p className="notice notice--ok" role="status">{notice}</p>}
@@ -316,45 +298,15 @@ export function ProductEditPage() {
 
             <section className="card" aria-labelledby="step-1">
               <h2 id="step-1" className="card__title">1. Identify the part</h2>
-              <p className="admin-muted">Use the OE number first. If the part came off a car, add its plate too.</p>
-              <div className="identify">
-                <form className="field" onSubmit={findVehicles}>
-                  <label htmlFor="oe">OE part number</label>
-                  <div className="inline-row">
-                    <input id="oe" className="input mono" value={oe} onChange={(e) => setOe(e.target.value)} maxLength={40} autoComplete="off" spellCheck={false} />
-                    <button type="submit" className="btn btn--dark" disabled={finding}>Find vehicles</button>
-                  </div>
-                  <div className="refs">
-                    <span className="admin-muted">Cross-references:</span>
-                    {refs.length === 0 && newRef === null && <span className="admin-muted">none</span>}
-                    {refs.map((r) => (
-                      <span key={r} className="ref-chip mono">
-                        {r}
-                        <button type="button" aria-label={`Remove cross-reference ${r}`} onClick={() => setRefs(refs.filter((x) => x !== r))}><Icon name="x" size={14} /></button>
-                      </span>
-                    ))}
-                    {newRef !== null ? (
-                      <span className="inline-row inline-row--sm">
-                        <label className="sr-only" htmlFor="new-ref">Cross-reference number</label>
-                        <input id="new-ref" className="input input--sm mono" value={newRef} maxLength={40} autoFocus
-                          onChange={(e) => setNewRef(e.target.value)}
-                          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addRef(); } if (e.key === 'Escape') setNewRef(null); }} />
-                        <button type="button" className="link-btn" onClick={addRef}>Add</button>
-                      </span>
-                    ) : refs.length < MAX_REFS && (
-                      <button type="button" className="link-btn" onClick={() => setNewRef('')}>Add another</button>
-                    )}
-                  </div>
-                </form>
-                <form className="field" onSubmit={lookUpDonor}>
-                  <label htmlFor="donor">Donor vehicle plate<span className="field__optional"> (optional)</span></label>
-                  <div className="inline-row">
-                    <PlateField id="donor" value={donor} onChange={setDonor} size="sm" describedBy="donor-hint" />
-                    <button type="submit" className="btn btn--outline" disabled={finding}>Look up</button>
-                  </div>
-                  <p id="donor-hint" className="field__hint">Adds that exact vehicle at high confidence. The plate itself isn’t stored.</p>
-                </form>
-              </div>
+              <p className="admin-muted">Enter the part number to find vehicles already confirmed for other parts with the same number.</p>
+              <form className="field" onSubmit={findVehicles}>
+                <label htmlFor="part-number">Part number</label>
+                <div className="inline-row">
+                  <input id="part-number" className="input mono" value={partNumber} onChange={(e) => setPartNumber(e.target.value)} maxLength={40} autoComplete="off" spellCheck={false} />
+                  <button type="submit" className="btn btn--dark" disabled={finding}>Find vehicles</button>
+                </div>
+                <p className="field__hint">Shoppers can search by it with or without spaces and dashes.</p>
+              </form>
             </section>
 
             <section className="card" aria-labelledby="step-2">
@@ -367,7 +319,7 @@ export function ProductEditPage() {
                 {fitNote && <p className="admin-muted">{fitNote}</p>}
               </div>
               {rows.length === 0 ? (
-                <p className="admin-muted">No vehicles yet. Find them by OE number, look up a donor plate, or add them by hand.</p>
+                <p className="admin-muted">No vehicles yet. Find them by part number, apply the engine-code rule, or add them by hand.</p>
               ) : (
                 <div className="table-wrap">
                   <table className="table table--fit">
@@ -448,11 +400,43 @@ export function ProductEditPage() {
                   <label htmlFor="engine-code">Engine code<span className="field__optional"> (optional)</span></label>
                   <input id="engine-code" className="input mono" value={engineCode} onChange={(e) => setEngineCode(e.target.value)} maxLength={20} spellCheck={false} />
                 </div>
+                <div className="field">
+                  <label htmlFor="brand">Brand<span className="field__optional"> (optional)</span></label>
+                  <input id="brand" className="input" value={brand} onChange={(e) => setBrand(e.target.value)} maxLength={60} placeholder="e.g. Nissan, Bosch" />
+                </div>
+                <div className="field">
+                  <label htmlFor="sub-type">Sub type<span className="field__optional"> (optional)</span></label>
+                  <input id="sub-type" className="input" value={subType} onChange={(e) => setSubType(e.target.value)} maxLength={60} placeholder="e.g. Complete engine, Manual gearbox" />
+                </div>
                 <div className="field field--check">
                   <label className="check">
                     <input type="checkbox" checked={bestSeller} onChange={(e) => setBestSeller(e.target.checked)} />
-                    Show in Best selling on the homepage
+                    Feature in Best selling (engines and gearboxes only)
                   </label>
+                </div>
+              </div>
+              <div className="field">
+                <span className="field__label" id="refinements-label">Featured refinements<span className="field__optional"> (optional, up to {MAX_REFINEMENTS})</span></span>
+                <p className="field__hint">Popular shortcuts shoppers tick in the shop’s filters, like “Nissan Navara engine” or “Diesel engine”.</p>
+                <div className="refs" role="group" aria-labelledby="refinements-label">
+                  {refinements.length === 0 && newRefinement === null && <span className="admin-muted">none</span>}
+                  {refinements.map((r) => (
+                    <span key={r} className="ref-chip">
+                      {r}
+                      <button type="button" aria-label={`Remove featured refinement ${r}`} onClick={() => setRefinements(refinements.filter((x) => x !== r))}><Icon name="x" size={14} /></button>
+                    </span>
+                  ))}
+                  {newRefinement !== null ? (
+                    <span className="inline-row inline-row--sm">
+                      <label className="sr-only" htmlFor="new-refinement">Featured refinement</label>
+                      <input id="new-refinement" className="input input--sm" value={newRefinement} maxLength={60} autoFocus
+                        onChange={(e) => setNewRefinement(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addRefinement(); } if (e.key === 'Escape') setNewRefinement(null); }} />
+                      <button type="button" className="link-btn" onClick={addRefinement}>Add</button>
+                    </span>
+                  ) : refinements.length < MAX_REFINEMENTS && (
+                    <button type="button" className="link-btn" onClick={() => setNewRefinement('')}>Add one</button>
+                  )}
                 </div>
               </div>
             </section>
@@ -491,14 +475,14 @@ export function ProductEditPage() {
 
           <aside className="edit-side">
             <section className="card" aria-labelledby="ready-title">
-              <h2 id="ready-title" className="card__title">Ready to publish?</h2>
+              <h2 id="ready-title" className="card__title">Ready to list?</h2>
               <ul className="checklist">
-                <Check ok={refOk} label={oe.trim() ? 'OE number entered' : refOk ? 'Engine code entered' : 'OE number or engine code'} />
+                <Check ok={refOk} label={partNumber.trim() ? 'Part number entered' : refOk ? 'Engine code entered' : 'Part number or engine code'} />
                 <Check ok={highTicked > 0} label={highTicked > 0 ? `High-confidence fitment (${highTicked})` : 'High-confidence fitment (recommended)'} />
                 <Check ok={photoOk} label={usesSample ? 'Photo (sample only)' : 'At least one photo'} />
                 <Check ok={priceOk} label="Price set" />
               </ul>
-              {detail && <p className="admin-muted">Currently {detail.status === 'LIVE' ? 'live in the shop' : 'a draft'}.</p>}
+              {detail && <p className="admin-muted">Currently {detail.status === 'LIVE' ? 'live in the shop' : detail.status === 'ENDED' ? 'ended (not in the shop)' : 'a draft'}.</p>}
             </section>
 
             <section className="card" aria-labelledby="preview-title">
@@ -514,7 +498,7 @@ export function ProductEditPage() {
                 </div>
               </div>
             </section>
-            {id && <p className="admin-muted">Need the full list? <Link to="/admin/products">Back to products</Link></p>}
+            {id && <p className="admin-muted">Need the full list? <Link to="/admin/listings">Back to listings</Link></p>}
           </aside>
         </div>
       )}

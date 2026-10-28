@@ -20,7 +20,7 @@ export function BasketPage() {
             <p>Add your reg to see parts that fit your car.</p>
             <div className="empty__actions">
               <Link className="btn btn--primary" to="/products">Browse parts</Link>
-              <Link className="btn btn--outline" to="/request-a-part">Request a part</Link>
+              <Link className="btn btn--outline" to="/request-a-part">Request a Part</Link>
             </div>
           </div>
         ) : (

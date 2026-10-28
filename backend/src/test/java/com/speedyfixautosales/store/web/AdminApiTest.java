@@ -1,6 +1,7 @@
 package com.speedyfixautosales.store.web;
 
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -133,8 +134,10 @@ class AdminApiTest {
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("image/png"))
                 .andExpect(header().string("X-Content-Type-Options", "nosniff"));
-        // Shoppers can find it by its cross-reference number.
-        mvc.perform(get("/api/search").param("q", "9999-ABC")).andExpect(jsonPath("$[*].id", hasItem(id)));
+        // Shoppers can find it by its part number, with or without the dashes, and filter by its brand.
+        mvc.perform(get("/api/search").param("q", "3907-1660")).andExpect(jsonPath("$[*].id", hasItem(id)));
+        mvc.perform(get("/api/shop").param("brand", "Vauxhall").param("subType", "Coolant sensor"))
+                .andExpect(jsonPath("$.items[*].id", hasItem(id)));
     }
 
     @Test
@@ -147,12 +150,12 @@ class AdminApiTest {
     }
 
     @Test
-    void fitmentIsSuggestedFromOeNumberAndEngineCode() throws Exception {
-        mvc.perform(get("/api/admin/fitment").param("oe", "390-71660").param("engineCode", "yd25ddti")
+    void fitmentIsSuggestedFromPartNumberAndEngineCode() throws Exception {
+        mvc.perform(get("/api/admin/fitment").param("partNumber", "390-71660").param("engineCode", "yd25ddti")
                         .header(HttpHeaders.AUTHORIZATION, bearer))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].vehicleId").value("astra"))
-                .andExpect(jsonPath("$[0].source").value("OE match"))
+                .andExpect(jsonPath("$[0].source").value("Part number match"))
                 .andExpect(jsonPath("$[0].confidence").value("HIGH"))
                 .andExpect(jsonPath("$[1].vehicleId").value("navara"))
                 .andExpect(jsonPath("$[1].confidence").value("MEDIUM"));
@@ -165,7 +168,7 @@ class AdminApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.vehicle.id").value("navara"))
                 .andExpect(jsonPath("$.confirmed[*].id", hasItem("yd25-engine")))
-                .andExpect(jsonPath("$.fitment.source").value("Donor plate"));
+                .andExpect(jsonPath("$.fitment.source").value("Plate check"));
         mvc.perform(get("/api/admin/dashboard").header(HttpHeaders.AUTHORIZATION, bearer))
                 .andExpect(jsonPath("$.lookupsThisMonth").value(0));
     }
@@ -190,6 +193,44 @@ class AdminApiTest {
     }
 
     @Test
+    void ordersArePaidThenDispatchedFromTheAdmin() throws Exception {
+        String basket = JsonPath.read(mvc.perform(post("/api/baskets")).andReturn().getResponse().getContentAsString(), "$.id");
+        mvc.perform(post("/api/baskets/" + basket + "/items").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"productId\":\"gm-sensor\",\"quantity\":2}"));
+        String placed = mvc.perform(post("/api/orders").contentType(MediaType.APPLICATION_JSON).content("""
+                        {"basketId":"%s","name":"Test buyer","email":"buyer@example.com","phone":"07700 900123",
+                         "line1":"1 High Street","town":"Leeds","postcode":"LS1 1AA"}""".formatted(basket)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        String ref = JsonPath.read(placed, "$.reference");
+
+        mvc.perform(get("/api/admin/dashboard").header(HttpHeaders.AUTHORIZATION, bearer))
+                .andExpect(jsonPath("$.tasks.awaitingPayment").value(1))
+                .andExpect(jsonPath("$.sales[0].period").value("Today"))
+                .andExpect(jsonPath("$.sales[0].orders").value(1))
+                .andExpect(jsonPath("$.sales[3].period").value("Last 90 days"))
+                .andExpect(jsonPath("$.dailySales", hasSize(31)))
+                .andExpect(jsonPath("$.dailySales[30].orders").value(1))
+                .andExpect(jsonPath("$.orders.awaitingPayment").value(1))
+                .andExpect(jsonPath("$.listings.active").isNumber());
+        // Dispatching before payment is refused.
+        mvc.perform(patch("/api/admin/orders/" + ref).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"DISPATCHED\",\"courier\":\"Royal Mail\"}").header(HttpHeaders.AUTHORIZATION, bearer))
+                .andExpect(status().isConflict());
+        mvc.perform(patch("/api/admin/orders/" + ref).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"AWAITING_DISPATCH\"}").header(HttpHeaders.AUTHORIZATION, bearer))
+                .andExpect(jsonPath("$.status").value("AWAITING_DISPATCH"));
+        mvc.perform(patch("/api/admin/orders/" + ref).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"DISPATCHED\",\"courier\":\"Royal Mail\",\"trackingNumber\":\"RM123\"}")
+                        .header(HttpHeaders.AUTHORIZATION, bearer))
+                .andExpect(jsonPath("$.status").value("DISPATCHED"))
+                .andExpect(jsonPath("$.dispatch.trackingNumber").value("RM123"));
+        mvc.perform(get("/api/admin/orders").header(HttpHeaders.AUTHORIZATION, bearer))
+                .andExpect(jsonPath("$[*].reference", hasItem(ref)));
+        mvc.perform(get("/api/admin/orders")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void settingsAreValidatedAndSaved() throws Exception {
         mvc.perform(put("/api/admin/settings").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"lookupCost\":-1,\"lookupBudget\":50}").header(HttpHeaders.AUTHORIZATION, bearer))
@@ -210,7 +251,8 @@ class AdminApiTest {
     private static String form(String name, String status, String price) {
         return """
                 {"name":"%s","categoryId":"electrics-sensors","condition":"USED","grade":"A","price":%s,
-                 "oeNumber":"39071660","crossReferences":["9999-ABC"],"engineCode":"","shipping":"PARCEL","stock":1,
+                 "partNumber":"39071660","engineCode":"","brand":"Vauxhall","subType":"Coolant sensor",
+                 "refinements":["Vauxhall Astra sensor"],"shipping":"PARCEL","stock":1,
                  "bestSeller":false,"vehicleIds":["astra"],"keepPhotoIds":[],"status":"%s"}
                 """.formatted(name, price == null ? "null" : price, status);
     }

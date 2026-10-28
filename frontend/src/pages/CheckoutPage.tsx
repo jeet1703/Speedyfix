@@ -58,10 +58,12 @@ export function CheckoutPage() {
     return (
       <Layout title="Checkout">
         <PageTitle title="Checkout" crumbs={[{ label: 'Basket', to: '/basket' }, { label: 'Checkout' }]} />
-        <div className="container empty empty--page">
-          <h2>Your basket is empty</h2>
-          <p>Add a part to your basket before you check out.</p>
-          <div className="empty__actions"><Link className="btn btn--primary" to="/products">Browse parts</Link></div>
+        <div className="container">
+          <div className="empty empty--page">
+            <h2>Your basket is empty</h2>
+            <p>Add a part to your basket before you check out.</p>
+            <div className="empty__actions"><Link className="btn btn--primary" to="/products">Browse parts</Link></div>
+          </div>
         </div>
       </Layout>
     );
@@ -121,7 +123,7 @@ export function CheckoutPage() {
               <legend className="panel__title">Payment</legend>
               <div className="notice">
                 <p><strong>Payment isn’t connected yet.</strong></p>
-                <p>Card, Apple Pay and Google Pay will be added when the payment provider is chosen. Placing an order now reserves the parts; no payment is taken.</p>
+                <p>Card, Apple Pay, Google Pay and PayPal are being connected through Stripe. Placing an order now reserves the parts; no payment is taken.</p>
               </div>
             </fieldset>
           </div>

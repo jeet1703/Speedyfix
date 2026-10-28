@@ -33,8 +33,9 @@ public class VehicleService {
         if (UK_FORMATS.stream().noneMatch(p -> p.matcher(reg).matches())) {
             throw new BadRequestException("Enter a valid UK registration, like AB12 CDE.");
         }
-        return lookup.findByRegistration(reg).orElseThrow(() -> new NotFoundException(
-                "We couldn’t find " + display(reg) + ". In this demo, try AB12 CDE, VX16 ABC or JG17 XEE."));
+        return lookup.findByRegistration(reg).orElseThrow(() -> new NotFoundException(lookup.demo()
+                ? "We couldn’t find " + display(reg) + ". In this demo, try AB12 CDE, VX16 ABC or JG17 XEE."
+                : "We couldn’t find " + display(reg) + ". Check the registration, or browse parts by category."));
     }
 
     /** Like lookUp, but a valid plate the data source doesn't know gives an empty result instead of an error. */

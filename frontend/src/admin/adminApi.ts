@@ -1,8 +1,8 @@
 import { ApiError, BASE, request } from '../api/client';
 import type { Vehicle } from '../api/types';
 import type {
-  AdminSession, StaffSession, CategoryOption, Dashboard, Fitment, PartRequest, PartRequestStatus, PlateCheck, ProductDetail,
-  ProductFormData, ProductRow, SettingsValues, SettingsView
+  AdminSession, StaffSession, CategoryOption, CustomerRow, Dashboard, Fitment, Order, OrderStatus, PartRequest, PartRequestStatus, PlateCheck,
+  ProductDetail, ProductFormData, ProductRow, SettingsValues, SettingsView
 } from './types';
 
 const KEY = 'sf_admin_token';
@@ -71,9 +71,9 @@ export const adminApi = {
     return authed<ProductDetail>(id ? `/api/admin/products/${encodeURIComponent(id)}` : '/api/admin/products', { method: 'POST', body });
   },
 
-  fitment: (oeNumbers: string[], engineCode: string, productId: string | null) => {
+  fitment: (partNumber: string, engineCode: string, productId: string | null) => {
     const q = new URLSearchParams();
-    oeNumbers.filter(Boolean).forEach((oe) => q.append('oe', oe));
+    if (partNumber) q.set('partNumber', partNumber);
     if (engineCode) q.set('engineCode', engineCode);
     if (productId) q.set('productId', productId);
     return authed<Fitment[]>(`/api/admin/fitment?${q}`);
@@ -89,6 +89,13 @@ export const adminApi = {
     if (!res.ok) throw new ApiError(res.status, 'That photo isn’t stored any more.');
     return URL.createObjectURL(await res.blob());
   },
+
+  orders: () => authed<Order[]>('/api/admin/orders'),
+  order: (reference: string) => authed<Order>(`/api/admin/orders/${encodeURIComponent(reference)}`),
+  setOrderStatus: (reference: string, status: OrderStatus, courier?: string, trackingNumber?: string) =>
+    authed<Order>(`/api/admin/orders/${encodeURIComponent(reference)}`, json('PATCH', { status, courier, trackingNumber })),
+
+  customers: () => authed<CustomerRow[]>('/api/admin/customers'),
 
   settings: () => authed<SettingsView>('/api/admin/settings'),
   saveSettings: (values: SettingsValues) => authed<SettingsView>('/api/admin/settings', json('PUT', values))

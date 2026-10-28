@@ -4,7 +4,10 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
 
-/** Sample vehicles for the prototype. Plates AB12 CDE, VX16 ABC and JG17 XEE resolve; others don't. */
+/**
+ * Sample vehicles for the prototype. Plates AB12 CDE, VX16 ABC and JG17 XEE resolve; others don't. Once DVSA is
+ * connected, its vehicles stay available by id (for fitment staff already entered) but their plates don't resolve.
+ */
 @Component
 public class DemoVehicleLookup implements VehicleLookup {
 

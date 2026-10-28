@@ -6,7 +6,7 @@ Researched 24 October 2026. This file covers every outside service the shop need
 | --- | --- | --- | --- | --- |
 | 1 | Plate lookup (registration → vehicle) | **DVSA MOT History API** | DVSA to start; a paid provider for engine codes | 3 |
 | 2 | Parts fitment data | Our own fitment table (built into the admin) | Own data now; TecDoc later | Built / later |
-| 3 | Payments | None | **Stripe** | 2 |
+| 3 | Payments | None | **Stripe + PayPal (decided)** | 2 |
 | 4 | Transactional email | Resend free (3,000 a month) | **Resend (decided)**; Postmark if delivery suffers | 2 |
 | 5 | Business mailbox | Cloudflare Email Routing or Zoho Mail free | Either | Now |
 | 6 | Address lookup at checkout | postcodes.io (postcode check only) | postcodes.io now; paid autocomplete later | 2 |
@@ -16,6 +16,7 @@ Researched 24 October 2026. This file covers every outside service the shop need
 | 10 | Spam protection | Cloudflare Turnstile | Turnstile | 6 |
 | 11 | Google Shopping and search | Merchant Center, Search Console, Business Profile | All free | 5, 8 |
 | 12 | WhatsApp contact | `wa.me` click-to-chat link | Link (already in the site settings) | Now |
+| 13 | Shopper sign-in | **Sign in with Google** (free) | Google Identity Services (built) | Done |
 
 ---
 
@@ -48,6 +49,8 @@ This costs £0 and covers most of the UK car parc. Its weak spots are brand-new 
 | VehicleMatic, Autodata Solutions, DealerPricing | Advertised from 1p to 16p per lookup | Varies | Smaller resellers; compare quotes |
 | **TecAlliance (TecDoc)**: plate → KType → parts | No public price; licensing on request | Yes (KType / NType) | The industry parts catalogue, mapping vehicles to OE and aftermarket parts. Worth it later for cross-referencing OE numbers at scale. |
 
+**Built (25 October 2026):** `DvsaClient` and `DvsaVehicleLookup` in `backend/.../vehicle/`. They switch on when these four settings from DVSA's email are set: `DVSA_CLIENT_ID`, `DVSA_CLIENT_SECRET`, `DVSA_API_KEY` and `DVSA_TOKEN_URL` (`https://login.microsoftonline.com/<tenant id>/oauth2/v2.0/token`). Until then the site uses the demo plates. Fit is "Likely fits" when a listing's title names the vehicle's make and model and its years and engine size match.
+
 **Recommendation:** register for the **DVSA MOT History API now** (free, takes up to 5 days). Build Phase 3 with a `VehicleLookup` implementation for DVSA, plus our engine-code matching. Get quotes from **UK Vehicle Data** and **Vehicle Smart (extended)**, and add one as a second `VehicleLookup` implementation when the free approach misses too often. The admin's **lookup cost and monthly cap** settings are already built for this.
 
 ## 2. Parts fitment data
@@ -66,7 +69,7 @@ There's no free card processor; each charges per sale. UK online rates:
 | **Stripe** (recommended) | **1.5% + 20p** | Premium UK cards 2.8% + 20p; EEA 2.5% + 20p; international 3.15% + 20p; Klarna from 4.99% + 35p; disputes £20 | None | Best developer API: Payment Element, Apple Pay, Google Pay, webhooks, refunds by API. Works with the plan in Phase 2. |
 | Square | **1.4% + 25p** | Non-UK cards 2.5% + 25p | None | Slightly cheaper on large orders; less flexible API for a custom checkout |
 | SumUp | 2.5% (online) | — | None on pay-as-you-go | More expensive online |
-| PayPal | Not confirmed in this research | — | — | Can be added as an extra method later (Stripe supports PayPal in some markets) |
+| **PayPal** (decided, alongside Stripe) | PayPal Checkout: **2.9% + 30p** | International buyers +1.29% (EEA) or +1.99% (elsewhere); chargebacks £14 | None | Shown as its own "Pay with PayPal" button at checkout. Many buyers of used parts prefer PayPal's buyer protection. [Source](https://www.paypal.com/uk/business/paypal-business-fees) |
 
 Worked example: a £300 engine costs **£4.70** on Stripe or **£4.45** on Square. A £40 sensor costs £0.80 on Stripe or £0.81 on Square. Stripe's tooling is worth the small difference.
 
@@ -178,7 +181,17 @@ Worked example: a £300 engine costs **£4.70** on Stripe or **£4.45** on Squar
 | **Google Merchant Center** | **Free product listings** in Google Shopping from a product feed (`/feeds/google.xml`) |
 | Google Business Profile | Local search and the map listing, plus Google reviews |
 
-## 12. WhatsApp
+## 12. Sign in with Google (built)
+
+Free. Shoppers sign in with Google's own button on `/account`; the backend checks Google's ID token against Google's published keys and issues its own 30-day session.
+
+**To switch it on:**
+1. In [Google Cloud Console](https://console.cloud.google.com/apis/credentials), create a project, set up the **OAuth consent screen** (app name SpeedyFix Auto Sales, support email, the business domain), then **Create credentials → OAuth client ID → Web application**.
+2. Under **Authorised JavaScript origins**, add every address the shop runs on: `http://localhost:5173`, `https://jeet1703.github.io`, and later `https://www.<your-domain>`.
+3. Copy the **client ID** (it ends in `.apps.googleusercontent.com`; it isn't secret) into Render as `GOOGLE_CLIENT_ID`. Locally, set `$env:GOOGLE_CLIENT_ID` before starting the backend.
+4. Render generates `ACCOUNT_JWT_SECRET` from `render.yaml`, which keeps shoppers signed in across redeploys.
+
+## 13. WhatsApp
 
 The WhatsApp click-to-chat link (`https://wa.me/44XXXXXXXXXX`) is free and needs no API. The site already has a WhatsApp setting (`site.whatsapp`). The paid WhatsApp Business Platform (Meta) is only needed for automated messages, and isn't needed at launch.
 

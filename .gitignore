@@ -1,0 +1,8 @@
+# Business data exports (eBay reports and the like) stay out of git.
+/data/
+*.csv
+/backups/
+
+# Personal notes with logins, for this computer only.
+/CREDENTIALS.local.md
+/storage/

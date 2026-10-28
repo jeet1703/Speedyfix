@@ -49,7 +49,7 @@ public class OrderService {
         reserveStock(basket.lines());
         Order order = new Order(newReference(), Instant.now(), Order.Status.AWAITING_PAYMENT, customer, address,
                 notes == null || notes.isBlank() ? null : notes.trim(), basket.lines(), basket.delivery(),
-                basket.subtotal(), basket.total(), basket.vatIncluded());
+                basket.subtotal(), basket.total(), basket.vatIncluded(), null);
         orders.put(order.reference(), order);
         baskets.clear(basketId);
         return order;
@@ -66,6 +66,42 @@ public class OrderService {
             throw new NotFoundException("We couldn’t find that order.");
         }
         return order;
+    }
+
+    /**
+     * Staff move an order on: AWAITING_PAYMENT to AWAITING_DISPATCH once paid, then DISPATCHED with the courier and
+     * tracking number. Any order not yet dispatched can be cancelled, which puts its parts back in stock.
+     */
+    public synchronized Order setStatus(String reference, Order.Status status, String courier, String trackingNumber) {
+        Order order = get(reference);
+        if (order.status() == status) {
+            return order;
+        }
+        if (order.status() == Order.Status.DISPATCHED || order.status() == Order.Status.CANCELLED) {
+            throw new ConflictException("This order is already " + (order.status() == Order.Status.DISPATCHED ? "dispatched" : "cancelled") + ".");
+        }
+        Order.Dispatch dispatch = null;
+        switch (status) {
+            case AWAITING_PAYMENT -> throw new BadRequestException("An order can’t go back to awaiting payment.");
+            case AWAITING_DISPATCH -> {
+                if (order.status() != Order.Status.AWAITING_PAYMENT) {
+                    throw new ConflictException("This order is already marked as paid.");
+                }
+            }
+            case DISPATCHED -> {
+                if (order.status() != Order.Status.AWAITING_DISPATCH) {
+                    throw new ConflictException("Mark the order as paid before dispatching it.");
+                }
+                if (courier == null || courier.isBlank()) {
+                    throw new BadRequestException("Enter the courier.");
+                }
+                dispatch = new Order.Dispatch(courier.trim(), trackingNumber == null || trackingNumber.isBlank() ? null : trackingNumber.trim(), Instant.now());
+            }
+            case CANCELLED -> order.lines().forEach(l -> catalog.reduceStock(l.productId(), -l.quantity()));
+        }
+        Order updated = order.withStatus(status, dispatch);
+        orders.put(updated.reference(), updated);
+        return updated;
     }
 
     /** All or nothing: if any line is short, puts back what was already taken. */

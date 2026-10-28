@@ -4,8 +4,8 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Source of vehicle data. The demo implementation knows a handful of sample plates;
- * production swaps in a client for a licensed UK VRM provider (see README).
+ * Source of vehicle data: DvsaVehicleLookup (DVSA's MOT History API) once its credentials are set, otherwise the
+ * demo list of sample plates (see VehicleLookupConfig).
  */
 public interface VehicleLookup {
 
@@ -15,4 +15,9 @@ public interface VehicleLookup {
     Optional<Vehicle> findById(String id);
 
     List<Vehicle> all();
+
+    /** True for the sample data, so messages can suggest the demo plates. */
+    default boolean demo() {
+        return true;
+    }
 }

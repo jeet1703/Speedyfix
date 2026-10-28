@@ -2,10 +2,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
 import { api, price } from '../api/client';
 import type { Product } from '../api/types';
+import { useAccount } from '../state/AccountContext';
 import { useStore } from '../state/StoreContext';
 
 export function SearchPanel({ onClose }: { onClose: () => void }) {
   const { vehicle } = useStore();
+  const { searches, clearSearches } = useAccount();
   const navigate = useNavigate();
   const [q, setQ] = useState('');
   const [results, setResults] = useState<Product[] | null>(null);
@@ -40,9 +42,19 @@ export function SearchPanel({ onClose }: { onClose: () => void }) {
           <button type="button" className="search__close" onClick={onClose}>Close</button>
         </div>
         <div aria-live="polite">
+          {q.trim().length < 2 && searches.length > 0 && (
+            <div className="search__recent">
+              <p className="search__note">Recent searches <button type="button" className="link-btn" onClick={clearSearches}>Clear</button></p>
+              <ul className="recent-searches">
+                {searches.map((s) => (
+                  <li key={s}><Link to={`/products?q=${encodeURIComponent(s)}`} onClick={onClose}>{s}</Link></li>
+                ))}
+              </ul>
+            </div>
+          )}
           {error && <p className="search__note">{error}</p>}
           {results && results.length === 0 && (
-            <p className="search__note">No parts match “{q.trim()}”. Try an OE number or engine code, or <Link to="/request-a-part" onClick={onClose}>request the part</Link>.</p>
+            <p className="search__note">No parts match “{q.trim()}”. Try a part number or engine code, or <Link to="/request-a-part" onClick={onClose}>request the part</Link>.</p>
           )}
           {results && results.length > 0 && (
             <ul className="search__results">

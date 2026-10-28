@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { adminApi, errorMessage } from '../adminApi';
 import { AdminLayout } from '../AdminLayout';
 import type { SettingsView } from '../types';
+import { CardsSkeleton } from '../../components/Skeleton';
 
 const moneyInput = (value: string) => value.replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1');
 
@@ -48,7 +49,7 @@ export function SettingsPage() {
   return (
     <AdminLayout title="Settings">
       {loadError && <p className="notice notice--error" role="alert">{loadError}</p>}
-      {!view && !loadError && <p className="admin-muted" aria-busy="true">Loading…</p>}
+      {!view && !loadError && <CardsSkeleton cards={2} />}
       {view && (
         <div className="settings">
           <form className="card" onSubmit={submit} noValidate aria-labelledby="lookups-title">

@@ -51,8 +51,8 @@ public class ProductController {
     }
 
     /**
-     * The shop page: /api/shop?category=&q=&condition=USED,NEW&minPrice=&maxPrice=&fitsOnly=&sort=&page=&ids=
-     * sort is best-selling (default), newest, price-low or price-high.
+     * The shop page: /api/shop?category=&q=&condition=USED,NEW&minPrice=&maxPrice=&fitsOnly=&brand=&subType=&refinement=&sort=&page=&ids=
+     * brand, subType and refinement repeat for several values. sort is best-selling (default), newest, price-low or price-high.
      */
     @GetMapping("/shop")
     public ShopResult shop(@RequestParam(required = false) String category,
@@ -62,16 +62,23 @@ public class ProductController {
                            @RequestParam(required = false) BigDecimal maxPrice,
                            @RequestParam(defaultValue = "false") boolean fitsOnly,
                            @RequestParam(required = false) String vehicleId,
+                           @RequestParam(required = false) List<String> brand,
+                           @RequestParam(required = false) List<String> subType,
+                           @RequestParam(required = false) List<String> refinement,
                            @RequestParam(defaultValue = "best-selling") String sort,
                            @RequestParam(defaultValue = "1") int page,
-                           @RequestParam(defaultValue = "9") int pageSize,
+                           @RequestParam(defaultValue = "24") int pageSize,
                            @RequestParam(required = false) List<String> ids) {
         Set<Condition> conditions = condition == null ? Set.of() : condition.stream()
                 .map(c -> parse(Condition.class, c, "condition"))
                 .collect(Collectors.toSet());
         ShopQuery.Sort order = parse(ShopQuery.Sort.class, sort.replace('-', '_'), "sort");
-        return catalog.shop(new ShopQuery(category, q, conditions, minPrice, maxPrice, fitsOnly, vehicleId, order, page,
-                pageSize, ids));
+        return catalog.shop(new ShopQuery(category, q, conditions, minPrice, maxPrice, fitsOnly, vehicleId, set(brand),
+                set(subType), set(refinement), order, page, pageSize, ids));
+    }
+
+    private static Set<String> set(List<String> values) {
+        return values == null ? Set.of() : values.stream().filter(v -> v != null && !v.isBlank()).collect(Collectors.toSet());
     }
 
     private static <E extends Enum<E>> E parse(Class<E> type, String value, String name) {

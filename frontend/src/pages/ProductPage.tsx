@@ -8,6 +8,7 @@ import { PageTitle } from '../components/PageTitle';
 import { PlateField } from '../components/PlateField';
 import { ProductCard } from '../components/ProductCard';
 import { SectionHeading } from '../components/SectionHeading';
+import { ProductPageSkeleton } from '../components/Skeleton';
 import { useSite } from '../state/SiteContext';
 import { useStore } from '../state/StoreContext';
 
@@ -38,17 +39,20 @@ export function ProductPage() {
           <p>{error}</p>
           <div className="empty__actions">
             <Link className="btn btn--primary" to="/products">Browse all parts</Link>
-            <Link className="btn btn--outline" to="/request-a-part">Request a part</Link>
+            <Link className="btn btn--outline" to="/request-a-part">Request a Part</Link>
           </div>
         </div>
       </Layout>
     );
   }
   if (!detail || detail.product.id !== id) {
-    return <Layout><div className="container state" aria-busy="true"><p>Loading the part…</p></div></Layout>;
+    return <Layout><ProductPageSkeleton /></Layout>;
   }
 
   const p = detail.product;
+  // Listings imported from eBay end their id with the eBay item number, which customers can quote on the phone.
+  const itemNumber = p.id.match(/-(\d{9,})$/)?.[1];
+  const samplePhoto = p.imageUrl.includes('images.unsplash.com');
   return (
     <Layout title={p.name}>
       <PageTitle title={p.categoryName} heading={false} crumbs={[
@@ -61,7 +65,7 @@ export function ProductPage() {
         <div className="product__gallery">
           <div className="photo-frame">
             <img src={p.imageUrl.replace('w=800&h=800', 'w=1200&h=1000')} alt={p.name} width={600} height={500} />
-            <span className="photo-frame__note">Sample photo. The client’s own photo of this part replaces it before launch.</span>
+            {samplePhoto && <span className="photo-frame__note">Sample photo. The part you receive is the one in the title.</span>}
           </div>
         </div>
 
@@ -80,9 +84,11 @@ export function ProductPage() {
           <BuyBox detail={detail} />
 
           <dl className="product__meta">
-            <div><dt>SKU:</dt><dd>{p.id.toUpperCase()}</dd></div>
+            {itemNumber && <div><dt>Item number:</dt><dd className="mono">{itemNumber}</dd></div>}
             <div><dt>Category:</dt><dd>{p.categoryName}</dd></div>
-            {detail.oeNumber && <div><dt>OE number:</dt><dd className="mono">{detail.oeNumber}</dd></div>}
+            {detail.partNumber && <div><dt>Part number:</dt><dd className="mono">{detail.partNumber}</dd></div>}
+            {detail.brand && <div><dt>Brand:</dt><dd>{detail.brand}</dd></div>}
+            {detail.subType && <div><dt>Sub type:</dt><dd>{detail.subType}</dd></div>}
             {detail.engineCode && <div><dt>Engine code:</dt><dd className="mono">{detail.engineCode}</dd></div>}
           </dl>
           <Perks shipping={p.shipping} />
@@ -158,12 +164,13 @@ function FitCheck({ detail, vehicle }: { detail: ProductDetail; vehicle: Vehicle
   return (
     <div className="fit-check">
       {vehicle && (
-        <p className={`fit-check__result fit-check__result--${fit === 'FITS' ? 'ok' : fit === 'DOES_NOT_FIT' ? 'no' : 'ask'}`} role="status">
-          <Icon name={fit === 'FITS' ? 'check' : fit === 'DOES_NOT_FIT' ? 'x' : 'ask'} size={20} />
+        <p className={`fit-check__result fit-check__result--${fit === 'FITS' || fit === 'LIKELY_FITS' ? 'ok' : fit === 'DOES_NOT_FIT' ? 'no' : 'ask'}`} role="status">
+          <Icon name={fit === 'FITS' || fit === 'LIKELY_FITS' ? 'check' : fit === 'DOES_NOT_FIT' ? 'x' : 'ask'} size={20} />
           <span>
             {fit === 'FITS' && <>Fits your {vehicle.make} {vehicle.model}, {vehicle.engine}.</>}
+            {fit === 'LIKELY_FITS' && <>Likely fits your {vehicle.make} {vehicle.model}, {vehicle.engine}: the listing matches its make, model, years and engine size. We check the part number before dispatch.</>}
             {fit === 'DOES_NOT_FIT' && <>Doesn’t fit your {vehicle.make} {vehicle.model}. <Link to="/products?fitsOnly=true">See parts that fit</Link>.</>}
-            {fit === 'UNCONFIRMED' && <>Fit for your {vehicle.make} {vehicle.model} isn’t confirmed yet. Ask us and we’ll check it by OE number before you order.</>}
+            {fit === 'UNCONFIRMED' && <>Fit for your {vehicle.make} {vehicle.model} isn’t confirmed yet. Ask us and we’ll check it by part number before you order.</>}
             {' '}{!editing && <button type="button" className="link-btn" onClick={() => setEditing(true)}>Check another reg</button>}
           </span>
         </p>
@@ -237,7 +244,7 @@ function DescriptionTab({ detail }: { detail: ProductDetail }) {
     ...(p.grade ? [['Grade', p.grade] as [string, string]] : []),
     ['Warranty', data?.site.warranty ?? ''],
     ['Ships from', data?.site.shipsFrom ?? ''],
-    ['Fits', detail.fitsVehicles.length ? `${detail.fitsVehicles.join('; ')} (check your reg above)` : 'Not confirmed yet. Check by OE number or ask us.']
+    ['Fits', detail.fitsVehicles.length ? `${detail.fitsVehicles.join('; ')} (check your reg above)` : 'Not confirmed yet. Check by part number or ask us.']
   ];
   return (
     <>
@@ -258,9 +265,9 @@ function FitmentTab({ detail, vehicle }: { detail: ProductDetail; vehicle: Vehic
           <ul className="fit-list">{detail.fitsVehicles.map((v) => <li key={v}><Icon name="check" size={18} />{v}</li>)}</ul>
         </>
       ) : (
-        <p className="tabs__text">We haven’t confirmed which vehicles this part fits yet. Match it by OE number, or <Link to="/request-a-part">send us your reg</Link> and we’ll check.</p>
+        <p className="tabs__text">We haven’t confirmed which vehicles this part fits yet. Match it by part number, or <Link to="/request-a-part">send us your reg</Link> and we’ll check.</p>
       )}
-      {detail.oeNumber && <p className="tabs__text">OE number: <span className="mono">{detail.oeNumber}</span></p>}
+      {detail.partNumber && <p className="tabs__text">Part number: <span className="mono">{detail.partNumber}</span></p>}
       {detail.engineCode && <p className="tabs__text">Engine code: <span className="mono">{detail.engineCode}</span></p>}
       {!vehicle && <p className="tabs__text">Add your reg above to see whether it fits your car.</p>}
     </>

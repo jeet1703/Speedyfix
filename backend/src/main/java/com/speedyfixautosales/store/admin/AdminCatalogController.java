@@ -66,12 +66,12 @@ public class AdminCatalogController {
         return catalog.update(id, form, photos);
     }
 
-    /** /api/admin/fitment?oe=39071660&oe=...&engineCode=&productId= */
+    /** /api/admin/fitment?partNumber=39071660&engineCode=&productId= */
     @GetMapping("/fitment")
-    public List<AdminCatalogService.Fitment> fitment(@RequestParam(required = false) List<String> oe,
+    public List<AdminCatalogService.Fitment> fitment(@RequestParam(required = false) List<String> partNumber,
                                                      @RequestParam(required = false) String engineCode,
                                                      @RequestParam(required = false) String productId) {
-        return catalog.suggestFitment(oe, engineCode, productId);
+        return catalog.suggestFitment(partNumber, engineCode, productId);
     }
 
     @PostMapping("/plate-check")

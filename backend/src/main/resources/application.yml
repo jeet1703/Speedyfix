@@ -4,6 +4,12 @@ server:
   forward-headers-strategy: framework
 
 spring:
+  # The database is off unless the "postgres" profile is active (application-postgres.yml), so the site still runs
+  # where no database exists yet. Turn it on with SPRING_PROFILES_ACTIVE=postgres.
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
   servlet:
     multipart:
       max-file-size: 5MB
@@ -37,3 +43,32 @@ admin:
   lookup-cost: ${ADMIN_LOOKUP_COST:0}
   lookup-budget: ${ADMIN_LOOKUP_BUDGET:0}
   buying-team-email: ${ADMIN_BUYING_TEAM_EMAIL:}
+
+account:
+  # Shopper sign-in with Google. GOOGLE_CLIENT_ID is the OAuth web client id from Google Cloud Console
+  # (it isn't secret, so the business's client id is the default). Blank switches the Google button off.
+  google-client-id: ${GOOGLE_CLIENT_ID:1077960801718-u7b9qn4nbcbhhu12s9s4c0bt7qc7b5cu.apps.googleusercontent.com}
+  # Signs shopper session tokens (32+ characters, a secret). Without it a random key is used, so a restart signs shoppers out.
+  jwt-secret: ${ACCOUNT_JWT_SECRET:}
+
+photos:
+  # Where listing photos are stored on this computer (storage/ in the project when the backend runs from backend/).
+  dir: ${PHOTOS_DIR:../storage}
+  # Set to https://images.<domain> once photos are served from Cloudflare R2; empty serves them from /api/images.
+  base-url: ${IMAGES_BASE_URL:}
+
+ebay:
+  # eBay developer keys (Production keyset) for the Browse API, used by the eBay import for photos and item specifics.
+  # Secret: set them in the environment, never in this file.
+  client-id: ${EBAY_CLIENT_ID:}
+  client-secret: ${EBAY_CLIENT_SECRET:}
+  marketplace: EBAY_GB
+
+dvsa:
+  # DVSA MOT History API (free) for real plate lookups. All four come from DVSA's registration email; until they're
+  # set, the site uses the demo plates. Secret: set them in the environment, never in this file.
+  client-id: ${DVSA_CLIENT_ID:}
+  client-secret: ${DVSA_CLIENT_SECRET:}
+  api-key: ${DVSA_API_KEY:}
+  # https://login.microsoftonline.com/<tenant id>/oauth2/v2.0/token (the tenant id is in the email)
+  token-url: ${DVSA_TOKEN_URL:}
