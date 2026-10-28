@@ -8,6 +8,7 @@ import { Icon } from './Icons';
 function fitLine(fit: FitStatus, vehicle: Vehicle | null): { icon: string; text: string; tone: string } {
   switch (fit) {
     case 'FITS': return { icon: 'check', text: `Fits your ${vehicle?.model ?? 'vehicle'}`, tone: 'ok' };
+    case 'LIKELY_FITS': return { icon: 'check', text: `Likely fits your ${vehicle?.model ?? 'vehicle'}`, tone: 'ok' };
     case 'DOES_NOT_FIT': return { icon: 'x', text: `Doesn’t fit your ${vehicle?.model ?? 'vehicle'}`, tone: 'no' };
     case 'UNCONFIRMED': return { icon: 'ask', text: 'Fit not confirmed yet, ask us', tone: 'ask' };
     default: return { icon: 'car', text: 'Add your reg to check fit', tone: 'none' };

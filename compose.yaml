@@ -1,0 +1,25 @@
+# Local PostgreSQL for development: `docker compose up -d db` from the project root.
+# The same Postgres 16 runs on the live server (Render Postgres), so the schema and data move across unchanged.
+# These credentials are for this computer only; the live database gets its own from Render.
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: speedyfix-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: speedyfix
+      POSTGRES_USER: speedyfix
+      POSTGRES_PASSWORD: speedyfix-local-db
+      TZ: Europe/London
+    ports:
+      - "5432:5432"
+    volumes:
+      - speedyfix-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U speedyfix -d speedyfix"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  speedyfix-db-data:

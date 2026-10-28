@@ -4,6 +4,7 @@ import { adminApi, errorMessage } from '../adminApi';
 import { AdminLayout } from '../AdminLayout';
 import { Chips, gbpOrDash, OrderPill, when } from '../components';
 import type { Order, OrderStatus } from '../types';
+import { TableSkeleton } from '../../components/Skeleton';
 
 type Filter = 'all' | 'awaiting-payment' | 'awaiting-dispatch' | 'dispatched' | 'cancelled';
 
@@ -55,7 +56,7 @@ export function OrdersPage() {
               value={q} onChange={(e) => update('q', e.target.value)} />
           </div>
         </div>
-        {!orders && !error && <p className="admin-muted" aria-busy="true">Loading…</p>}
+        {!orders && !error && <TableSkeleton columns={6} />}
         {orders && shown.length === 0 && <p className="admin-muted">{orders.length === 0 ? 'No orders yet.' : 'No orders match.'}</p>}
         {shown.length > 0 && (
           <div className="table-wrap">

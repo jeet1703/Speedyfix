@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { GoogleSignInButton } from '../components/GoogleSignInButton';
 import { Layout } from '../components/Layout';
 import { PageTitle } from '../components/PageTitle';
+import { Skeleton, SkeletonText } from '../components/Skeleton';
 import { useAccount } from '../state/AccountContext';
 import { useSite } from '../state/SiteContext';
 import { useStore } from '../state/StoreContext';
@@ -35,14 +36,18 @@ export function AccountPage() {
     <Layout title="My account">
       <PageTitle title="My account" crumbs={[{ label: 'My account' }]} />
       <div className="container page-body account">
-        {customer === undefined && <p aria-busy="true">Checking your account…</p>}
+        {customer === undefined && (
+          <div className="account__card" aria-busy="true" aria-label="Checking your account">
+            <Skeleton width="50%" height={26} /><SkeletonText lines={2} /><Skeleton width={240} height={44} radius={4} />
+          </div>
+        )}
 
         {customer === null && (
           <section className="account__card" aria-labelledby="signin-title">
             <h2 id="signin-title" className="account__title">Sign in or create an account</h2>
             <p>Use your Google account. It’s one click, and there’s no new password to remember.</p>
             {error && <p className="notice notice--error" role="alert">{error}</p>}
-            {!data ? <p aria-busy="true">Loading…</p> : clientId ? (
+            {!data ? <Skeleton width={240} height={44} radius={4} /> : clientId ? (
               <div aria-busy={busy}>
                 <GoogleSignInButton clientId={clientId} onCredential={(c) => void onCredential(c)} />
                 {busy && <p className="page-body__note">Signing you in…</p>}

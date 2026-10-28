@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
+import { CardsSkeleton } from '../components/Skeleton';
 import { adminApi, adminToken, onSignedOut } from './adminApi';
 import type { StaffSession as Staff } from './types';
 
@@ -54,7 +55,7 @@ export function RequireAdmin({ children }: { children: ReactNode }) {
   const { staff } = useAdminAuth();
   const location = useLocation();
   if (staff === undefined) {
-    return <main className="admin-state" aria-busy="true"><p>Checking your session…</p></main>;
+    return <main className="admin-state" aria-busy="true" aria-label="Checking your session"><CardsSkeleton cards={2} /></main>;
   }
   if (staff === null) {
     return <Navigate to="/admin/login" replace state={{ from: location.pathname + location.search }} />;

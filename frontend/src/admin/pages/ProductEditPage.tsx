@@ -6,6 +6,7 @@ import { adminApi, errorMessage } from '../adminApi';
 import { AdminLayout } from '../AdminLayout';
 import { ConfidencePill } from '../components';
 import type { CategoryOption, Condition, Fitment, ProductDetail, ProductStatus, Shipping } from '../types';
+import { CardsSkeleton } from '../../components/Skeleton';
 
 const CONDITIONS: { value: Condition; label: string }[] = [
   { value: 'USED', label: 'Used, tested' },
@@ -288,7 +289,7 @@ export function ProductEditPage() {
 
   return (
     <AdminLayout title={title} crumbs={[{ label: 'Listings', to: '/admin/listings' }, { label: id ? 'Edit listing' : 'Create listing' }]} actions={actions}>
-      {id && !detail ? <p className="admin-muted" aria-busy="true">Loading…</p> : (
+      {id && !detail ? <CardsSkeleton cards={3} /> : (
         <div className="edit-cols">
           <div className="edit-main">
             {notice && <p className="notice notice--ok" role="status">{notice}</p>}
@@ -481,7 +482,7 @@ export function ProductEditPage() {
                 <Check ok={photoOk} label={usesSample ? 'Photo (sample only)' : 'At least one photo'} />
                 <Check ok={priceOk} label="Price set" />
               </ul>
-              {detail && <p className="admin-muted">Currently {detail.status === 'LIVE' ? 'live in the shop' : 'a draft'}.</p>}
+              {detail && <p className="admin-muted">Currently {detail.status === 'LIVE' ? 'live in the shop' : detail.status === 'ENDED' ? 'ended (not in the shop)' : 'a draft'}.</p>}
             </section>
 
             <section className="card" aria-labelledby="preview-title">

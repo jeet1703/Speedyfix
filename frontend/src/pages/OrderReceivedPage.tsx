@@ -6,6 +6,7 @@ import { Icon } from '../components/Icons';
 import { Layout } from '../components/Layout';
 import { LineList, Totals } from '../components/OrderSummary';
 import { PageTitle } from '../components/PageTitle';
+import { Skeleton, SkeletonText } from '../components/Skeleton';
 import { useSite } from '../state/SiteContext';
 
 const dateFormat = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -30,7 +31,12 @@ export function OrderReceivedPage() {
             <p>If you placed an order, call {data?.site.phone} and we’ll find it for you.</p>
           </div>
         )}
-        {!order && !error && <p className="state" aria-busy="true">Loading your order…</p>}
+        {!order && !error && (
+          <div className="two-col page-body" aria-busy="true" aria-label="Loading your order">
+            <div className="skeleton-text"><Skeleton height={96} radius={6} /><Skeleton height={80} radius={6} /><SkeletonText lines={4} /></div>
+            <Skeleton height={320} radius={6} />
+          </div>
+        )}
         {order && (
           <div className="two-col">
             <div className="received">

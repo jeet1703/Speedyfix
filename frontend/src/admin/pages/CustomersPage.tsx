@@ -4,6 +4,7 @@ import { adminApi, errorMessage } from '../adminApi';
 import { AdminLayout } from '../AdminLayout';
 import { when } from '../components';
 import type { CustomerRow } from '../types';
+import { TableSkeleton } from '../../components/Skeleton';
 
 /** /admin/customers : every shopper who has signed in with Google, most recent first, with their recent searches. */
 export function CustomersPage() {
@@ -35,7 +36,7 @@ export function CustomersPage() {
               value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
         </div>
-        {!rows && !error && <p className="admin-muted" aria-busy="true">Loading…</p>}
+        {!rows && !error && <TableSkeleton columns={5} />}
         {rows && shown.length === 0 && <p className="admin-muted">{rows.length === 0 ? 'No one has signed in yet.' : 'No customers match.'}</p>}
         {shown.length > 0 && (
           <div className="table-wrap">

@@ -49,6 +49,8 @@ This costs £0 and covers most of the UK car parc. Its weak spots are brand-new 
 | VehicleMatic, Autodata Solutions, DealerPricing | Advertised from 1p to 16p per lookup | Varies | Smaller resellers; compare quotes |
 | **TecAlliance (TecDoc)**: plate → KType → parts | No public price; licensing on request | Yes (KType / NType) | The industry parts catalogue, mapping vehicles to OE and aftermarket parts. Worth it later for cross-referencing OE numbers at scale. |
 
+**Built (25 October 2026):** `DvsaClient` and `DvsaVehicleLookup` in `backend/.../vehicle/`. They switch on when these four settings from DVSA's email are set: `DVSA_CLIENT_ID`, `DVSA_CLIENT_SECRET`, `DVSA_API_KEY` and `DVSA_TOKEN_URL` (`https://login.microsoftonline.com/<tenant id>/oauth2/v2.0/token`). Until then the site uses the demo plates. Fit is "Likely fits" when a listing's title names the vehicle's make and model and its years and engine size match.
+
 **Recommendation:** register for the **DVSA MOT History API now** (free, takes up to 5 days). Build Phase 3 with a `VehicleLookup` implementation for DVSA, plus our engine-code matching. Get quotes from **UK Vehicle Data** and **Vehicle Smart (extended)**, and add one as a second `VehicleLookup` implementation when the free approach misses too often. The admin's **lookup cost and monthly cap** settings are already built for this.
 
 ## 2. Parts fitment data

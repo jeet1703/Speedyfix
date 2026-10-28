@@ -29,6 +29,7 @@ public class CatalogService {
 
     private final CatalogRepository repository;
     private final VehicleService vehicles;
+    private final TitleFitment titleFitment = new TitleFitment();
 
     public CatalogService(CatalogRepository repository, VehicleService vehicles) {
         this.repository = repository;
@@ -87,8 +88,7 @@ public class CatalogService {
             filter = filter.and(p -> p.categoryId().equals(query.category()));
         }
         if (query.q() != null && !query.q().isBlank()) {
-            List<String> matches = search(query.q(), Integer.MAX_VALUE, null).stream().map(ProductView::id).toList();
-            filter = filter.and(p -> matches.contains(p.id()));
+            filter = filter.and(matching(query.q()));
         }
         if (!query.conditions().isEmpty()) {
             filter = filter.and(p -> query.conditions().contains(p.condition()));
@@ -100,7 +100,7 @@ public class CatalogService {
             filter = filter.and(p -> p.price().compareTo(query.maxPrice()) <= 0);
         }
         if (query.fitsOnly() && vehicle.isPresent()) {
-            filter = filter.and(p -> p.fitsVehicleIds().contains(vehicle.get().id()));
+            filter = filter.and(p -> fitsOrLikely(fit(p, vehicle)));
         }
         Predicate<Product> byBrand = oneOf(query.brands(), p -> List.of(nullToEmpty(p.brand())));
         Predicate<Product> bySubType = oneOf(query.subTypes(), p -> List.of(nullToEmpty(p.subType())));
@@ -212,26 +212,38 @@ public class CatalogService {
      * vehicles a part fits. Part numbers also match with spaces and dashes removed ("C1B119D629A2H").
      */
     public List<ProductView> search(String query, int limit, String vehicleId) {
-        String q = query == null ? "" : query.trim().toLowerCase(Locale.UK);
-        if (q.length() < 2) {
-            return List.of();
-        }
-        String[] words = q.split("\\s+");
-        String compactQuery = compact(q);
+        Predicate<Product> matches = matching(query);
         Optional<Vehicle> vehicle = vehicles.findById(vehicleId);
         return repository.liveProducts().stream()
-                .filter(p -> {
-                    String haystack = haystack(p);
-                    boolean allWords = Arrays.stream(words).allMatch(haystack::contains);
-                    return allWords || (compactQuery.length() > 3 && compact(haystack).contains(compactQuery));
-                })
+                .filter(matches)
                 .limit(Math.max(1, Math.min(limit, 20)))
                 .map(p -> view(p, vehicle))
                 .toList();
     }
 
+    /** The search test on its own, uncapped, for the shop's results; a query under two letters matches nothing. */
+    private Predicate<Product> matching(String query) {
+        String q = query == null ? "" : query.trim().toLowerCase(Locale.UK);
+        if (q.length() < 2) {
+            return p -> false;
+        }
+        String[] words = q.split("\\s+");
+        String compactQuery = compact(q);
+        return p -> {
+            String haystack = haystack(p);
+            boolean allWords = Arrays.stream(words).allMatch(haystack::contains);
+            return allWords || (compactQuery.length() > 3 && compact(haystack).contains(compactQuery));
+        };
+    }
+
+    /** Live parts confirmed for the vehicle or likely to fit it. */
     public long countFitting(String vehicleId) {
-        return repository.liveProducts().stream().filter(p -> p.fitsVehicleIds().contains(vehicleId)).count();
+        Optional<Vehicle> vehicle = vehicles.findById(vehicleId);
+        return repository.liveProducts().stream().filter(p -> fitsOrLikely(fit(p, vehicle))).count();
+    }
+
+    private static boolean fitsOrLikely(FitStatus fit) {
+        return fit == FitStatus.FITS || fit == FitStatus.LIKELY_FITS;
     }
 
     public ProductView view(Product p, Optional<Vehicle> vehicle) {
@@ -240,14 +252,25 @@ public class CatalogService {
                 p.price(), p.reference(), p.imageUrl(), p.shipping(), p.stock(), p.stock() > 0, fit(p, vehicle));
     }
 
-    static FitStatus fit(Product p, Optional<Vehicle> vehicle) {
+    /**
+     * Confirmed fitment decides first. Without it, the title decides: it names this make and model (with matching
+     * years and engine size where given), or it's for another vehicle. Otherwise fit isn't known yet.
+     */
+    FitStatus fit(Product p, Optional<Vehicle> vehicle) {
         if (vehicle.isEmpty()) {
             return FitStatus.NO_VEHICLE;
         }
         if (p.fitsVehicleIds().contains(vehicle.get().id())) {
             return FitStatus.FITS;
         }
-        return p.fitsVehicleIds().isEmpty() ? FitStatus.UNCONFIRMED : FitStatus.DOES_NOT_FIT;
+        TitleFitment.Verdict fromTitle = titleFitment.judge(p, vehicle.get());
+        if (fromTitle == TitleFitment.Verdict.LIKELY) {
+            return FitStatus.LIKELY_FITS;
+        }
+        if (!p.fitsVehicleIds().isEmpty() || fromTitle == TitleFitment.Verdict.NO) {
+            return FitStatus.DOES_NOT_FIT;
+        }
+        return FitStatus.UNCONFIRMED;
     }
 
     private String haystack(Product p) {

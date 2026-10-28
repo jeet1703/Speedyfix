@@ -250,3 +250,4 @@ select.input--sm { padding-right: 32px; }
 @media (max-width: 860px) {
   .hub-grid { grid-template-columns: minmax(0, 1fr); }
 }
+.admin-pager { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding-top: 8px; }

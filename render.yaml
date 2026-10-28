@@ -28,3 +28,13 @@ services:
       # Signs shopper session tokens, so shoppers stay signed in across redeploys. Render generates a random value.
       - key: ACCOUNT_JWT_SECRET
         generateValue: true
+      # PostgreSQL: "postgres" switches the shop from the built-in sample catalogue to the database.
+      - key: SPRING_PROFILES_ACTIVE
+        sync: false
+      # jdbc:postgresql://<internal host>:5432/<database> from the database's Connect panel. Set in the dashboard only.
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_USERNAME
+        sync: false
+      - key: DATABASE_PASSWORD
+        sync: false

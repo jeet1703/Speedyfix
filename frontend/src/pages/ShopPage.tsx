@@ -7,6 +7,7 @@ import { PageTitle } from '../components/PageTitle';
 import { Pagination } from '../components/Pagination';
 import { PlateFinder } from '../components/PlateFinder';
 import { ProductCard } from '../components/ProductCard';
+import { ProductGridSkeleton, Skeleton } from '../components/Skeleton';
 import { useAccount } from '../state/AccountContext';
 import { useStore } from '../state/StoreContext';
 
@@ -138,7 +139,8 @@ export function ShopPage() {
               <li>
                 <Link to="/products" aria-current={!category && !q ? 'page' : undefined}>All parts</Link>
               </li>
-              {result?.categories.map((c) => (
+              {!result && Array.from({ length: 8 }, (_, i) => <li key={i}><Skeleton height={18} width={`${85 - (i % 3) * 15}%`} /></li>)}
+              {result?.categories.filter((c) => c.count > 0 || c.id === category).map((c) => (
                 <li key={c.id}>
                   <Link to={`/products?category=${c.id}`} aria-current={c.id === category ? 'page' : undefined}>
                     {c.name} <span>{c.count}</span>
@@ -194,7 +196,7 @@ export function ShopPage() {
         <section className="shop__results" aria-labelledby="results-count" aria-busy={loading}>
           <div className="shop__toolbar">
             <p id="results-count" aria-live="polite">
-              {result ? (result.total === 0 ? 'No results' : `Showing ${from}–${to} of ${result.total} ${result.total === 1 ? 'result' : 'results'}`) : 'Loading…'}
+              {result && !loading ? (result.total === 0 ? 'No results' : `Showing ${from}–${to} of ${result.total} ${result.total === 1 ? 'result' : 'results'}`) : 'Loading parts…'}
             </p>
             <label className="sort">
               <span className="sr-only">Sort by</span>
@@ -206,7 +208,9 @@ export function ShopPage() {
 
           {error && <p className="notice notice--error" role="alert">{error}</p>}
 
-          {result && result.total === 0 && !error && (
+          {loading && !error && <ProductGridSkeleton count={result?.items.length || 12} />}
+
+          {!loading && result && result.total === 0 && !error && (
             <div className="empty">
               <h2>No parts match{q ? ` “${q}”` : ' these filters'}</h2>
               <p>Try fewer filters, search by part number or engine code, or ask us to find it for you.</p>
@@ -217,7 +221,7 @@ export function ShopPage() {
             </div>
           )}
 
-          {result && result.items.length > 0 && (
+          {!loading && result && result.items.length > 0 && (
             <ul className="product-grid">
               {result.items.map((p) => <li key={p.id}><ProductCard product={p} /></li>)}
             </ul>

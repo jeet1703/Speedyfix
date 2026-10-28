@@ -3,6 +3,8 @@ import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { AccountPage } from './pages/AccountPage';
 import { BasketPage } from './pages/BasketPage';
 import { CheckoutPage } from './pages/CheckoutPage';
+import { CardsSkeleton } from './components/Skeleton';
+import { TopLoader } from './components/TopLoader';
 import { ComingSoon } from './pages/ComingSoon';
 import { ContactPage } from './pages/ContactPage';
 import { HomePage } from './pages/HomePage';
@@ -34,6 +36,7 @@ export default function App() {
         <AccountProvider>
           <BrowserRouter basename={import.meta.env.BASE_URL}>
             <ScrollToTop />
+            <TopLoader />
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/products" element={<ShopPage />} />
@@ -45,7 +48,7 @@ export default function App() {
               <Route path="/wishlist" element={<WishlistPage />} />
               <Route path="/contact" element={<ContactPage />} />
               <Route path="/account" element={<AccountPage />} />
-              <Route path="/admin/*" element={<Suspense fallback={<main className="state" aria-busy="true"><p>Loading admin…</p></main>}><AdminApp /></Suspense>} />
+              <Route path="/admin/*" element={<Suspense fallback={<main className="container" style={{ padding: '40px 20px' }}><CardsSkeleton /></main>}><AdminApp /></Suspense>} />
               <Route path="*" element={<ComingSoon />} />
             </Routes>
           </BrowserRouter>

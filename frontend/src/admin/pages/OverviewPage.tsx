@@ -6,6 +6,7 @@ import { AdminLayout } from '../AdminLayout';
 import { Chips, inQueue, QUEUE_FILTERS, WorkPill, type QueueFilter } from '../components';
 import { SalesChart } from '../SalesChart';
 import type { Dashboard } from '../types';
+import { CardsSkeleton } from '../../components/Skeleton';
 
 const QUEUE_SIZE = 6;
 const gbp = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' });
@@ -45,7 +46,7 @@ export function OverviewPage() {
   return (
     <AdminLayout title="Overview" actions={<Link className="btn btn--primary" to="/admin/products/new">Create listing</Link>}>
       {error && <p className="notice notice--error" role="alert">{error}</p>}
-      {!data && !error && <p className="admin-muted" aria-busy="true">Loading…</p>}
+      {!data && !error && <CardsSkeleton cards={4} />}
       {data && (
         <>
           <div className="hub-grid">

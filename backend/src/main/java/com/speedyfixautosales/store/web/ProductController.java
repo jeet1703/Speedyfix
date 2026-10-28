@@ -67,7 +67,7 @@ public class ProductController {
                            @RequestParam(required = false) List<String> refinement,
                            @RequestParam(defaultValue = "best-selling") String sort,
                            @RequestParam(defaultValue = "1") int page,
-                           @RequestParam(defaultValue = "9") int pageSize,
+                           @RequestParam(defaultValue = "24") int pageSize,
                            @RequestParam(required = false) List<String> ids) {
         Set<Condition> conditions = condition == null ? Set.of() : condition.stream()
                 .map(c -> parse(Condition.class, c, "condition"))

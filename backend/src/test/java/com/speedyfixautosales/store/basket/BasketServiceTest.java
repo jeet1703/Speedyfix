@@ -3,7 +3,7 @@ package com.speedyfixautosales.store.basket;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.speedyfixautosales.store.catalog.CatalogRepository;
+import com.speedyfixautosales.store.catalog.InMemoryCatalogRepository;
 import com.speedyfixautosales.store.catalog.CatalogService;
 import com.speedyfixautosales.store.common.ConflictException;
 import com.speedyfixautosales.store.vehicle.DemoVehicleLookup;
@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 class BasketServiceTest {
 
     private final BasketService baskets = new BasketService(
-            new CatalogService(new CatalogRepository(), new VehicleService(new DemoVehicleLookup())));
+            new CatalogService(new InMemoryCatalogRepository(), new VehicleService(new DemoVehicleLookup())));
 
     @Test
     void chargesPalletDeliveryForEngines() {

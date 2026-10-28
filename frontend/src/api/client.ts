@@ -2,6 +2,7 @@ import type {
   AccountSession, Basket, Customer, HomeData, LookupResult, Order, OrderForm, PartRequestReceived, Product, ProductDetail,
   ShopResult, SiteData
 } from './types';
+import { progress } from './progress';
 
 export const BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
 
@@ -13,6 +14,15 @@ export class ApiError extends Error {
 }
 
 export async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  progress.start();
+  try {
+    return await send<T>(path, init);
+  } finally {
+    progress.done();
+  }
+}
+
+async function send<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
   // FormData sets its own multipart Content-Type, boundary included.
   const json = !(init?.body instanceof FormData);

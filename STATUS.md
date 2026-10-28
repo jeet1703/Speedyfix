@@ -1,43 +1,65 @@
 # SpeedyFix Auto Sales v2: project status and launch plan
 
-Status as of 24 October 2026. Checked by running the site locally: all 41 backend tests pass, the frontend type-checks and builds, and the shop, Seller Hub admin and Google sign-in were clicked through in Chrome.
+Status as of 24 October 2026. Checked locally: all 50 backend tests pass (including the database migrations and the eBay import against a real Postgres), the frontend type-checks and builds, and the shop runs on the local database with the real eBay stock.
 
-**In short:** the shop and the Seller Hub admin work end to end as a prototype. The site is **not ready for real customers yet**, for three reasons:
+**In short:** on this computer, the shop now shows the business's **1,262 live eBay listings** from a PostgreSQL database, and the Seller Hub admin works end to end. It is **not ready for real customers yet**:
 
-1. Everything is held in memory, so each redeploy wipes listings, orders, customers and requests (**database**).
-2. No payment is taken (**payment gateway**).
-3. Plate lookup only knows 3 demo vehicles (**vehicle API**).
+1. **Photos:** every listing shows "Photo coming soon" until the eBay developer keys are added (the photo import is built and tested).
+2. **Orders, baskets and customers** are still held in memory, so a restart loses them (listings are already in the database).
+3. **No payment is taken** (Stripe with PayPal is decided, not built).
+4. **Plate lookup** only knows 3 demo vehicles.
+5. **The live site** still runs an older version: none of the database, import or Seller Hub work is deployed.
 
 ---
 
-## 0. What's left, at a glance
+## 0. Done and left, at a glance
 
-| # | Item | Where it stands | Needed from the owner | Developer work | Running cost | Effort |
-| --- | --- | --- | --- | --- | --- | --- |
-| 1 | **Database** | Not started. Everything is in memory. | Approve about £6 a month (Render Postgres) | PostgreSQL + Flyway + JPA for listings, orders, baskets, customers, searches, part requests and settings; photos to Cloudflare R2 | ~$7.50 a month (DB) + R2 free up to 10 GB | 1–2 days |
-| 2 | **Payment gateway: Stripe + PayPal** | Decided. Not built. Checkout places orders without payment; staff mark them paid by hand. | Stripe account in the business's name, verified; PayPal switched on inside Stripe (see section 0.2) | Stripe Payment Element at checkout (cards, Apple Pay, Google Pay, PayPal), webhook marks orders paid, refunds from the admin | No monthly fee. Cards 1.5% + 20p (standard UK); PayPal at Stripe's PayPal rate (check the Stripe dashboard) | 2–3 days |
-| 3 | **Vehicle lookup API** | Demo data, 3 plates. | Register for the **DVSA MOT History API** (free, up to 5 working days). Later, a paid engine-code provider quote. | `VehicleLookup` for DVSA, matching to engine codes, 30-day cache, spend cap (already in Settings) | Free (DVSA). Engine-code data about 4p–15p per lookup. | 1 day |
-| 4 | **Admin login on the live site** | Built; switched off live because no password is set. | Set `ADMIN_PASSWORD` (12+ characters) in Render | None | £0 | 2 minutes |
-| 5 | **Google sign-in on the live site** | Built; the client ID is in the code. | Add `https://jeet1703.github.io` (and later your domain) to the Google client's authorised origins; publish the OAuth consent screen | Deploy | £0 | 10 minutes |
-| 6 | **Hosting and domain** | Running on Render free + GitHub Pages. | Domain DNS to Cloudflare; approve paid hosting | Cloudflare Pages for the frontend, Render Starter for the backend, custom domains, CORS | ~£11–17 a month | 1 day |
-| 7 | **Business details and legal pages** | Placeholders. | Company name and number, VAT number, address, phone, warranty, couriers; terms, privacy and returns text from a legal adviser | Fill `application.yml`, build the content pages | Legal adviser's fee | 1 day once received |
-| 8 | **SEO basics** | Not started. | Nothing | Titles, descriptions, sitemap, product structured data, robots.txt | £0 | 1 day |
-| 9 | **Order emails** | Out of scope for launch. | — | Resend over SMTP when wanted | £0 up to 3,000 a month | 1 day |
+Step-by-step detail is in **[IMPORT-AND-PAYMENTS-GUIDE.md](IMPORT-AND-PAYMENTS-GUIDE.md)**; database commands in **[DATABASE.md](DATABASE.md)**.
 
-### 0.1 Action plan (2 weeks)
+| # | Area | ✅ Done | ⏳ Left | Waiting on |
+| --- | --- | --- | --- | --- |
+| 1 | **Database** | Local Postgres 16 in Docker; Flyway schema (19 tables, 21 categories); backup and restore scripts tested; **listings read from the database** | Move baskets, orders, customers, searches, part requests, settings and admin photo uploads onto the database; create the live database on Render | Nothing for the local work. The live database waits on approving ~£6 a month. |
+| 2 | **eBay import** | CSV importer: **1,380 listings imported** (1,262 live, 118 ended), 144 eBay categories mapped to 21 shop categories, part numbers read from 912 titles, safe to re-run. Photo and item-specifics step (Browse API, 20 per call) built and tested. | Run it with the eBay keys to bring in photos, brand, part number and type; review the category map; decide on the 22 **cars for sale**; later, the compatibility (fitment) table via the Trading API | **eBay developer keys** (`EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET`) |
+| 3 | **Keeping eBay and the website in step** | — | Website sale lowers eBay stock; eBay sale lowers website stock; nightly check (guide Part D) | Seller sign-in to eBay's Trading API |
+| 4 | **Photo hosting** | Photos stored on disk (`storage/`), served at `/api/images`, 1,200 px + 400 px JPEGs, placeholder for listings without photos. **Stock photos for now** in a demo copy of the database (`speedyfix_demo`), so the local site looks complete | Move to **Cloudflare R2** behind `images.<domain>` (same paths) | Cloudflare account, R2 bucket and token |
+| 5 | **Payments: Stripe + PayPal** | Admin order handling: mark paid, dispatch with courier and tracking, cancel (restocks) | Stripe Payment Element at checkout (cards, Apple Pay, Google Pay, PayPal), webhook marks orders paid, 30-minute stock hold, refunds from the admin | **Stripe account** (verified) and test keys |
+| 6 | **Vehicle lookup** | **DVSA MOT History API connected in code** (switches on when its 4 credentials are set; 30-day cache keyed by a hash of the plate); **"Likely fits"** from each listing's title (make, model, years, engine size), used by fit badges, the "fits my car" filter and the fitting-parts count; demo plates until then | Live test with real credentials; manual make/model picker; paid engine-code data if the free route misses too often | **DVSA API registration** (up to 5 working days) |
+| 7 | **Admin and sign-in** | Seller Hub admin (Overview with sales chart, Orders, Listings incl. Ended, Customers, Part requests, Vehicle lookup, Settings); email + password with JWT; Google sign-in works locally | Set the live admin password; add the live address to Google's allowed origins; more staff logins (later) | `ADMIN_PASSWORD` in Render; Google Cloud settings |
+| 8 | **Shop** | Owner's changes (menu, categories, filters like eBay, no returns page or trade accounts); recent searches; Products menu fixed | About, Delivery, FAQ, Terms, Privacy pages; Cars for sale section if wanted | Owner's text and decision |
+| 9 | **Hosting and deploy** | Live today: GitHub Pages + Render free (older version) | Commit and deploy the latest work; domain on Cloudflare; Cloudflare Pages + Render Starter + Render Postgres | Approval of ~£11–17 a month; the domain name |
+| 10 | **Business details and legal** | — | Company name and number, VAT number, address, phone, warranty, couriers; terms, privacy and returns policies | Owner and legal adviser |
+| 11 | **SEO basics** | — | Page titles and descriptions, sitemap, product structured data, robots.txt | Nothing |
+| 12 | **Order emails** | — | Out of scope for launch (Resend when wanted) | Decision |
+
+### 0.1 What to do next
+
+**Developer, now (nothing blocking):**
+1. Move baskets, orders, customers, searches, part requests and settings onto the database (about 1 day), so nothing is lost on a restart.
+2. Commit the work and deploy the branch, keeping the live site on its current setup until the live database exists.
+3. SEO basics and the content-page template.
+
+**Owner, now (these unblock everything else; keys go into Render or `CREDENTIALS.local.md`, never chat):**
+1. eBay developer account and Production keys → photos and item specifics.
+2. Stripe account (start verification) → payments.
+3. Cloudflare account, R2 bucket and token, domain on Cloudflare → photo hosting and the live domain.
+4. DVSA MOT History API registration → real plate lookup.
+5. `ADMIN_PASSWORD` in Render, and the live address in Google's allowed origins.
+6. Business details, policies from the legal adviser, and the cars-for-sale decision.
+
+### 0.2 Action plan (2 weeks from the day the owner's accounts are ready)
 
 | When | Owner | Developer |
 | --- | --- | --- |
-| **Day 1** | Create the Stripe account and start verification. Register for the DVSA MOT History API. Set `ADMIN_PASSWORD` in Render. Add the GitHub Pages origin to the Google client. Send business details. Ask the legal adviser for policies. | Database: tables, Flyway, JPA; move every in-memory store across |
-| **Day 2** | Approve hosting. Point the domain at Cloudflare. | Photos to R2; paid Render + Postgres; domain and Cloudflare Pages |
-| **Days 3–5** | Share Stripe **test** keys (in Render, not chat). Turn on PayPal in Stripe. | Stripe Payment Element, webhook, failed and declined payments, refunds from the order page |
-| **Day 6** | Try checkout and the admin on staging. | Fixes from days 1–5 |
-| **Day 7** | Policies and details due. DVSA key should have arrived. | Real plate lookup (DVSA); legal pages in |
+| **Day 1** | eBay keys, Stripe account, Cloudflare and DVSA sign-ups; `ADMIN_PASSWORD` in Render | Remaining stores onto the database; commit and deploy |
+| **Day 2** | Review the category map | eBay import with photos (test 50, then all); R2 photo hosting |
+| **Days 3–5** | Stripe **test** keys in Render; PayPal on in Stripe | Stripe Payment Element, webhook, stock hold, refunds |
+| **Day 6** | Try checkout and the admin on staging | eBay ⇄ website stock sync |
+| **Day 7** | Policies and details due; DVSA key arrived | Real plate lookup; legal pages in |
 | **Day 8** | — | SEO basics |
-| **Day 9** | Load real listings and photos. | Security, backups, monitoring |
-| **Day 10** | Switch Stripe to **live** keys. Place and refund a real order. | Go live; submit the sitemap to Google |
+| **Day 9** | Approve hosting; domain on Cloudflare | Render Postgres, paid hosting, custom domain; backups and monitoring |
+| **Day 10** | Stripe **live** keys; place and refund a real order | Go live; submit the sitemap to Google |
 
-### 0.2 Payment gateway: what we need
+### 0.3 Payment gateway: what we need
 
 **Recommendation: take PayPal through Stripe.** Stripe can accept PayPal for UK businesses ([Stripe docs](https://docs.stripe.com/payments/paypal/activate)). That gives one integration, one dashboard, one webhook and one payout for cards, Apple Pay, Google Pay and PayPal. The alternative, a separate PayPal Business account with PayPal's own buttons (2.9% + 30p per sale), is a second integration and a second reconciliation, so only choose it if Stripe's PayPal option isn't available on the account.
 
@@ -72,11 +94,11 @@ Status as of 24 October 2026. Checked by running the site locally: all 41 backen
 
 **Card security:** card and PayPal details only ever go to Stripe, never to our server, so the shop stays on Stripe's simplest compliance level (SAQ A).
 
-### 0.3 Admin login
+### 0.4 Logins
 
 | Where | Email | Password |
 | --- | --- | --- |
-| Local copy (your computer) | `prabhjeetsinghhh@gmail.com` | `speedyfixautosales-local-admin` (local only, never use it live) |
+| Local copy (your computer) | `prabhjeetsinghhh@gmail.com` | the one you set in `$env:ADMIN_PASSWORD`, see `CREDENTIALS.local.md` (local only, never use it live) |
 | Live site | `prabhjeetsinghhh@gmail.com` (or `ADMIN_EMAIL` if set) | Whatever you set as `ADMIN_PASSWORD` in Render. **Not set yet**, so live admin sign-in is off. |
 
 ---
@@ -88,14 +110,14 @@ Status as of 24 October 2026. Checked by running the site locally: all 41 backen
 | Area | Status |
 | --- | --- |
 | Homepage: hero slider, mega menu, reg-plate finder, carousels, category banners | Done |
-| Shop `/products`: filters, sort, pagination, "fits my car" | Done |
+| Shop `/products`: filters, sort, pagination, "fits my car" | Done; on the database it lists the 1,262 live eBay listings |
 | Product page `/products/:id`: fit check, VAT split, tabs, related parts | Done |
 | Basket drawer and basket page, with delivery and VAT worked out by the backend | Done |
 | Checkout `/checkout` and order received page | Done, **without payment** |
 | Request a part `/request-a-part`, with up to 4 photos | Done |
 | Wishlist and Contact pages | Done |
 | Shop filters like eBay: Brand, Sub type, Featured refinements | Done |
-| My account: sign in with Google, recent search history | Done (needs `GOOGLE_CLIENT_ID` to switch on) |
+| My account: sign in with Google, recent search history | Done; works locally (the client ID is set) |
 | About, Delivery, FAQ, Terms, Privacy | Placeholder page only (`ComingSoon`). The Returns page was removed at the owner's request. |
 
 ### Staff admin: Seller Hub (`/admin`)
@@ -108,7 +130,7 @@ The admin is **built** and laid out like eBay Seller Hub (Overview, Orders, List
 | Overview | Listings, Orders and Sales cards as on eBay (31-day sales chart; today, 7, 31 and 90-day totals with change), listings to finish, plate searches with no matching stock, lookup spend |
 | Customers | Everyone who has signed in with Google, with last sign-in and recent searches |
 | Orders | Status tabs; mark paid, dispatch with courier and tracking, cancel (restocks) |
-| Listings | Active, Out of stock, Drafts, Needs attention, All |
+| Listings | Active, Out of stock, Drafts, Ended, Needs attention, All |
 | Create / Edit listing | Part number, fitment suggestions (same part number or engine code), brand, sub type, featured refinements, up to 4 photos, checklist, shopper preview, end a listing |
 | Part requests | Customers' requests with contact details and photos. Status moves New → Quoted → Closed. |
 | Vehicle lookup tester | Which vehicle a plate identifies, plus its confirmed and possible parts |
@@ -129,7 +151,7 @@ You need Java 21, Node 20 or newer, and Maven 3.9 or newer. Maven isn't on your 
 ```powershell
 cd backend
 $env:PORT = '8081'
-$env:ADMIN_PASSWORD = 'speedyfixautosales-local-admin'   # any value of 12+ characters
+$env:ADMIN_PASSWORD = '<your local password>'   # any value of 12+ characters
 # Optional: $env:ADMIN_EMAIL (default prabhjeetsinghhh@gmail.com) and $env:ADMIN_JWT_SECRET (32+ characters)
 mvn spring-boot:run
 ```
@@ -157,15 +179,15 @@ Run the backend tests with `mvn test` from inside `backend/`.
 ### A quick tour of the admin
 
 1. **Sign in** at `/admin/login` with the master email and password.
-2. **Dashboard**: the work queue lists parts that still need fitment or photos. Click a part to fix it.
-3. **Products → Add part**: enter the OE number or engine code first. Fitment suggestions then appear. Accept them, or enter a donor plate such as `AB12 CDE` to add that exact vehicle.
-4. Add a price and at least one photo, then tick through the **publish checklist** and press **Publish**. You can save a draft without a price or photo.
+2. **Overview**: Listings, Orders and Sales cards, then the listings still needing fitment or photos. Click one to fix it.
+3. **Listings → Create listing**: enter the part number (or engine code), then **Find vehicles** for fitment suggestions, or add vehicles by hand. Add brand, sub type and featured refinements.
+4. Add a price and at least one photo, then tick through the checklist and press **List it**. You can save a draft without a price or photo.
 5. Open the shop in another tab. The part shows up, and a plate lookup marks it as fitting.
 6. **Part requests**: submit one from `/request-a-part` in the shop, then move it New → Quoted → Closed here.
 7. **Vehicle lookup tester**: check what a plate finds without it counting as a customer search.
 8. **Settings**: set the lookup cost, the monthly cap and the buying team email. The dashboard's email link uses that address.
 
-Anything you add is lost when the backend restarts until Phase 1 is done.
+Without the database (`postgres` profile) everything you add is lost on restart. With it, listings are kept; baskets, orders, customers and requests still aren't until the rest of Part A4 is done.
 
 ---
 ## 3. Launch plan, phase by phase
@@ -228,7 +250,7 @@ Expect **about $15–22 a month (about £11–17)** for hosting at the start, an
 
 | # | Task | Done when |
 | --- | --- | --- |
-| 0.1 | Commit the admin work and the JWT sign-in currently uncommitted on `main` | `git status` is clean |
+| 0.1 | ~~Commit the admin work~~ Done (feature branches); the database and import work still to commit | `git status` is clean |
 | 0.2 | Work on feature branches from now on, merging to `main` through pull requests | Branch protection is on for `main` |
 | 0.3 | GitHub Actions: run `mvn test` and `npm run build` on every pull request | A failing test blocks the merge |
 | 0.4 | Add a `.env.example` listing every environment variable the app reads | New developers can set up from it |
@@ -239,14 +261,14 @@ Expect **about $15–22 a month (about £11–17)** for hosting at the start, an
 
 | # | Task | Done when |
 | --- | --- | --- |
-| 1.1 | Add Spring Data JPA, the PostgreSQL driver and Flyway | The app starts against Postgres and creates the tables itself |
-| 1.2 | Tables: `categories`, `products`, `product_oe_numbers`, `product_fitment`, `product_photos`, `vehicles`, `settings`, `lookup_log` | Admin product edits survive a restart |
+| 1.1 | ~~Add the PostgreSQL driver and Flyway~~ **Done** (JDBC + Flyway, `postgres` profile) | The app starts against Postgres and creates the tables itself |
+| 1.2 | Tables for the catalogue: **done**, and the shop reads listings from them. Admin photo uploads still go to memory. | Admin product edits survive a restart |
 | 1.3 | Tables: `baskets`, `basket_items`, `orders`, `order_items`. Stock is taken in one transaction with a row lock, so two buyers can't get the last part. | Orders survive a restart, and the stock test passes |
 | 1.4 | Tables: `part_requests`, `part_request_photos` | Requests survive a restart |
 | 1.5 | Move product and request photos to Cloudflare R2 (request photos in a private bucket, served through the admin only) | Photos survive a redeploy; the 64 MB memory cap is removed |
-| 1.6 | Flyway seed migration with the current sample parts and demo vehicles (development only) | A fresh local database has demo data |
-| 1.7 | Local development uses Postgres in Docker (`docker run -p 5432:5432 -e POSTGRES_PASSWORD=dev postgres:16`) | Instructions are in the README |
-| 1.8 | Tests run against Postgres through Testcontainers | `mvn test` passes |
+| 1.6 | ~~Seed data~~ Replaced by the real eBay import (1,380 listings) | A fresh local database has real data |
+| 1.7 | ~~Local Postgres in Docker~~ **Done** (`compose.yaml`, DATABASE.md) | Instructions are in DATABASE.md |
+| 1.8 | ~~Tests against Postgres through Testcontainers~~ **Done** (migrations and import) | `mvn test` passes |
 | 1.9 | Create Render Postgres Basic-256mb in Frankfurt for production (optionally a free Neon project for a cloud dev database) | The backend uses the internal `SPRING_DATASOURCE_*` connection |
 
 ### Phase 2: Taking money

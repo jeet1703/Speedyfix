@@ -4,6 +4,7 @@ import { adminApi, errorMessage } from '../adminApi';
 import { AdminLayout } from '../AdminLayout';
 import { gbpOrDash, OrderPill, when } from '../components';
 import type { Order, OrderStatus } from '../types';
+import { CardsSkeleton } from '../../components/Skeleton';
 
 const COURIERS = ['Royal Mail', 'Parcelforce', 'DPD', 'Evri', 'Pallet network', 'Collected'];
 
@@ -52,7 +53,7 @@ export function OrderDetailPage() {
     <AdminLayout title={order ? `Order ${order.reference}` : 'Order'} crumbs={[{ label: 'Orders', to: '/admin/orders' }, { label: reference }]}>
       {notice && <p className="notice notice--ok" role="status">{notice}</p>}
       {error && <p className="notice notice--error" role="alert">{error}</p>}
-      {!order && !error && <p className="admin-muted" aria-busy="true">Loading…</p>}
+      {!order && !error && <CardsSkeleton cards={3} />}
       {order && (
         <div className="edit-cols">
           <div className="edit-main">

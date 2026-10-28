@@ -2,7 +2,7 @@ import type { Order, OrderStatus, ReplyBy, Vehicle } from '../api/types';
 
 export type { Order, OrderStatus };
 
-export type ProductStatus = 'DRAFT' | 'LIVE';
+export type ProductStatus = 'DRAFT' | 'LIVE' | 'ENDED';
 export type WorkStatus = 'NEEDS_FITMENT' | 'MISSING_PHOTO' | 'DRAFT' | 'LIVE';
 export type Condition = 'USED' | 'REMANUFACTURED' | 'NEW';
 export type Shipping = 'PARCEL' | 'PALLET';

@@ -74,7 +74,6 @@ select.input { appearance: none; padding-right: 36px; background: var(--surface)
 .price-range .input { min-height: 40px; font-size: 14px; }
 .widget .btn--sm { align-self: flex-start; }
 .shop__results { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
-.shop__results[aria-busy='true'] .product-grid { opacity: 0.6; }
 .shop__toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; font-size: 14px; color: var(--ink-2); }
 .sort .input { min-height: 40px; font-size: 14px; width: auto; }
 
@@ -96,6 +95,7 @@ select.input { appearance: none; padding-right: 36px; background: var(--surface)
 .pagination__btn:hover:not(:disabled) { border-color: var(--ink); }
 .pagination__btn.is-current { background: var(--accent); border-color: var(--accent); }
 .pagination__btn:disabled { opacity: 0.35; cursor: default; }
+.pagination__gap { min-width: 24px; height: 40px; display: inline-flex; align-items: center; justify-content: center; color: var(--ink-2); font-weight: 600; }
 
 /* Product */
 .product { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 48px; padding-top: 48px; padding-bottom: 48px; }

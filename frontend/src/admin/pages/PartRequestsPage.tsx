@@ -4,6 +4,7 @@ import { adminApi, errorMessage } from '../adminApi';
 import { AdminLayout } from '../AdminLayout';
 import { Chips, REQUEST_LABEL, RequestPill, when } from '../components';
 import type { PartRequest, PartRequestStatus } from '../types';
+import { TableSkeleton } from '../../components/Skeleton';
 
 type Filter = PartRequestStatus | 'ALL';
 
@@ -44,7 +45,7 @@ export function PartRequestsPage() {
           <div className="card__head card__head--wrap">
             <Chips label="Show" options={options} value={filter} onChange={(v) => set('status', v)} />
           </div>
-          {!requests && !error && <p className="admin-muted" aria-busy="true">Loading…</p>}
+          {!requests && !error && <TableSkeleton columns={5} />}
           {requests && shown.length === 0 && <p className="admin-muted">No {filter === 'ALL' ? '' : REQUEST_LABEL[filter].toLowerCase() + ' '}requests.</p>}
           <ul className="request-list">
             {shown.map((r) => (

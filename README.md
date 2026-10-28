@@ -45,6 +45,8 @@ Like the rest of the prototype, parts, photos, requests and settings are held in
 
 ## Run it locally
 
+The database (PostgreSQL 16 in Docker) and how to move it to the live server are in [DATABASE.md](DATABASE.md). The backend runs without it unless the `postgres` profile is on.
+
 Prerequisites: Java 21, Maven 3.9+, Node 20+.
 
 ```bash

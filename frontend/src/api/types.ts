@@ -1,4 +1,5 @@
-export type FitStatus = 'FITS' | 'DOES_NOT_FIT' | 'UNCONFIRMED' | 'NO_VEHICLE';
+/** LIKELY_FITS: not confirmed, but the listing names the vehicle's make and model, with matching years and engine size. */
+export type FitStatus = 'FITS' | 'LIKELY_FITS' | 'DOES_NOT_FIT' | 'UNCONFIRMED' | 'NO_VEHICLE';
 
 export interface Vehicle {
   id: string;
