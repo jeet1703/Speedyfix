@@ -22,6 +22,11 @@ public final class Images {
      * photo of the part.
      */
     static boolean isSample(String url) {
-        return url != null && (url.startsWith("https://images.unsplash.com/") || url.endsWith("/" + PLACEHOLDER_KEY));
+        return url != null && (url.startsWith("https://images.unsplash.com/") || isPlaceholder(url));
+    }
+
+    /** The "photo coming soon" image: no photo at all, as opposed to a stock sample. */
+    public static boolean isPlaceholder(String url) {
+        return url != null && url.endsWith("/" + PLACEHOLDER_KEY);
     }
 }

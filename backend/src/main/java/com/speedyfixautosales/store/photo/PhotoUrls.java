@@ -15,11 +15,23 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 public class PhotoUrls {
 
     private final String baseUrl;
+    private final String server;
 
     public PhotoUrls(@Value("${photos.base-url:}") String baseUrl, @Value("${RENDER_EXTERNAL_URL:}") String serverUrl) {
-        String server = serverUrl.replaceAll("/+$", "");
+        this.server = serverUrl.replaceAll("/+$", "");
         String images = baseUrl.replaceAll("/+$", "");
         this.baseUrl = !images.isEmpty() ? images : server.isEmpty() ? "" : server + "/api/images";
+    }
+
+    /** An address on this server, such as /api/product-photos/{id}, made absolute the same way as photos. */
+    public String server(String path) {
+        if (!server.isEmpty()) {
+            return server + path;
+        }
+        if (RequestContextHolder.getRequestAttributes() != null) {
+            return ServletUriComponentsBuilder.fromCurrentContextPath().path(path).toUriString();
+        }
+        return path;
     }
 
     public String url(String key) {

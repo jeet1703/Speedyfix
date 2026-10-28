@@ -16,8 +16,8 @@ const TABS: { value: Tab; label: string; test: (r: ProductRow) => boolean; hidde
   { value: 'drafts', label: 'Drafts', test: (r) => r.status === 'DRAFT' },
   { value: 'ended', label: 'Ended', test: (r) => r.status === 'ENDED' },
   { value: 'needs-attention', label: 'Needs attention', test: (r) => r.status !== 'ENDED' && (r.vehicles === 0 || !r.hasPhoto) },
-  { value: 'needs-fitment', label: 'Needs fitment', test: (r) => r.vehicles === 0, hidden: true },
-  { value: 'missing-photo', label: 'Needs photos', test: (r) => !r.hasPhoto, hidden: true },
+  { value: 'needs-fitment', label: 'Needs fitment', test: (r) => r.status !== 'ENDED' && r.vehicles === 0, hidden: true },
+  { value: 'missing-photo', label: 'Needs photos', test: (r) => r.status !== 'ENDED' && !r.hasPhoto, hidden: true },
   { value: 'all', label: 'All', test: () => true }
 ];
 

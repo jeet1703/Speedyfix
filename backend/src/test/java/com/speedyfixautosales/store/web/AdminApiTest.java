@@ -15,6 +15,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.jayway.jsonpath.JsonPath;
+import com.speedyfixautosales.store.catalog.CatalogRepository;
+import com.speedyfixautosales.store.catalog.Condition;
+import com.speedyfixautosales.store.catalog.Images;
+import com.speedyfixautosales.store.catalog.Product;
+import com.speedyfixautosales.store.catalog.ProductStatus;
+import com.speedyfixautosales.store.catalog.Shipping;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +43,9 @@ class AdminApiTest {
 
     @Autowired
     private MockMvc mvc;
+
+    @Autowired
+    private CatalogRepository repository;
 
     private String bearer;
 
@@ -114,6 +126,21 @@ class AdminApiTest {
                         .header(HttpHeaders.AUTHORIZATION, bearer))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.detail").value("To publish, add a price and at least one photo. Or save it as a draft."));
+    }
+
+    @Test
+    void liveListingWithoutPhotoOrPartNumberCanStillBeEdited() throws Exception {
+        // Like the eBay import's listings: live, no photo yet (the placeholder), no part number.
+        repository.save(new Product("imported-366700000001", "Audi A4 B8 2.0 TDI EGR cooler", "electrics-sensors", Condition.USED,
+                null, new BigDecimal("80.00"), null, null, "Audi", null, List.of(), "/api/images/" + Images.PLACEHOLDER_KEY,
+                List.of(), Shipping.PARCEL, 1, false, LocalDate.now(), ProductStatus.LIVE));
+        String edit = form("Audi A4 B8 2.0 TDI EGR cooler", "LIVE", "75.00").replace("\"partNumber\":\"39071660\"", "\"partNumber\":\"\"");
+
+        mvc.perform(multipart("/api/admin/products/imported-366700000001").file(json(edit)).header(HttpHeaders.AUTHORIZATION, bearer))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.price").value(75.00))
+                .andExpect(jsonPath("$.status").value("LIVE"))
+                .andExpect(jsonPath("$.samplePhoto").value(false));
     }
 
     @Test

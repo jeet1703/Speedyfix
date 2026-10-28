@@ -22,7 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
  * The catalogue in PostgreSQL ("postgres" profile). The whole catalogue (a few thousand listings) is read into
  * memory and kept for a minute, or until anything changes, because the shop reads it many times per page.
  * A listing's first photo (lowest position) is its main image; with none yet it shows the placeholder. SAMPLE photos
- * (stock images in a demo copy of the database) are shown straight from their source address.
+ * (stock images in a demo copy of the database) are shown straight from their source address; photos staff upload
+ * are kept in the database (JdbcProductPhotoStore) and served from /api/product-photos.
  */
 @Repository
 @Profile("postgres")
@@ -186,16 +187,23 @@ public class JdbcCatalogRepository implements CatalogRepository {
 
         Map<String, Product> products = new LinkedHashMap<>();
         jdbc.query("""
-                SELECT p.*, ph.r2_key AS main_photo, ph.source AS photo_source, ph.source_url AS photo_url
+                SELECT p.*, ph.id AS photo_id, ph.r2_key AS main_photo, ph.source AS photo_source, ph.source_url AS photo_url
                 FROM products p
-                LEFT JOIN LATERAL (SELECT r2_key, source, source_url FROM product_photos
+                LEFT JOIN LATERAL (SELECT id, r2_key, source, source_url FROM product_photos
                                    WHERE product_id = p.id ORDER BY position LIMIT 1) ph ON true
                 ORDER BY p.added_on DESC, p.id
                 """, rs -> {
             String id = rs.getString("id");
             String photo = rs.getString("main_photo");
-            String image = "SAMPLE".equals(rs.getString("photo_source")) ? rs.getString("photo_url")
-                    : photoUrls.url(photo != null ? photo : Images.PLACEHOLDER_KEY);
+            String image;
+            if ("SAMPLE".equals(rs.getString("photo_source"))) {
+                image = rs.getString("photo_url");
+            } else if (photo != null && photo.startsWith(JdbcProductPhotoStore.DB_KEY_PREFIX)) {
+                // Uploaded in the admin and kept in the database: served by ProductPhotoController.
+                image = photoUrls.server("/api/product-photos/" + rs.getString("photo_id"));
+            } else {
+                image = photoUrls.url(photo != null ? photo : Images.PLACEHOLDER_KEY);
+            }
             products.put(id, new Product(id, rs.getString("name"), rs.getString("category_id"),
                     Condition.valueOf(rs.getString("condition")), rs.getString("grade"), rs.getBigDecimal("price"),
                     rs.getString("part_number"), rs.getString("engine_code"), rs.getString("brand"), rs.getString("sub_type"),

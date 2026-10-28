@@ -5,6 +5,7 @@ import com.speedyfixautosales.store.catalog.CatalogRepository;
 import com.speedyfixautosales.store.catalog.CatalogService;
 import com.speedyfixautosales.store.catalog.Category;
 import com.speedyfixautosales.store.catalog.Condition;
+import com.speedyfixautosales.store.catalog.Images;
 import com.speedyfixautosales.store.catalog.Product;
 import com.speedyfixautosales.store.catalog.ProductPhotoStore;
 import com.speedyfixautosales.store.catalog.ProductStatus;
@@ -15,6 +16,7 @@ import com.speedyfixautosales.store.order.Order;
 import com.speedyfixautosales.store.order.OrderService;
 import com.speedyfixautosales.store.partrequest.PartRequest;
 import com.speedyfixautosales.store.partrequest.PartRequestService;
+import com.speedyfixautosales.store.photo.PhotoUrls;
 import com.speedyfixautosales.store.vehicle.LookupLog;
 import com.speedyfixautosales.store.vehicle.Vehicle;
 import com.speedyfixautosales.store.vehicle.VehicleService;
@@ -38,7 +40,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 /**
  * The catalogue as staff see it: every listing with its place in the workflow, adding and editing, and the
@@ -51,6 +52,8 @@ public class AdminCatalogService {
     static final int NO_MATCH_LIST_SIZE = 10;
     private static final ZoneId UK = ZoneId.of("Europe/London");
     private static final SecureRandom RANDOM = new SecureRandom();
+    /** Where ProductPhotoController serves the photos staff upload. */
+    private static final String UPLOADED_PHOTO_PATH = "/api/product-photos/";
 
     /** Where a part is in the listing workflow, most urgent first. A part shows the first that applies. */
     public enum WorkStatus {
@@ -133,10 +136,12 @@ public class AdminCatalogService {
     private final OrderService orders;
     private final PartRequestService partRequests;
     private final CustomerService customers;
+    private final PhotoUrls photoUrls;
 
     public AdminCatalogService(CatalogRepository repository, ProductPhotoStore photos, VehicleService vehicles,
                                LookupLog lookups, AdminSettings settings, OrderService orders,
-                               PartRequestService partRequests, CustomerService customers) {
+                               PartRequestService partRequests, CustomerService customers, PhotoUrls photoUrls) {
+        this.photoUrls = photoUrls;
         this.repository = repository;
         this.photos = photos;
         this.vehicles = vehicles;
@@ -175,8 +180,10 @@ public class AdminCatalogService {
                 .map(e -> new NoMatch(e.getKey() == null ? null : vehicles.findById(e.getKey()).map(AdminCatalogService::describe).orElse(null),
                         e.getValue()))
                 .toList();
-        long needFitment = rows.stream().filter(r -> r.vehicles() == 0).count();
-        long missingPhotos = rows.stream().filter(r -> !r.hasPhoto()).count();
+        // Ended listings aren't for sale, so they're not work to do.
+        List<Row> open = rows.stream().filter(r -> r.status() != ProductStatus.ENDED).toList();
+        long needFitment = open.stream().filter(r -> r.vehicles() == 0).count();
+        long missingPhotos = open.stream().filter(r -> !r.hasPhoto()).count();
         long outOfStock = rows.stream().filter(r -> r.status() == ProductStatus.LIVE && r.stock() == 0).count();
         List<Order> all = orders.all();
         Tasks tasks = new Tasks(countOrders(all, Order.Status.AWAITING_PAYMENT), countOrders(all, Order.Status.AWAITING_DISPATCH),
@@ -204,7 +211,7 @@ public class AdminCatalogService {
         Listings listings = new Listings(rows.stream().filter(r -> r.status() == ProductStatus.LIVE).count(),
                 rows.stream().filter(r -> r.status() == ProductStatus.DRAFT).count(), outOfStock);
         return new Dashboard(tasks, sales, daily, orderCounts, customerCounts, listings, needFitment, missingPhotos,
-                lookups.noMatchSince(weekAgo), lookupsThisMonth, spend, s.lookupBudget(), s.buyingTeamEmail(), rows, noMatch);
+                lookups.noMatchSince(weekAgo), lookupsThisMonth, spend, s.lookupBudget(), s.buyingTeamEmail(), open, noMatch);
     }
 
     private static long countOrders(List<Order> all, Order.Status status) {
@@ -260,7 +267,10 @@ public class AdminCatalogService {
         long photoCount = photos.idsFor(id).stream().filter(keep::contains).count()
                 + (files == null ? 0 : files.stream().filter(f -> !f.isEmpty()).count());
         String sample = repository.sampleImage(id).orElse(null);
-        if (form.status() == ProductStatus.LIVE) {
+        // The publishing checks apply when a listing goes live. A listing that's already live (the eBay import's,
+        // which have no photos until the photo download runs) can still have its price, stock or details changed.
+        boolean goingLive = form.status() == ProductStatus.LIVE && (existing == null || !existing.live());
+        if (goingLive) {
             List<String> missing = new ArrayList<>();
             if (partNumber == null && engineCode == null) {
                 missing.add("a part number or engine code");
@@ -276,14 +286,33 @@ public class AdminCatalogService {
             }
         }
 
-        List<String> photoIds = photos.update(id, keep, files);
-        String imageUrl = photoIds.isEmpty() ? sample : photoUrl(photoIds.get(0));
-        Product saved = new Product(id, form.name().trim(), form.categoryId(), form.condition(), blankToNull(form.grade()),
+        // Check the photos before saving anything, so a bad file can't leave a half-saved listing behind.
+        List<MultipartFile> added = files == null ? List.of() : files.stream().filter(f -> !f.isEmpty()).toList();
+        if (photos.idsFor(id).stream().filter(keep::contains).count() + added.size() > ProductPhotoStore.MAX_PER_PART) {
+            throw new BadRequestException("Add up to " + ProductPhotoStore.MAX_PER_PART + " photos per part.");
+        }
+        added.forEach(f -> ProductPhotoStore.imageType(ProductPhotoStore.read(f)));
+
+        // The listing is saved first: in the database a photo has to belong to a listing that exists.
+        // With no uploads left: the sample photo, or the image it had (an eBay photo), or "photo coming soon". Never
+        // an uploaded photo, which may just have been removed.
+        String previous = existing == null || existing.imageUrl() == null || existing.imageUrl().contains(UPLOADED_PHOTO_PATH)
+                ? null : existing.imageUrl();
+        String fallbackImage = sample != null ? sample : previous != null ? previous : photoUrls.url(Images.PLACEHOLDER_KEY);
+        repository.save(product(id, form, partNumber, engineCode, refinements, vehicleIds, fallbackImage, existing));
+        List<String> photoIds = photos.update(id, keep, added);
+        Product saved = product(id, form, partNumber, engineCode, refinements, vehicleIds,
+                photoIds.isEmpty() ? fallbackImage : photoUrl(photoIds.get(0)), existing);
+        repository.save(saved);
+        return detail(saved);
+    }
+
+    private static Product product(String id, ProductForm form, String partNumber, String engineCode, List<String> refinements,
+                                   List<String> vehicleIds, String imageUrl, Product existing) {
+        return new Product(id, form.name().trim(), form.categoryId(), form.condition(), blankToNull(form.grade()),
                 form.price(), partNumber, engineCode, blankToNull(form.brand()), blankToNull(form.subType()), refinements,
                 imageUrl, vehicleIds, form.shipping(), form.stock(), form.bestSeller(),
                 existing != null ? existing.addedOn() : LocalDate.now(UK), form.status());
-        repository.save(saved);
-        return detail(saved);
     }
 
     /**
@@ -347,7 +376,8 @@ public class AdminCatalogService {
                 .toList();
         return new Detail(p.id(), p.name(), p.categoryId(), p.condition(), p.grade(), p.price(), p.partNumber(),
                 p.engineCode(), p.brand(), p.subType(), p.refinements(), p.shipping(), p.stock(), p.bestSeller(), p.status(),
-                workStatus(p), p.imageUrl(), p.imageUrl() != null && !p.hasPhoto(), uploaded, fits, p.addedOn());
+                workStatus(p), p.imageUrl(), p.imageUrl() != null && !p.hasPhoto() && !Images.isPlaceholder(p.imageUrl()),
+                uploaded, fits, p.addedOn());
     }
 
     static WorkStatus workStatus(Product p) {
@@ -383,8 +413,8 @@ public class AdminCatalogService {
         return id;
     }
 
-    private static String photoUrl(String photoId) {
-        return ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/product-photos/{id}").buildAndExpand(photoId).toUriString();
+    private String photoUrl(String photoId) {
+        return photoUrls.server(UPLOADED_PHOTO_PATH + photoId);
     }
 
     private static String partNumberKey(String number) {
