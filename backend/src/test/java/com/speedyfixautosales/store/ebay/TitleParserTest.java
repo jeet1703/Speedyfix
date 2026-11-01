@@ -45,7 +45,11 @@ class TitleParserTest {
     @Test
     void ebayCategoriesMapToShopCategories() {
         assertThat(CategoryMapper.suggest("Engines")).isEqualTo("engines");
-        assertThat(CategoryMapper.suggest("Doors & Door Skins")).isEqualTo("body-panels");
+        assertThat(CategoryMapper.suggest("Doors & Door Skins")).isEqualTo("doors");
+        assertThat(CategoryMapper.suggest("Bonnet Panels")).isEqualTo("body-panels");
+        assertThat(CategoryMapper.suggest("Throttle Bodies")).isEqualTo("air-intake");
+        assertThat(CategoryMapper.suggest("Ignition Coils")).isEqualTo("ignition");
+        assertThat(CategoryMapper.suggest("Instrument Clusters")).isEqualTo("instruments-infotainment");
         assertThat(CategoryMapper.suggest("ECUs & Computer Modules")).isEqualTo("ecus-electronics");
         assertThat(CategoryMapper.suggest("Gearboxes, Racks & Pinions")).isEqualTo("steering-suspension");
         assertThat(CategoryMapper.suggest("Something new from eBay")).isEqualTo("other-parts");

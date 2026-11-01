@@ -37,6 +37,7 @@ public class EbaySyncService {
 
     private static final Logger log = LoggerFactory.getLogger(EbaySyncService.class);
     static final double MAX_ENDED_SHARE = 0.25;
+    static final int PHOTO_RETRIES_PER_RUN = 20;
 
     public record Result(Instant at, int listingsOnEbay, int added, int repriced, int ended, boolean endingSkipped,
                          List<String> problems) {
@@ -189,6 +190,25 @@ public class EbaySyncService {
             EbayImportService.Summary s = importer.run("eBay sync", fresh,
                     new EbayImportService.Options(false, 0, true, false, false, 2));
             added = s.created();
+            problems.addAll(s.problems());
+        }
+        // Live parts still without eBay photos (a download or upload failed earlier) get another try, a few per run.
+        List<String> unphotographed = jdbc.queryForList("""
+                SELECT p.ebay_item_id FROM products p
+                WHERE p.status = 'LIVE' AND p.ebay_item_id IS NOT NULL
+                  AND NOT EXISTS (SELECT 1 FROM product_photos ph WHERE ph.product_id = p.id AND ph.source IN ('EBAY', 'UPLOAD'))
+                ORDER BY p.added_on DESC LIMIT ?""", String.class, PHOTO_RETRIES_PER_RUN);
+        List<EbayCsv.Row> retry = unphotographed.stream()
+                .map(onEbay::get)
+                .filter(java.util.Objects::nonNull)
+                .map(l -> new EbayCsv.Row(0, l.itemNumber(), l.title(), null, 1, "FIXED_PRICE", l.price(), 0,
+                        l.listedOn() != null ? l.listedOn() : LocalDate.now(), l.categoryId(), l.categoryName(),
+                        l.condition() == null ? "" : l.condition()))
+                .toList();
+        if (!retry.isEmpty()) {
+            // keepListings: only photos and item specifics; price, stock and title stay as they are.
+            EbayImportService.Summary s = importer.run("eBay sync (photo retry)", retry,
+                    new EbayImportService.Options(false, 0, true, false, true, 2));
             problems.addAll(s.problems());
         }
         if (catalog instanceof JdbcCatalogRepository db) {

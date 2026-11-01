@@ -123,10 +123,10 @@ public class EbayImportService {
             if (parsed.partNumber() != null) {
                 withPartNumber++;
             }
-            String categoryId = category(row, options.dryRun());
             Optional<String> existing = jdbc.queryForList("SELECT id FROM products WHERE ebay_item_id = ?", String.class,
                     row.itemNumber()).stream().findFirst();
             if (options.keepListings()) {
+                // Photos and specifics only: nothing about the listing itself, its category mapping included, changes.
                 if (existing.isEmpty()) {
                     skipped++;
                 } else {
@@ -134,6 +134,7 @@ public class EbayImportService {
                 }
                 continue;
             }
+            String categoryId = category(row, options.dryRun());
             String id = existing.orElseGet(() -> newId(row.title(), row.itemNumber()));
             if (existing.isPresent()) {
                 updated++;

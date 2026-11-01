@@ -12,7 +12,12 @@ export class ApiError extends Error {
   }
 }
 
-export async function request<T>(path: string, init?: RequestInit): Promise<T> {
+/**
+ * A call to the API. The page's top loading bar shows while it runs, unless quiet: the help chat shows its own
+ * "thinking" instead, so its calls don't move the bar across the whole site.
+ */
+export async function request<T>(path: string, init?: RequestInit, quiet = false): Promise<T> {
+  if (quiet) return send<T>(path, init);
   progress.start();
   try {
     return await send<T>(path, init);
@@ -62,11 +67,11 @@ export const api = {
   product: (id: string, vehicleId?: string | null) =>
     request<ProductDetail>(`/api/products/${encodeURIComponent(id)}?${vehicleParam(vehicleId)}`),
 
-  search: (q: string, vehicleId?: string | null) =>
-    request<Product[]>(`/api/search?q=${encodeURIComponent(q)}&limit=6&${vehicleParam(vehicleId)}`),
+  search: (q: string, vehicleId?: string | null, quiet = false) =>
+    request<Product[]>(`/api/search?q=${encodeURIComponent(q)}&limit=6&${vehicleParam(vehicleId)}`, undefined, quiet),
 
-  lookUpVehicle: (registration: string) =>
-    request<LookupResult>('/api/vehicles/lookup', { method: 'POST', body: JSON.stringify({ registration }) }),
+  lookUpVehicle: (registration: string, quiet = false) =>
+    request<LookupResult>('/api/vehicles/lookup', { method: 'POST', body: JSON.stringify({ registration }) }, quiet),
 
   createBasket: () => request<Basket>('/api/baskets', { method: 'POST' }),
   getBasket: (id: string) => request<Basket>(`/api/baskets/${id}`),
@@ -85,10 +90,10 @@ export const api = {
   getOrder: (reference: string) => request<Order>(`/api/orders/${encodeURIComponent(reference)}`),
   /** The help chat's AI answer to the conversation so far (the last message is the shopper's). */
   chat: (messages: { role: 'user' | 'assistant'; text: string }[], vehicleId?: string | null) =>
-    request<ChatReply>('/api/chat', { method: 'POST', body: JSON.stringify({ messages, vehicleId: vehicleId ?? null }) }),
+    request<ChatReply>('/api/chat', { method: 'POST', body: JSON.stringify({ messages, vehicleId: vehicleId ?? null }) }, true),
   /** An order by its number and the email it was placed with (the help chat's "Where's my order?"). */
   lookupOrder: (reference: string, email: string) =>
-    request<Order>('/api/orders/lookup', { method: 'POST', body: JSON.stringify({ reference, email }) }),
+    request<Order>('/api/orders/lookup', { method: 'POST', body: JSON.stringify({ reference, email }) }, true),
   startPayPal: (reference: string) =>
     request<{ paypalOrderId: string }>(`/api/orders/${encodeURIComponent(reference)}/paypal`, { method: 'POST' }),
   capturePayPal: (reference: string, paypalOrderId: string) =>

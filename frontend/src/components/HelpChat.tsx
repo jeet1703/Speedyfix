@@ -197,7 +197,7 @@ export function HelpChat({ site, ai }: { site: Site; ai: boolean }) {
   }
 
   async function findParts(query: string) {
-    const results = await withThinking(vehicle ? `Searching our stock for your ${vehicle.make} ${vehicle.model}` : 'Searching our stock', api.search(query, vehicle?.id));
+    const results = await withThinking(vehicle ? `Searching our stock for your ${vehicle.make} ${vehicle.model}` : 'Searching our stock', api.search(query, vehicle?.id, true));
     if (results.length === 0) {
       say('bot', `I couldn’t find “${query}” in stock right now. Good news though: the team can often source parts we don’t have listed. Send them a quick message:`, person, true);
       return;
@@ -210,7 +210,7 @@ export function HelpChat({ site, ai }: { site: Site; ai: boolean }) {
 
   async function checkReg(reg: string) {
     try {
-      const r = await withThinking('Looking up your reg with the DVSA', api.lookUpVehicle(reg));
+      const r = await withThinking('Looking up your reg with the DVSA', api.lookUpVehicle(reg, true));
       setVehicle(r.vehicle);
       const v = r.vehicle;
       const car = `${v.year ? `${v.year} ` : ''}${v.make} ${v.model}, ${v.engine}`;

@@ -56,14 +56,15 @@ final class StorefrontContent {
                     find("Crankshafts", "crankshaft"), find("Camshafts", "camshaft"), find("Timing kits", "timing"),
                     find("Flywheels", "flywheel"), cat("Engine mounts", "engine-mounts")),
             group("Fuel, air and turbo", cat("Turbochargers", "turbochargers"), cat("Fuel Injection", "fuel-injection"),
-                    find("Fuel injectors", "injector"), find("Injector rails", "rail"), find("Throttle bodies", "throttle"),
-                    cat("EGR and emissions", "egr-emissions")),
+                    find("Fuel injectors", "injector"), find("Injector rails", "rail"),
+                    cat("Air intake and throttle bodies", "air-intake"), cat("Exhaust and emissions", "egr-emissions")),
             group("Electrics and cooling", cat("ECUs and electronics", "ecus-electronics"),
-                    cat("Starters and alternators", "starters-alternators"), cat("Sensors", "electrics-sensors"),
+                    cat("Instruments and infotainment", "instruments-infotainment"),
+                    cat("Starters and alternators", "starters-alternators"), cat("Ignition", "ignition"), cat("Sensors", "electrics-sensors"),
                     cat("A/C compressors", "cooling-ac"), find("Water pumps", "water pump"), find("Oil coolers", "oil cooler"),
                     find("Wiring looms", "loom"), cat("Lights and mirrors", "lights-mirrors")),
             group("Transmission and body", cat("Gearboxes", "gearboxes"), cat("Drivetrain", "drivetrain"),
-                    cat("Steering and suspension", "steering-suspension"), cat("Body panels", "body-panels"),
+                    cat("Steering and suspension", "steering-suspension"), cat("Body panels", "body-panels"), cat("Doors", "doors"),
                     cat("Interior", "interior"), cat("Accessories", "accessories"), cat("Brakes", "brakes")));
 
     private static MenuGroup group(String title, MenuLink... links) {

@@ -172,6 +172,14 @@ class EbayImportServiceTest {
         // Running again changes nothing.
         EbaySyncService.Result again = sync.sync();
         assertThat(again.added() + again.repriced() + again.ended()).isZero();
+
+        // A live part whose photos failed earlier gets them on the next sync; its price stays the shop's.
+        jdbc.update("INSERT INTO products (id, name, category_id, condition, price, stock, status, ebay_item_id) VALUES ('sync-no-photos', 'Nissan ECU', 'ecus-electronics', 'USED', 150, 1, 'LIVE', '365887388733')");
+        SELLER_LISTINGS.add(new EbayItemSource.Listing("365887388733", "Nissan ECU", new BigDecimal("150.00"), "Used", "33596", "ECUs", listed));
+        sync.sync();
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM product_photos WHERE product_id = 'sync-no-photos' AND source = 'EBAY'", Integer.class)).isEqualTo(2);
+        assertThat(jdbc.queryForObject("SELECT price FROM products WHERE id = 'sync-no-photos'", BigDecimal.class)).isEqualByComparingTo("150.00");
+
         SELLER_LISTINGS.clear();
         jdbc.update("DELETE FROM products WHERE id LIKE 'sync-%' OR ebay_item_id LIKE '90000000000%'");
     }
