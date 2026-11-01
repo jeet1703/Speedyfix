@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { adminApi, errorMessage } from '../adminApi';
 import { AdminLayout } from '../AdminLayout';
+import { EbaySyncButton } from '../EbaySyncButton';
 import { Chips, gbpOrDash, WorkPill } from '../components';
 import type { ProductRow } from '../types';
 import { Pagination } from '../../components/Pagination';
@@ -16,7 +17,7 @@ const TABS: { value: Tab; label: string; test: (r: ProductRow) => boolean; hidde
   { value: 'drafts', label: 'Drafts', test: (r) => r.status === 'DRAFT' },
   { value: 'ended', label: 'Ended', test: (r) => r.status === 'ENDED' },
   { value: 'needs-attention', label: 'Needs attention', test: (r) => r.status !== 'ENDED' && (r.vehicles === 0 || !r.hasPhoto) },
-  { value: 'needs-fitment', label: 'Needs fitment', test: (r) => r.status !== 'ENDED' && r.vehicles === 0, hidden: true },
+  { value: 'needs-fitment', label: 'Needs compatibility', test: (r) => r.status !== 'ENDED' && r.vehicles === 0, hidden: true },
   { value: 'missing-photo', label: 'Needs photos', test: (r) => r.status !== 'ENDED' && !r.hasPhoto, hidden: true },
   { value: 'all', label: 'All', test: () => true }
 ];
@@ -66,7 +67,10 @@ export function ListingsPage() {
   const options = TABS.filter((t) => !t.hidden || t.value === tab).map((t) => ({ value: t.value, label: t.label, count: searched.filter(t.test).length }));
 
   return (
-    <AdminLayout title="Listings" actions={<Link className="btn btn--primary" to="/admin/products/new">Create listing</Link>}>
+    <AdminLayout title="Listings" actions={<>
+      <EbaySyncButton onDone={() => void adminApi.products().then(setRows).catch(() => undefined)} />
+      <Link className="btn btn--primary" to="/admin/products/new">Create listing</Link>
+    </>}>
       {error && <p className="notice notice--error" role="alert">{error}</p>}
       <section className="card" aria-label="Listings">
         <div className="card__head card__head--wrap">
@@ -103,7 +107,7 @@ export function ListingsPage() {
                       <span className="table__sub">{[r.categoryName, r.brand, r.subType].filter(Boolean).join(' · ')}{r.hasPhoto ? '' : r.imageUrl?.endsWith('placeholder.svg') ? ' · no photo yet' : r.imageUrl ? ' · sample photo' : ''}</span>
                     </td>
                     <td className="mono">{r.partNumber ?? (r.engineCode ? `Engine ${r.engineCode}` : '—')}</td>
-                    <td className="num">{gbpOrDash(r.price)}</td>
+                    <td className="num">{r.salePercent ? <>{gbpOrDash(r.sellingPrice)}<span className="table__sub">was {gbpOrDash(r.price)} · -{r.salePercent}%</span></> : gbpOrDash(r.price)}</td>
                     <td className={'num' + (r.stock === 0 ? ' text-bad' : '')}>{r.stock}</td>
                     <td><WorkPill status={r.workStatus} /></td>
                     <td>{listed.format(new Date(r.addedOn))}</td>

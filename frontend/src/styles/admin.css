@@ -251,3 +251,7 @@ select.input--sm { padding-right: 32px; }
   .hub-grid { grid-template-columns: minmax(0, 1fr); }
 }
 .admin-pager { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding-top: 8px; }
+.pill--sale { background: #fbe7e7; color: #9b1c1c; }
+/* "Sync with eBay" on the Listings page, with what the last sync did. */
+.ebay-sync { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; max-width: 360px; }
+.ebay-sync__note { font-size: 13px; color: var(--ink-2); text-align: right; margin: 0; }

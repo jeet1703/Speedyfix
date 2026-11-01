@@ -1,5 +1,7 @@
 # SpeedyFix Auto Sales v2: project status and launch plan
 
+> **Out of date:** this describes the project on 24 October 2026. For what's left now, see [PENDING.md](PENDING.md).
+
 Status as of 24 October 2026. Checked locally: all 50 backend tests pass (including the database migrations and the eBay import against a real Postgres), the frontend type-checks and builds, and the shop runs on the local database with the real eBay stock.
 
 **In short:** on this computer, the shop now shows the business's **1,262 live eBay listings** from a PostgreSQL database, and the Seller Hub admin works end to end. It is **not ready for real customers yet**:

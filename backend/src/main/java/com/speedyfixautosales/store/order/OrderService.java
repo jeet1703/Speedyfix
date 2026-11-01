@@ -10,15 +10,13 @@ import com.speedyfixautosales.store.common.NotFoundException;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Optional;
 import org.springframework.stereotype.Service;
 
 /**
- * Turns a basket into an order and takes the parts out of stock. In memory for the prototype;
- * orders hold personal data, so the production store needs access control and a retention policy.
+ * Turns a basket into an order and takes the parts out of stock. Orders are kept by an OrderStore (the database
+ * with the "postgres" profile); they hold personal data, so only staff and the shopper's own account see them listed.
  */
 @Service
 public class OrderService {
@@ -27,16 +25,18 @@ public class OrderService {
     private static final String ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     private static final SecureRandom RANDOM = new SecureRandom();
 
-    private final Map<String, Order> orders = new ConcurrentHashMap<>();
+    private final OrderStore orders;
     private final BasketService baskets;
     private final CatalogRepository catalog;
 
-    public OrderService(BasketService baskets, CatalogRepository catalog) {
+    public OrderService(OrderStore orders, BasketService baskets, CatalogRepository catalog) {
+        this.orders = orders;
         this.baskets = baskets;
         this.catalog = catalog;
     }
 
-    public Order place(String basketId, Order.Customer customer, Order.Address address, String notes) {
+    /** @param customerId the signed-in shopper's account, or null for a guest checkout */
+    public Order place(String basketId, Order.Customer customer, Order.Address address, String notes, String customerId) {
         BasketView basket = baskets.get(basketId);
         if (basket.lines().isEmpty()) {
             throw new BadRequestException("Your basket is empty.");
@@ -49,23 +49,30 @@ public class OrderService {
         reserveStock(basket.lines());
         Order order = new Order(newReference(), Instant.now(), Order.Status.AWAITING_PAYMENT, customer, address,
                 notes == null || notes.isBlank() ? null : notes.trim(), basket.lines(), basket.delivery(),
-                basket.subtotal(), basket.total(), basket.vatIncluded(), null);
-        orders.put(order.reference(), order);
+                basket.subtotal(), basket.total(), basket.vatIncluded(), null, null, customerId);
+        try {
+            orders.save(order);
+        } catch (RuntimeException e) {
+            basket.lines().forEach(l -> catalog.reduceStock(l.productId(), -l.quantity()));
+            throw e;
+        }
         baskets.clear(basketId);
         return order;
     }
 
     /** Newest first, for the admin. */
     public List<Order> all() {
-        return orders.values().stream().sorted(Comparator.comparing(Order::placedAt).reversed()).toList();
+        return orders.all();
+    }
+
+    /** A shopper's own orders, newest first, including guest orders placed with their account's email. */
+    public List<Order> forCustomer(String customerId, String email) {
+        return orders.forCustomer(customerId, email);
     }
 
     public Order get(String reference) {
-        Order order = reference == null ? null : orders.get(reference.toUpperCase());
-        if (order == null) {
-            throw new NotFoundException("We couldn’t find that order.");
-        }
-        return order;
+        return (reference == null ? Optional.<Order>empty() : orders.find(reference.trim().toUpperCase()))
+                .orElseThrow(() -> new NotFoundException("We couldn’t find that order."));
     }
 
     /**
@@ -100,7 +107,7 @@ public class OrderService {
             case CANCELLED -> order.lines().forEach(l -> catalog.reduceStock(l.productId(), -l.quantity()));
         }
         Order updated = order.withStatus(status, dispatch);
-        orders.put(updated.reference(), updated);
+        orders.save(updated);
         return updated;
     }
 
@@ -124,7 +131,7 @@ public class OrderService {
                 sb.append(ALPHABET.charAt(RANDOM.nextInt(ALPHABET.length())));
             }
             ref = sb.toString();
-        } while (orders.containsKey(ref));
+        } while (orders.exists(ref));
         return ref;
     }
 }

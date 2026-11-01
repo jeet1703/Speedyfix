@@ -45,8 +45,8 @@ final class StorefrontContent {
 
     static final List<Feature> FEATURES = List.of(
             new Feature("wrench", "Expert team", "Every part tested and graded"),
-            new Feature("truck", "Our delivery partners", "[Courier names], tracked to your door"),
-            new Feature("shield", "Quick UK shipping", "[X] to [X] working days, warranty included"));
+            new Feature("truck", "Our delivery partners", "FedEx, UPS, Royal Mail, DHL and DPD, tracked to your door"),
+            new Feature("shield", "Quick UK shipping", "Usually within 7 working days, with a 28-day warranty"));
 
     // Links go to a category when one exists, otherwise to a search for the part name. Every link has stock behind it
     // in the business's eBay listings; check the counts again if the range changes.
@@ -55,7 +55,7 @@ final class StorefrontContent {
                     cat("Cylinder heads", "cylinder-heads"), cat("Engine parts", "engine-parts"),
                     find("Crankshafts", "crankshaft"), find("Camshafts", "camshaft"), find("Timing kits", "timing"),
                     find("Flywheels", "flywheel"), cat("Engine mounts", "engine-mounts")),
-            group("Fuel, air and turbo", cat("Turbochargers", "turbochargers"), cat("Fuel injection", "fuel-injection"),
+            group("Fuel, air and turbo", cat("Turbochargers", "turbochargers"), cat("Fuel Injection", "fuel-injection"),
                     find("Fuel injectors", "injector"), find("Injector rails", "rail"), find("Throttle bodies", "throttle"),
                     cat("EGR and emissions", "egr-emissions")),
             group("Electrics and cooling", cat("ECUs and electronics", "ecus-electronics"),

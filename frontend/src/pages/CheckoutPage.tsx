@@ -1,10 +1,12 @@
-import { useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api, ApiError } from '../api/client';
 import type { OrderForm } from '../api/types';
 import { Layout } from '../components/Layout';
 import { LineList, Totals } from '../components/OrderSummary';
 import { PageTitle } from '../components/PageTitle';
+import { useAccount } from '../state/AccountContext';
+import { useSite } from '../state/SiteContext';
 import { useStore } from '../state/StoreContext';
 
 const EMPTY: OrderForm = { name: '', email: '', phone: '', line1: '', line2: '', town: '', postcode: '', notes: '' };
@@ -20,8 +22,15 @@ const REQUIRED: { key: keyof OrderForm; message: string }[] = [
 
 export function CheckoutPage() {
   const { basket, refreshBasket } = useStore();
+  const { customer, token } = useAccount();
+  const { data } = useSite();
   const navigate = useNavigate();
   const [form, setForm] = useState<OrderForm>(EMPTY);
+
+  // A signed-in shopper starts with their name and email filled in.
+  useEffect(() => {
+    if (customer) setForm((f) => ({ ...f, name: f.name || customer.name, email: f.email || customer.email }));
+  }, [customer]);
   const [errors, setErrors] = useState<Partial<Record<keyof OrderForm, string>>>({});
   const [serverError, setServerError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -42,7 +51,7 @@ export function CheckoutPage() {
     }
     setBusy(true);
     try {
-      const order = await api.placeOrder(basket.id, form);
+      const order = await api.placeOrder(basket.id, form, token);
       // Leave the page before the emptied basket re-renders it as "Your basket is empty".
       navigate(`/order-received/${order.reference}`);
       void refreshBasket();
@@ -122,8 +131,17 @@ export function CheckoutPage() {
             <fieldset className="checkout__group">
               <legend className="panel__title">Payment</legend>
               <div className="notice">
-                <p><strong>Payment isn’t connected yet.</strong></p>
-                <p>Card, Apple Pay, Google Pay and PayPal are being connected through Stripe. Placing an order now reserves the parts; no payment is taken.</p>
+                {data?.paypalClientId ? (
+                  <>
+                    <p><strong>Pay securely with PayPal or a debit or credit card.</strong></p>
+                    <p>Placing your order reserves the parts{data.unpaidHoldMinutes ? ` for ${holdText(data.unpaidHoldMinutes)}` : ''}; you pay on the next page. You don’t need a PayPal account to pay by card.</p>
+                  </>
+                ) : (
+                  <>
+                    <p><strong>Online payment isn’t switched on yet.</strong></p>
+                    <p>Placing an order reserves the parts. We’ll call you to take payment by card over the phone.</p>
+                  </>
+                )}
               </div>
             </fieldset>
           </div>
@@ -139,4 +157,10 @@ export function CheckoutPage() {
       </div>
     </Layout>
   );
+}
+
+/** "2 hours", "45 minutes". */
+export function holdText(minutes: number) {
+  if (minutes % 60 === 0) return minutes === 60 ? '1 hour' : `${minutes / 60} hours`;
+  return `${minutes} minutes`;
 }

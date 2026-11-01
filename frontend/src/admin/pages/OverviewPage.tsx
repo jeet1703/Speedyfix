@@ -32,7 +32,7 @@ export function OverviewPage() {
     { label: 'Active listings', count: data.listings.active, to: '/admin/listings?tab=active' },
     { label: 'Drafts', count: data.listings.drafts, to: '/admin/listings?tab=drafts' },
     { label: 'Out of stock', count: data.listings.outOfStock, to: '/admin/listings?tab=out-of-stock' },
-    { label: 'Needs fitment or photos', count: needsAttention, to: '/admin/listings?tab=needs-attention' }
+    { label: 'Needs compatibility or photos', count: needsAttention, to: '/admin/listings?tab=needs-attention' }
   ] : [];
   const orderLinks = data ? [
     { label: 'Awaiting dispatch', count: data.orders.awaitingDispatch, to: '/admin/orders?status=awaiting-dispatch' },

@@ -3,6 +3,7 @@ package com.speedyfixautosales.store.web;
 import com.speedyfixautosales.store.common.BadRequestException;
 import com.speedyfixautosales.store.common.ConflictException;
 import com.speedyfixautosales.store.common.NotFoundException;
+import com.speedyfixautosales.store.common.PaymentFailedException;
 import com.speedyfixautosales.store.common.TooManyRequestsException;
 import com.speedyfixautosales.store.common.UnauthorizedException;
 import com.speedyfixautosales.store.common.UnavailableException;
@@ -32,6 +33,11 @@ public class ApiExceptionHandler {
     @ExceptionHandler(ConflictException.class)
     public ProblemDetail conflict(ConflictException e) {
         return problem(HttpStatus.CONFLICT, "Not enough stock", e.getMessage());
+    }
+
+    @ExceptionHandler(PaymentFailedException.class)
+    public ProblemDetail paymentFailed(PaymentFailedException e) {
+        return problem(HttpStatus.PAYMENT_REQUIRED, "Payment not taken", e.getMessage());
     }
 
     @ExceptionHandler(UnauthorizedException.class)

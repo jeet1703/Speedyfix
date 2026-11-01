@@ -1,7 +1,18 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { MenuGroup } from '../api/types';
 
+type MenuLink = MenuGroup['links'][number];
+
+/**
+ * The Products menu. Pointing at (or tabbing to) a category shows its photo in the preview on the right, taken from
+ * one of the shop's own listings; links without a photo keep the last one shown.
+ */
 export function MegaMenu({ groups, id, onNavigate }: { groups: MenuGroup[]; id: string; onNavigate: () => void }) {
+  const first = groups.flatMap((g) => g.links).find((l) => l.imageUrl) ?? null;
+  const [shown, setShown] = useState<MenuLink | null>(first);
+  const show = (l: MenuLink) => { if (l.imageUrl) setShown(l); };
+
   return (
     <div className="megamenu" id={id} role="region" aria-label="Product categories">
       <div className="megamenu__groups">
@@ -11,7 +22,8 @@ export function MegaMenu({ groups, id, onNavigate }: { groups: MenuGroup[]; id: 
             <ul>
               {g.links.map((l) => (
                 <li key={l.href}>
-                  <Link to={l.href} onClick={onNavigate}>{l.label}</Link>
+                  <Link to={l.href} onClick={onNavigate} onMouseEnter={() => show(l)} onFocus={() => show(l)}
+                    aria-current={shown?.href === l.href ? 'true' : undefined}>{l.label}</Link>
                 </li>
               ))}
             </ul>
@@ -19,6 +31,12 @@ export function MegaMenu({ groups, id, onNavigate }: { groups: MenuGroup[]; id: 
         ))}
       </div>
       <div className="megamenu__side">
+        {shown?.imageUrl && (
+          <Link className="megamenu__preview" to={shown.href} onClick={onNavigate} tabIndex={-1} aria-hidden="true">
+            <img key={shown.imageUrl} src={shown.imageUrl} alt="" width={260} height={180} />
+            <span>{shown.label}</span>
+          </Link>
+        )}
         <Link className="btn btn--dark btn--block" to="/products" onClick={onNavigate}>Shop all parts</Link>
         <Link className="megamenu__promo" to="/request-a-part" onClick={onNavigate}>
           <span>Can’t find the part?</span>

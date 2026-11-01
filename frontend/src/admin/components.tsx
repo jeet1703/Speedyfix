@@ -1,7 +1,7 @@
 import type { Confidence, OrderStatus, PartRequestStatus, ProductRow, WorkStatus } from './types';
 
 const WORK_LABEL: Record<WorkStatus, string> = {
-  NEEDS_FITMENT: 'Needs fitment',
+  NEEDS_FITMENT: 'Needs compatibility',
   MISSING_PHOTO: 'Missing photo',
   DRAFT: 'Draft',
   LIVE: 'Live'
@@ -38,7 +38,7 @@ export type QueueFilter = 'all' | 'needs-fitment' | 'missing-photo' | 'draft' | 
 
 export const QUEUE_FILTERS: { value: QueueFilter; label: string }[] = [
   { value: 'all', label: 'All' },
-  { value: 'needs-fitment', label: 'Needs fitment' },
+  { value: 'needs-fitment', label: 'Needs compatibility' },
   { value: 'missing-photo', label: 'Missing photo' },
   { value: 'draft', label: 'Draft' },
   { value: 'live', label: 'Live' }

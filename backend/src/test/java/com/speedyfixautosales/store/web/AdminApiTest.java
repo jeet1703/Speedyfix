@@ -144,6 +144,55 @@ class AdminApiTest {
     }
 
     @Test
+    void htmlDescriptionIsKeptUntilClearedAndShownOnTheProductPage() throws Exception {
+        String draft = form("Opel Astra K boost sensor", "DRAFT", "12.00");
+        String body = mvc.perform(multipart("/api/admin/products").file(json(draft.replace("\"status\":\"DRAFT\"",
+                        "\"status\":\"DRAFT\",\"descriptionHtml\":\"<h3 style=\\\"color:red\\\">Product Description</h3>\""))).header(HttpHeaders.AUTHORIZATION, bearer))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.descriptionHtml").value("<h3 style=\"color:red\">Product Description</h3>"))
+                .andReturn().getResponse().getContentAsString();
+        String id = JsonPath.read(body, "$.id");
+
+        // A form without the field leaves the description alone; a blank one removes it.
+        mvc.perform(multipart("/api/admin/products/" + id).file(json(draft)).header(HttpHeaders.AUTHORIZATION, bearer))
+                .andExpect(jsonPath("$.descriptionHtml").value("<h3 style=\"color:red\">Product Description</h3>"));
+        mvc.perform(get("/api/admin/products/" + id).header(HttpHeaders.AUTHORIZATION, bearer))
+                .andExpect(jsonPath("$.descriptionHtml").value("<h3 style=\"color:red\">Product Description</h3>"));
+        mvc.perform(multipart("/api/admin/products/" + id).file(json(draft.replace("\"status\":\"DRAFT\"",
+                        "\"status\":\"DRAFT\",\"descriptionHtml\":\"  \""))).header(HttpHeaders.AUTHORIZATION, bearer))
+                .andExpect(jsonPath("$.descriptionHtml").doesNotExist());
+    }
+
+    @Test
+    void saleTakesThePercentageOffInTheShopAndTheBasket() throws Exception {
+        String onSale = form("Opel Astra K MAP sensor", "LIVE", "18.50").replace("\"status\":\"LIVE\"", "\"status\":\"LIVE\",\"salePercent\":20");
+        MockMultipartFile photo = new MockMultipartFile("photos", "map.png", "image/png", PNG);
+        String body = mvc.perform(multipart("/api/admin/products").file(json(onSale)).file(photo).header(HttpHeaders.AUTHORIZATION, bearer))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.salePercent").value(20))
+                .andExpect(jsonPath("$.sellingPrice").value(14.80))
+                .andReturn().getResponse().getContentAsString();
+        String id = JsonPath.read(body, "$.id");
+
+        mvc.perform(get("/api/products/" + id))
+                .andExpect(jsonPath("$.product.price").value(14.80))
+                .andExpect(jsonPath("$.product.originalPrice").value(18.50))
+                .andExpect(jsonPath("$.product.salePercent").value(20));
+        String basketId = JsonPath.read(mvc.perform(post("/api/baskets")).andReturn().getResponse().getContentAsString(), "$.id");
+        mvc.perform(post("/api/baskets/" + basketId + "/items").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"productId\":\"" + id + "\",\"quantity\":1}"))
+                .andExpect(jsonPath("$.lines[0].unitPrice").value(14.80))
+                .andExpect(jsonPath("$.subtotal").value(14.80));
+
+        // Ending the sale puts the full price back; a sale over 90% is refused.
+        mvc.perform(multipart("/api/admin/products/" + id).file(json(form("Opel Astra K MAP sensor", "LIVE", "18.50"))).header(HttpHeaders.AUTHORIZATION, bearer))
+                .andExpect(jsonPath("$.salePercent").doesNotExist());
+        mvc.perform(get("/api/products/" + id)).andExpect(jsonPath("$.product.price").value(18.50)).andExpect(jsonPath("$.product.originalPrice").doesNotExist());
+        mvc.perform(multipart("/api/admin/products/" + id).file(json(onSale.replace("\"salePercent\":20", "\"salePercent\":95"))).header(HttpHeaders.AUTHORIZATION, bearer))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void partWithPriceAndPhotoCanBePublished() throws Exception {
         String live = form("Opel Astra K coolant sensor", "LIVE", "18.50");
         MockMultipartFile photo = new MockMultipartFile("photos", "sensor.png", "image/png", PNG);

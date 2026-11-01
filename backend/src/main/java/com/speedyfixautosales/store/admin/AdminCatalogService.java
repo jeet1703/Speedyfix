@@ -48,6 +48,8 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 public class AdminCatalogService {
 
+    static final int MAX_DESCRIPTION_HTML = 100_000;
+
     static final int MAX_REFINEMENTS = 5;
     static final int NO_MATCH_LIST_SIZE = 10;
     private static final ZoneId UK = ZoneId.of("Europe/London");
@@ -66,7 +68,7 @@ public class AdminCatalogService {
 
     public record Row(String id, String name, String categoryName, String partNumber, String engineCode, String brand,
                       String subType, BigDecimal price, int stock, String imageUrl, boolean hasPhoto, ProductStatus status,
-                      WorkStatus workStatus, int vehicles, LocalDate addedOn) {
+                      WorkStatus workStatus, int vehicles, LocalDate addedOn, Integer salePercent, BigDecimal sellingPrice) {
     }
 
     /** A vehicle a part fits, or might fit, and why we think so. */
@@ -84,7 +86,7 @@ public class AdminCatalogService {
                          String partNumber, String engineCode, String brand, String subType, List<String> refinements,
                          Shipping shipping, int stock, boolean bestSeller, ProductStatus status, WorkStatus workStatus,
                          String imageUrl, boolean samplePhoto, List<Photo> photos, List<Fitment> vehicles,
-                         LocalDate addedOn) {
+                         LocalDate addedOn, String descriptionHtml, Integer salePercent, BigDecimal sellingPrice) {
     }
 
     /** vehicle is null for plates the data source didn't recognise. */
@@ -304,6 +306,9 @@ public class AdminCatalogService {
         Product saved = product(id, form, partNumber, engineCode, refinements, vehicleIds,
                 photoIds.isEmpty() ? fallbackImage : photoUrl(photoIds.get(0)), existing);
         repository.save(saved);
+        if (form.descriptionHtml() != null) {
+            repository.saveDescriptionHtml(id, form.descriptionHtml().isBlank() ? null : form.descriptionHtml().trim());
+        }
         return detail(saved);
     }
 
@@ -312,7 +317,7 @@ public class AdminCatalogService {
         return new Product(id, form.name().trim(), form.categoryId(), form.condition(), blankToNull(form.grade()),
                 form.price(), partNumber, engineCode, blankToNull(form.brand()), blankToNull(form.subType()), refinements,
                 imageUrl, vehicleIds, form.shipping(), form.stock(), form.bestSeller(),
-                existing != null ? existing.addedOn() : LocalDate.now(UK), form.status());
+                existing != null ? existing.addedOn() : LocalDate.now(UK), form.status(), form.salePercent());
     }
 
     /**
@@ -364,7 +369,8 @@ public class AdminCatalogService {
     private Row row(Product p) {
         String categoryName = repository.category(p.categoryId()).map(Category::name).orElse("");
         return new Row(p.id(), p.name(), categoryName, p.partNumber(), p.engineCode(), p.brand(), p.subType(), p.price(),
-                p.stock(), p.imageUrl(), p.hasPhoto(), p.status(), workStatus(p), p.fitsVehicleIds().size(), p.addedOn());
+                p.stock(), p.imageUrl(), p.hasPhoto(), p.status(), workStatus(p), p.fitsVehicleIds().size(), p.addedOn(),
+                p.salePercent(), p.sellingPrice());
     }
 
     private Detail detail(Product p) {
@@ -377,7 +383,7 @@ public class AdminCatalogService {
         return new Detail(p.id(), p.name(), p.categoryId(), p.condition(), p.grade(), p.price(), p.partNumber(),
                 p.engineCode(), p.brand(), p.subType(), p.refinements(), p.shipping(), p.stock(), p.bestSeller(), p.status(),
                 workStatus(p), p.imageUrl(), p.imageUrl() != null && !p.hasPhoto() && !Images.isPlaceholder(p.imageUrl()),
-                uploaded, fits, p.addedOn());
+                uploaded, fits, p.addedOn(), repository.descriptionHtml(p.id()).orElse(null), p.salePercent(), p.sellingPrice());
     }
 
     static WorkStatus workStatus(Product p) {

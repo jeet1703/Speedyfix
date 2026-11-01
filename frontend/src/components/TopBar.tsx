@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { telHref } from './contactLinks';
 import { useAccount } from '../state/AccountContext';
 import { useStore } from '../state/StoreContext';
 
@@ -16,7 +17,7 @@ export function TopBar({ phone }: { phone: string }) {
         <nav aria-label="Account and help" className="topbar__links">
           <Link to="/wishlist">Wishlist ({wishlist.length})</Link>
           <Link to="/account">My account</Link>
-          <a href={`tel:${phone.replace(/[^+\d]/g, '')}`}>Call {phone}</a>
+          <a href={telHref(phone)}>Call {phone}</a>
         </nav>
       </div>
     </div>

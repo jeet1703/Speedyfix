@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
+import { Price } from './Price';
 import { useEffect, useRef, useState } from 'react';
-import { api, price } from '../api/client';
+import { api } from '../api/client';
 import type { Product } from '../api/types';
 import { useAccount } from '../state/AccountContext';
 import { useStore } from '../state/StoreContext';
@@ -63,7 +64,7 @@ export function SearchPanel({ onClose }: { onClose: () => void }) {
                   <Link to={`/products/${p.id}`} onClick={onClose}>
                     <img src={p.imageUrl.replace('w=800&h=800', 'w=120&h=120')} alt="" width={56} height={56} />
                     <span className="search__name">{p.name}<small>{p.reference ?? p.categoryName}</small></span>
-                    <span className="search__price">{price(p.price)}</span>
+                    <Price className="search__price" product={p} />
                   </Link>
                 </li>
               ))}

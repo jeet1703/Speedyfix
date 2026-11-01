@@ -5,15 +5,31 @@ import { Footer } from './Footer';
 import { Header } from './Header';
 import { HomeSkeleton, Skeleton } from './Skeleton';
 import { Toast } from './Toast';
+import { HelpChat } from './HelpChat';
 import { TopBar } from './TopBar';
 
-/** Header, footer, basket drawer and toast around every page. title sets the browser tab. */
-export function Layout({ title, children }: { title?: string; children: ReactNode }) {
+const DEFAULT_DESCRIPTION = 'Used, remanufactured and new engine parts, checked against your registration before you buy. UK delivery.';
+
+/**
+ * Header, footer, basket drawer and toast around every page. title sets the browser tab; description the page's
+ * summary for search engines and link previews (the shop's own when left out).
+ */
+export function Layout({ title, description, children }: { title?: string; description?: string; children: ReactNode }) {
   const { data, error, waking, retry } = useSite();
 
   useEffect(() => {
     document.title = title ? `${title} | SpeedyFix Auto Sales` : 'SpeedyFix Auto Sales | Engines and engine parts';
   }, [title]);
+
+  useEffect(() => {
+    let meta = document.querySelector<HTMLMetaElement>('meta[name="description"]');
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.name = 'description';
+      document.head.appendChild(meta);
+    }
+    meta.content = description ?? DEFAULT_DESCRIPTION;
+  }, [description]);
 
   if (error && !data) {
     return (
@@ -53,6 +69,7 @@ export function Layout({ title, children }: { title?: string; children: ReactNod
       <Footer site={data.site} />
       <BasketDrawer />
       <Toast />
+      <HelpChat site={data.site} ai={data.chatAi} />
     </>
   );
 }

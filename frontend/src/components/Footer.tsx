@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom';
+import { telHref } from './contactLinks';
 import type { Site } from '../api/types';
 import { Logo } from './Logo';
 
 const COLUMNS = [
   { title: 'Links', links: [['Home', '/'], ['About us', '/about'], ['My account', '/account'], ['Contact us', '/contact']] },
-  { title: 'Information', links: [['Terms and conditions', '/terms'], ['Privacy policy', '/privacy'], ['Delivery partners', '/delivery'], ['FAQs', '/faq']] }
+  { title: 'Information', links: [['Terms and conditions', '/terms'], ['Privacy policy', '/privacy'], ['Delivery and returns', '/delivery'], ['FAQs', '/faq']] }
 ];
 
 export function Footer({ site }: { site: Site }) {
@@ -27,13 +28,14 @@ export function Footer({ site }: { site: Site }) {
           <ul>
             <li>{site.companyName}</li>
             <li>{site.address}</li>
-            <li>Tel: {site.phone}</li>
-            <li>Email: {site.email}</li>
+            <li>Tel: <a href={telHref(site.phone)}>{site.phone}</a></li>
+            <li>Email: <a href={`mailto:${site.email}`}>{site.email}</a></li>
           </ul>
         </div>
       </div>
       <div className="container footer__base">
-        <p>© {new Date().getFullYear()} {site.name}. All prices in GBP and include VAT.</p>
+        <p>© {new Date().getFullYear()} {site.companyName}. All prices in GBP and include VAT.</p>
+        <p>Registered in England and Wales, company no. {site.companyNumber}. VAT no. {site.vatNumber}.</p>
       </div>
     </footer>
   );

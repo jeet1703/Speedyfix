@@ -15,7 +15,8 @@ import org.springframework.stereotype.Component;
 /**
  * Runs the eBay import from the command line, then exits. See DATABASE.md, "Import the eBay listings":
  * <pre>mvn spring-boot:run -Dspring-boot.run.profiles=postgres -Dspring-boot.run.arguments="--import.ebay.csv=../data/imports/report.csv --spring.main.web-application-type=none"</pre>
- * Options: --import.ebay.dry-run=true, --import.ebay.limit=50, --import.ebay.details=false, --import.ebay.refresh-photos=true
+ * Options: --import.ebay.dry-run=true, --import.ebay.limit=50, --import.ebay.details=false, --import.ebay.refresh-photos=true,
+ * --import.ebay.keep-listings=true (only photos and item specifics for listings already in the shop)
  */
 @Component
 @Profile("postgres")
@@ -34,11 +35,12 @@ public class EbayImportRunner implements CommandLineRunner {
                             @Value("${import.ebay.dry-run:false}") boolean dryRun,
                             @Value("${import.ebay.limit:0}") int limit,
                             @Value("${import.ebay.details:true}") boolean details,
-                            @Value("${import.ebay.refresh-photos:false}") boolean refreshPhotos) {
+                            @Value("${import.ebay.refresh-photos:false}") boolean refreshPhotos,
+                            @Value("${import.ebay.keep-listings:false}") boolean keepListings) {
         this.importer = importer;
         this.context = context;
         this.csv = csv;
-        this.options = new EbayImportService.Options(dryRun, limit, details, refreshPhotos);
+        this.options = new EbayImportService.Options(dryRun, limit, details, refreshPhotos, keepListings, 16);
     }
 
     @Override

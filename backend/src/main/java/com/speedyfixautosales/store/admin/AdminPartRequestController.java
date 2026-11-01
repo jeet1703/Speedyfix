@@ -59,11 +59,8 @@ public class AdminPartRequestController {
 
     @GetMapping("/{reference}/photos/{index}")
     public ResponseEntity<byte[]> photo(@PathVariable String reference, @PathVariable int index) {
-        List<PartRequest.Photo> photos = requests.get(reference).photos();
-        if (index < 0 || index >= photos.size()) {
-            throw new NotFoundException("That photo isn’t stored any more.");
-        }
-        PartRequest.Photo photo = photos.get(index);
+        PartRequest.Photo photo = requests.photo(reference, index)
+                .orElseThrow(() -> new NotFoundException("That photo isn’t stored any more."));
         String type = IMAGE_TYPES.contains(photo.contentType()) ? photo.contentType() : MediaType.APPLICATION_OCTET_STREAM_VALUE;
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(type))

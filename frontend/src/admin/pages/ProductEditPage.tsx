@@ -7,6 +7,7 @@ import { AdminLayout } from '../AdminLayout';
 import { ConfidencePill } from '../components';
 import type { CategoryOption, Condition, Fitment, ProductDetail, ProductStatus, Shipping } from '../types';
 import { CardsSkeleton } from '../../components/Skeleton';
+import { ListingHtml } from '../../components/ListingHtml';
 
 const CONDITIONS: { value: Condition; label: string }[] = [
   { value: 'USED', label: 'Used, tested' },
@@ -64,12 +65,15 @@ export function ProductEditPage() {
   const [condition, setCondition] = useState<Condition>('USED');
   const [grade, setGrade] = useState('A');
   const [price, setPrice] = useState('');
+  const [sale, setSale] = useState('');
   const [stock, setStock] = useState('1');
   const [shipping, setShipping] = useState<Shipping>('PARCEL');
   const [engineCode, setEngineCode] = useState('');
   const [brand, setBrand] = useState('');
   const [subType, setSubType] = useState('');
   const [refinements, setRefinements] = useState<string[]>([]);
+  const [descriptionHtml, setDescriptionHtml] = useState('');
+  const [previewDescription, setPreviewDescription] = useState(false);
   const [newRefinement, setNewRefinement] = useState<string | null>(null);
   const [bestSeller, setBestSeller] = useState(false);
 
@@ -110,12 +114,14 @@ export function ProductEditPage() {
     setBrand(d.brand ?? '');
     setSubType(d.subType ?? '');
     setRefinements(d.refinements);
+    setDescriptionHtml(d.descriptionHtml ?? '');
     setRows(d.vehicles.map((fit) => ({ fit, ticked: true })));
     setName(d.name);
     setCategoryId(d.categoryId);
     setCondition(d.condition);
     setGrade(d.grade ?? '');
     setPrice(d.price === null ? '' : d.price.toFixed(2));
+    setSale(d.salePercent ? String(d.salePercent) : '');
     setStock(String(d.stock));
     setShipping(d.shipping);
     setEngineCode(d.engineCode ?? '');
@@ -218,6 +224,10 @@ export function ProductEditPage() {
   const highTicked = ticked.filter((r) => r.fit.confidence === 'HIGH').length;
   const priceValue = price.trim() === '' ? null : Number(price);
   const priceOk = priceValue !== null && Number.isFinite(priceValue) && priceValue > 0;
+  const saleValue = sale.trim() === '' ? null : Number(sale);
+  const saleOk = saleValue === null || (Number.isInteger(saleValue) && saleValue >= 1 && saleValue <= 90);
+  // Same rounding as the server: to the penny, half a penny up.
+  const salePrice = priceOk && saleValue && saleOk ? Math.round(priceValue! * (100 - saleValue)) / 100 : null;
   const photoCount = kept.length + added.length;
   const usesSample = photoCount === 0 && !!detail?.samplePhoto;
   const photoOk = photoCount > 0 || usesSample;
@@ -232,13 +242,14 @@ export function ProductEditPage() {
     if (!name.trim()) return setSaveError('Enter the title shoppers will see.');
     if (!categoryId) return setSaveError('Choose a category.');
     if (priceValue !== null && !priceOk) return setSaveError('Enter a price above £0, like 149.00.');
+    if (!saleOk) return setSaveError('Enter a sale between 1% and 90% off, or leave it empty for no sale.');
     if (stock.trim() === '' || !Number.isInteger(stockValue) || stockValue < 0 || stockValue > 999) return setSaveError('Enter a stock quantity from 0 to 999.');
     setSaving(true);
     try {
       const saved = await adminApi.saveProduct(id ?? null, {
         name: name.trim(), categoryId, condition, grade, price: priceValue, partNumber: partNumber.trim(),
         engineCode: engineCode.trim(), brand: brand.trim(), subType: subType.trim(), refinements, shipping, stock: stockValue, bestSeller,
-        vehicleIds: ticked.map((r) => r.fit.vehicleId), keepPhotoIds: kept.map((p) => p.id), status
+        vehicleIds: ticked.map((r) => r.fit.vehicleId), keepPhotoIds: kept.map((p) => p.id), status, descriptionHtml, salePercent: saleValue
       }, added.map((p) => p.file));
       const message = status === 'LIVE'
         ? (isLive ? 'Changes saved. The listing is live in the shop.' : 'Listed. The part is now in the shop.')
@@ -387,6 +398,14 @@ export function ProductEditPage() {
                   <input id="price" className="input" inputMode="decimal" placeholder="0.00" value={price} onChange={(e) => setPrice(priceInput(e.target.value))} />
                 </div>
                 <div className="field">
+                  <label htmlFor="sale">Sale (% off)<span className="field__optional"> (optional)</span></label>
+                  <input id="sale" className="input" inputMode="numeric" placeholder="e.g. 20" value={sale} aria-describedby="sale-hint"
+                    onChange={(e) => setSale(e.target.value.replace(/\D/g, '').slice(0, 2))} />
+                  <p id="sale-hint" className={'field__hint' + (saleOk ? '' : ' field-error')}>
+                    {!saleOk ? 'Between 1 and 90.' : salePrice !== null ? `Shoppers pay ${gbp.format(salePrice)} (was ${gbp.format(priceValue!)}).` : 'Leave empty for no sale.'}
+                  </p>
+                </div>
+                <div className="field">
                   <label htmlFor="stock">Stock quantity</label>
                   <input id="stock" className="input" inputMode="numeric" value={stock} onChange={(e) => setStock(e.target.value.replace(/\D/g, '').slice(0, 3))} />
                 </div>
@@ -441,6 +460,28 @@ export function ProductEditPage() {
               </div>
             </section>
 
+            <section className="card" aria-labelledby="step-description">
+              <div className="card__head">
+                <h2 id="step-description" className="card__title">Description<span className="field__optional"> (optional)</span></h2>
+                {descriptionHtml.trim() && (
+                  <button type="button" className="link-btn" aria-pressed={previewDescription} onClick={() => setPreviewDescription(!previewDescription)}>
+                    {previewDescription ? 'Edit HTML' : 'Preview'}
+                  </button>
+                )}
+              </div>
+              <p className="field__hint">Paste the listing description as HTML, like the one on eBay. Shoppers see it under Description on the part’s page. Scripts and forms are removed before it’s shown.</p>
+              {previewDescription && descriptionHtml.trim() ? (
+                <ListingHtml html={descriptionHtml} className="listing-html--preview" />
+              ) : (
+                <>
+                  <label className="sr-only" htmlFor="description-html">Description (HTML)</label>
+                  <textarea id="description-html" className="input mono description-html" rows={12} value={descriptionHtml}
+                    onChange={(e) => setDescriptionHtml(e.target.value)} maxLength={100000} spellCheck={false}
+                    placeholder={'<h3>Product Description</h3>\n<ul><li>Part number: …</li></ul>'} />
+                </>
+              )}
+            </section>
+
             <section className="card" aria-labelledby="step-4">
               <h2 id="step-4" className="card__title">4. Photos</h2>
               {usesSample && <p className="notice">This part is using a sample photo. Upload real photos of this unit to replace it.</p>}
@@ -478,7 +519,7 @@ export function ProductEditPage() {
               <h2 id="ready-title" className="card__title">Ready to list?</h2>
               <ul className="checklist">
                 <Check ok={refOk} label={partNumber.trim() ? 'Part number entered' : refOk ? 'Engine code entered' : 'Part number or engine code'} />
-                <Check ok={highTicked > 0} label={highTicked > 0 ? `High-confidence fitment (${highTicked})` : 'High-confidence fitment (recommended)'} />
+                <Check ok={highTicked > 0} label={highTicked > 0 ? `High-confidence compatibility (${highTicked})` : 'High-confidence compatibility (recommended)'} />
                 <Check ok={photoOk} label={usesSample ? 'Photo (sample only)' : 'At least one photo'} />
                 <Check ok={priceOk} label="Price set" />
               </ul>
@@ -494,7 +535,9 @@ export function ProductEditPage() {
                   {ticked.length > 0 && <span className="pill pill--live">Fits your vehicle</span>}
                   <p className="preview__name">{name.trim() || 'Title shown to shoppers'}</p>
                   {reference && <p className="mono preview__ref">{reference}</p>}
-                  <p className="preview__price">{priceOk ? gbp.format(priceValue!) : '£—'}</p>
+                  <p className="preview__price">
+                    {salePrice !== null ? <>{gbp.format(salePrice)} <s className="admin-muted">{gbp.format(priceValue!)}</s> <span className="pill pill--sale">-{saleValue}%</span></> : priceOk ? gbp.format(priceValue!) : '£—'}
+                  </p>
                 </div>
               </div>
             </section>

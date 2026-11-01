@@ -2,6 +2,11 @@ server:
   port: ${PORT:8080}
   # Render sits behind a proxy: use its X-Forwarded-* headers for https links and the client address.
   forward-headers-strategy: framework
+  # Gzip the JSON (shop pages are 5 to 20 KB, a few KB compressed).
+  compression:
+    enabled: true
+    mime-types: application/json,application/problem+json,image/svg+xml,text/plain
+    min-response-size: 1024
 
 spring:
   # The database is off unless the "postgres" profile is active (application-postgres.yml), so the site still runs
@@ -17,19 +22,28 @@ spring:
 
 site:
   name: SpeedyFix Auto Sales
+  # The shop's public address, for the sitemap: https://www.speedyfixautosales.com once it's on its own domain.
+  public-url: ${SITE_URL:https://jeet1703.github.io/Speedyfix}
   tagline: House of quality spare parts
-  phone: "[UK NUMBER]"
-  whatsapp: "[WhatsApp number]"
-  email: "[email address]"
-  company-name: "[Registered company name]"
-  address: "[UK trading address]"
+  phone: "+44 7707 704977"
+  whatsapp: "+44 7707 704977"
+  email: "eBay.speedyfix@gmail.com"
+  company-name: "SpeedyFix Auto Sales Ltd"
+  address: "Unit 2E, Tomo Industrial Estate, Packet Boat Lane, Uxbridge, Middlesex, UB8 2JP"
+  vat-number: "GB 508552979"
+  # Companies House registration number
+  company-number: "16664355"
   # Set to a YouTube embed URL (https://www.youtube.com/embed/<id>) once the client supplies the video.
   video-url: ""
   # Shown on every product page. Confirm the warranty terms and dispatch location with the client.
-  warranty: "[Warranty period]"
-  ships-from: "[UK warehouse]"
+  warranty: "28-day"
+  ships-from: "Uxbridge, UK"
+  couriers: "FedEx, UPS, Royal Mail, DHL and DPD"
+  returns: "Returns accepted within 30 days of delivery (your legal right to cancel is 14 days). Parts must come back in the condition we supplied them; if a part has been fitted, used or tested beyond what's needed to inspect it, the refund may be reduced by up to 30%."
   cors-allowed-origins:
     - http://localhost:5173
+    # A second local dev server takes 5174 when 5173 is busy.
+    - http://localhost:5174
     - https://jeet1703.github.io
 
 admin:
@@ -39,7 +53,7 @@ admin:
   name: ${ADMIN_NAME:Master admin}
   # Signs the staff JWTs (32+ characters, a secret). Without it a random key is used, so a restart signs everyone out.
   jwt-secret: ${ADMIN_JWT_SECRET:}
-  # Starting values for the Settings page. Staff can change them there (held in memory until a redeploy).
+  # Starting values for the Settings page. Staff can change them there (kept in the database once saved).
   lookup-cost: ${ADMIN_LOOKUP_COST:0}
   lookup-budget: ${ADMIN_LOOKUP_BUDGET:0}
   buying-team-email: ${ADMIN_BUYING_TEAM_EMAIL:}
@@ -56,6 +70,13 @@ photos:
   dir: ${PHOTOS_DIR:../storage}
   # Set to https://images.<domain> once photos are served from Cloudflare R2; empty serves them from /api/images.
   base-url: ${IMAGES_BASE_URL:}
+  # Cloudflare R2 bucket for listing photos (needed live: Render's disk is wiped on restart). The bucket can stay
+  # private; the server serves the photos. Secret: set them in the environment, never in this file.
+  r2:
+    account-id: ${R2_ACCOUNT_ID:}
+    access-key-id: ${R2_ACCESS_KEY_ID:}
+    secret-access-key: ${R2_SECRET_ACCESS_KEY:}
+    bucket: ${R2_BUCKET:speedyfix-images}
 
 ebay:
   # eBay developer keys (Production keyset) for the Browse API, used by the eBay import for photos and item specifics.
@@ -63,6 +84,29 @@ ebay:
   client-id: ${EBAY_CLIENT_ID:}
   client-secret: ${EBAY_CLIENT_SECRET:}
   marketplace: EBAY_GB
+  # With the keys set, the shop follows the seller's eBay listings: new listings are added (with photos), prices
+  # follow eBay, and parts no longer on eBay are ended. EBAY_SELLER is found from the listings when left blank.
+  seller: ${EBAY_SELLER:}
+  sync: ${EBAY_SYNC:true}
+  sync-interval: ${EBAY_SYNC_INTERVAL:PT30M}
+
+paypal:
+  # PayPal Checkout (PayPal, or debit/credit card through PayPal). REST app keys from developer.paypal.com,
+  # Apps & Credentials. Secret: set them in the environment, never in this file. PAYPAL_ENVIRONMENT is "sandbox"
+  # (test money) or "live".
+  client-id: ${PAYPAL_CLIENT_ID:}
+  client-secret: ${PAYPAL_CLIENT_SECRET:}
+  environment: ${PAYPAL_ENVIRONMENT:sandbox}
+
+gemini:
+  # The help chat's AI answers (Google Gemini). Without a key the chat still works, answering by itself.
+  # Secret: set it in the environment, never in this file. GEMINI_MODELS are tried in order when one is busy.
+  api-key: ${GEMINI_API_KEY:}
+  models: ${GEMINI_MODELS:gemini-3.5-flash,gemini-3.5-flash-lite}
+
+orders:
+  # With PayPal set up, an order left unpaid this long is cancelled and its parts go back on sale. PT0S: never.
+  unpaid-expiry: ${ORDERS_UNPAID_EXPIRY:PT2H}
 
 dvsa:
   # DVSA MOT History API (free) for real plate lookups. All four come from DVSA's registration email; until they're

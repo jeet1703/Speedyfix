@@ -6,6 +6,8 @@ import { Icon } from '../components/Icons';
 import { Layout } from '../components/Layout';
 import { LineList, Totals } from '../components/OrderSummary';
 import { PageTitle } from '../components/PageTitle';
+import { PayPalButtons } from '../components/PayPalButtons';
+import { holdText } from './CheckoutPage';
 import { Skeleton, SkeletonText } from '../components/Skeleton';
 import { useSite } from '../state/SiteContext';
 
@@ -20,6 +22,8 @@ export function OrderReceivedPage() {
   useEffect(() => {
     api.getOrder(reference).then(setOrder).catch((e: Error) => setError(e.message));
   }, [reference]);
+
+  const payOnline = !!data?.paypalClientId;
 
   return (
     <Layout title="Order received">
@@ -43,16 +47,37 @@ export function OrderReceivedPage() {
               <div className="received__banner" role="status">
                 <span className="received__icon"><Icon name="check" size={28} /></span>
                 <div>
-                  <h2>Thank you, {order.customer.name.split(' ')[0]}. Your order has been received.</h2>
-                  <p>We’ve reserved these parts for you. Keep your order number for any questions.</p>
+                  {order.status === 'AWAITING_PAYMENT' ? (
+                    <>
+                      <h2>Thank you, {order.customer.name.split(' ')[0]}. One last step: payment.</h2>
+                      <p>We’ve reserved these parts for you{payOnline && data?.unpaidHoldMinutes ? ` for ${holdText(data.unpaidHoldMinutes)}` : ''}. {payOnline ? 'Pay below to confirm your order.' : 'We’ll call you to take payment.'}</p>
+                    </>
+                  ) : order.status === 'CANCELLED' ? (
+                    <>
+                      <h2>This order was cancelled.</h2>
+                      <p>If it wasn’t paid in time, the parts went back on sale. Add them to your basket again, or call us.</p>
+                    </>
+                  ) : (
+                    <>
+                      <h2>Thank you, {order.customer.name.split(' ')[0]}. Your order is confirmed.</h2>
+                      <p>{order.payment?.captureId ? 'Payment received. ' : ''}Keep your order number: you can check its status any time with our help chat{data?.site ? `, or call ${data.site.phone}` : ''}.</p>
+                    </>
+                  )}
                 </div>
               </div>
+
+              {order.status === 'AWAITING_PAYMENT' && payOnline && (
+                <section className="received__pay" aria-labelledby="pay-title">
+                  <h3 id="pay-title" className="panel__title">Pay {money(order.total)}</h3>
+                  <PayPalButtons clientId={data!.paypalClientId} order={order} onPaid={setOrder} />
+                </section>
+              )}
 
               <dl className="received__facts">
                 <div><dt>Order number</dt><dd className="mono">{order.reference}</dd></div>
                 <div><dt>Date</dt><dd>{dateFormat.format(new Date(order.placedAt))}</dd></div>
                 <div><dt>Total</dt><dd>{money(order.total)}</dd></div>
-                <div><dt>Payment</dt><dd>Not taken (payment not connected yet)</dd></div>
+                <div><dt>Payment</dt><dd>{paymentText(order)}</dd></div>
               </dl>
 
               <div className="received__cols">
@@ -87,4 +112,11 @@ export function OrderReceivedPage() {
       </div>
     </Layout>
   );
+}
+
+function paymentText(order: Order) {
+  if (order.payment?.captureId) return 'Paid with PayPal';
+  if (order.status === 'AWAITING_PAYMENT') return 'Awaiting payment';
+  if (order.status === 'CANCELLED') return 'Not taken';
+  return 'Paid';
 }

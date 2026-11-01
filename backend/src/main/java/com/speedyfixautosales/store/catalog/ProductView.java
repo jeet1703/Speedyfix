@@ -2,7 +2,10 @@ package com.speedyfixautosales.store.catalog;
 
 import java.math.BigDecimal;
 
-/** A product as the storefront shows it, including its fit for the shopper's vehicle. */
+/**
+ * A product as the storefront shows it, including its fit for the shopper's vehicle. price is what the shopper pays;
+ * during a sale, originalPrice is the price before it (shown struck through) and salePercent the discount.
+ */
 public record ProductView(
         String id,
         String name,
@@ -16,5 +19,7 @@ public record ProductView(
         Shipping shipping,
         int stock,
         boolean inStock,
-        FitStatus fit) {
+        FitStatus fit,
+        BigDecimal originalPrice,
+        Integer salePercent) {
 }

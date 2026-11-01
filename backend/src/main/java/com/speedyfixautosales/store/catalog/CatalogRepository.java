@@ -28,6 +28,22 @@ public interface CatalogRepository {
     /** The sample photo a seeded part started with, used again if staff remove every uploaded photo. */
     Optional<String> sampleImage(String id);
 
+    /** Everything about a part that only its own page needs: all its photos, eBay's item specifics and description. */
+    record Extras(List<ProductDetail.Photo> photos, List<ProductDetail.Specific> specifics, String description,
+                  String descriptionHtml) {
+    }
+
+    default Extras extras(Product product) {
+        return new Extras(List.of(new ProductDetail.Photo(product.imageUrl(), product.imageUrl())), List.of(), null,
+                descriptionHtml(product.id()).orElse(null));
+    }
+
+    /** The description staff wrote as HTML, if any. */
+    Optional<String> descriptionHtml(String id);
+
+    /** Null removes it. */
+    void saveDescriptionHtml(String id, String html);
+
     /** Takes sold items out of stock (a negative quantity puts them back). Returns false, changing nothing, if there aren't enough. */
     boolean reduceStock(String id, int quantity);
 

@@ -1,9 +1,11 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { api, money, price } from '../api/client';
+import { api, money } from '../api/client';
 import type { ProductDetail, Vehicle } from '../api/types';
 import { Icon } from '../components/Icons';
 import { Layout } from '../components/Layout';
+import { ListingHtml } from '../components/ListingHtml';
+import { Price } from '../components/Price';
 import { PageTitle } from '../components/PageTitle';
 import { PlateField } from '../components/PlateField';
 import { ProductCard } from '../components/ProductCard';
@@ -17,6 +19,7 @@ type Tab = 'description' | 'fitment' | 'delivery';
 export function ProductPage() {
   const { id = '' } = useParams();
   const { vehicle } = useStore();
+  const { data } = useSite();
   const [detail, setDetail] = useState<ProductDetail | null>(null);
   const [error, setError] = useState('');
   const [tab, setTab] = useState<Tab>('description');
@@ -54,7 +57,7 @@ export function ProductPage() {
   const itemNumber = p.id.match(/-(\d{9,})$/)?.[1];
   const samplePhoto = p.imageUrl.includes('images.unsplash.com');
   return (
-    <Layout title={p.name}>
+    <Layout title={p.name} description={`${p.name}. ${p.condition}, ${p.salePercent ? `on sale (${p.salePercent}% off), ` : ''}£${p.price.toFixed(2)} inc. VAT${p.inStock ? ', in stock' : ''}. ${data?.site.warranty ?? ''} warranty, UK delivery from SpeedyFix Auto Sales.`.replace(/\s+/g, ' ')}>
       <PageTitle title={p.categoryName} heading={false} crumbs={[
         { label: 'Products', to: '/products' },
         { label: p.categoryName, to: `/products?category=${p.categoryId}` },
@@ -62,18 +65,13 @@ export function ProductPage() {
       ]} />
 
       <div className="container product">
-        <div className="product__gallery">
-          <div className="photo-frame">
-            <img src={p.imageUrl.replace('w=800&h=800', 'w=1200&h=1000')} alt={p.name} width={600} height={500} />
-            {samplePhoto && <span className="photo-frame__note">Sample photo. The part you receive is the one in the title.</span>}
-          </div>
-        </div>
+        <Gallery key={p.id} name={p.name} photos={detail.photos} samplePhoto={samplePhoto} />
 
         <div className="product__summary">
           <Link className="product__category" to={`/products?category=${p.categoryId}`}>{p.categoryName}</Link>
           <h1 className="h-display product__title">{p.name}</h1>
           <p className="product__price">
-            {price(p.price)} <span>inc. VAT ({money(detail.priceExVat)} ex. VAT)</span>
+            <Price product={p} /> <span className="product__vat">inc. VAT ({money(detail.priceExVat)} ex. VAT)</span>
           </p>
           <p className={'product__stock' + (p.inStock ? '' : ' is-out')}>
             {p.inStock ? `In stock: ${p.stock} available` : 'Out of stock'}
@@ -97,7 +95,7 @@ export function ProductPage() {
 
       <div className="container tabs">
         <div className="tabs__list" role="tablist" aria-label="Part information">
-          {([['description', 'Description'], ['fitment', 'Fitment'], ['delivery', 'Delivery and returns']] as [Tab, string][]).map(([key, label]) => (
+          {([['description', 'Description'], ['fitment', 'Compatibility'], ['delivery', 'Delivery and returns']] as [Tab, string][]).map(([key, label]) => (
             <button key={key} type="button" role="tab" id={`tab-${key}`} aria-controls={`panel-${key}`}
               aria-selected={tab === key} tabIndex={tab === key ? 0 : -1} className="tabs__tab" onClick={() => setTab(key)}
               onKeyDown={(e) => {
@@ -236,6 +234,61 @@ function Perks({ shipping }: { shipping: 'PARCEL' | 'PALLET' }) {
   );
 }
 
+/**
+ * The listing's photos on a strip that slides, with a strip of thumbnails underneath; swipe on touch screens.
+ * The photos either side of the current one load in advance, so a slide never waits on a download and the
+ * counter always matches the photo showing.
+ */
+function Gallery({ name, photos, samplePhoto }: { name: string; photos: ProductDetail['photos']; samplePhoto: boolean }) {
+  const [index, setIndex] = useState(0);
+  const [touchX, setTouchX] = useState<number | null>(null);
+  const many = photos.length > 1;
+  const step = (by: number) => setIndex((i) => (i + by + photos.length) % photos.length);
+  const near = (i: number) => {
+    const d = Math.abs(i - index);
+    return Math.min(d, photos.length - d) <= 1;
+  };
+  return (
+    <div className="product__gallery">
+      <div className="photo-frame" aria-roledescription={many ? 'carousel' : undefined}
+        onTouchStart={(e) => setTouchX(e.touches[0].clientX)}
+        onTouchEnd={(e) => {
+          if (touchX === null) return;
+          const dx = e.changedTouches[0].clientX - touchX;
+          if (many && Math.abs(dx) > 40) step(dx < 0 ? 1 : -1);
+          setTouchX(null);
+        }}>
+        <div className="gallery__track" style={{ transform: `translateX(-${index * 100}%)` }}>
+          {photos.map((ph, i) => (
+            <img key={ph.url} src={ph.url.replace('w=800&h=800', 'w=1200&h=1000')} width={600} height={500}
+              alt={many ? `${name}, photo ${i + 1} of ${photos.length}` : name} aria-hidden={i !== index}
+              loading={i === 0 || near(i) ? 'eager' : 'lazy'} decoding="async" draggable={false} />
+          ))}
+        </div>
+        {samplePhoto && <span className="photo-frame__note">Sample photo. The part you receive is the one in the title.</span>}
+        {many && (
+          <>
+            <button type="button" className="gallery__arrow gallery__arrow--prev" aria-label="Previous photo" onClick={() => step(-1)}>‹</button>
+            <button type="button" className="gallery__arrow gallery__arrow--next" aria-label="Next photo" onClick={() => step(1)}>›</button>
+            <span className="gallery__count" aria-live="polite">{index + 1} / {photos.length}</span>
+          </>
+        )}
+      </div>
+      {many && (
+        <ul className="gallery__thumbs" aria-label="Photos">
+          {photos.map((ph, i) => (
+            <li key={ph.url}>
+              <button type="button" className="gallery__thumb" aria-current={i === index} aria-label={`Show photo ${i + 1}`} onClick={() => setIndex(i)}>
+                <img src={ph.thumbnailUrl} alt="" width={80} height={80} loading="lazy" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function DescriptionTab({ detail }: { detail: ProductDetail }) {
   const { data } = useSite();
   const p = detail.product;
@@ -248,10 +301,18 @@ function DescriptionTab({ detail }: { detail: ProductDetail }) {
   ];
   return (
     <>
-      <p className="tabs__text">{detail.description}</p>
+      {detail.descriptionHtml ? <ListingHtml html={detail.descriptionHtml} /> : <p className="tabs__text">{detail.description}</p>}
       <dl className="specs">
         {rows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}
       </dl>
+      {detail.specifics.length > 0 && (
+        <>
+          <h3 className="tabs__subhead">Item specifics</h3>
+          <dl className="specs">
+            {detail.specifics.map((s) => <div key={s.name}><dt>{s.name}</dt><dd>{s.value}</dd></div>)}
+          </dl>
+        </>
+      )}
     </>
   );
 }
@@ -284,7 +345,7 @@ function DeliveryTab({ shipping }: { shipping: 'PARCEL' | 'PALLET' }) {
         <div><dt>Parcel delivery</dt><dd>£9.95, free on orders of £100 or more</dd></div>
         <div><dt>Ships from</dt><dd>{data?.site.shipsFrom}</dd></div>
         <div><dt>Warranty</dt><dd>{data?.site.warranty}</dd></div>
-        <div><dt>Returns</dt><dd>[Returns policy from the client]</dd></div>
+        <div><dt>Returns</dt><dd>{data?.site.returns}</dd></div>
       </dl>
     </>
   );

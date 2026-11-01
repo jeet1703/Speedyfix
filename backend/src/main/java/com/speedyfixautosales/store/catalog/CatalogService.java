@@ -94,10 +94,10 @@ public class CatalogService {
             filter = filter.and(p -> query.conditions().contains(p.condition()));
         }
         if (query.minPrice() != null) {
-            filter = filter.and(p -> p.price().compareTo(query.minPrice()) >= 0);
+            filter = filter.and(p -> p.sellingPrice().compareTo(query.minPrice()) >= 0);
         }
         if (query.maxPrice() != null) {
-            filter = filter.and(p -> p.price().compareTo(query.maxPrice()) <= 0);
+            filter = filter.and(p -> p.sellingPrice().compareTo(query.maxPrice()) <= 0);
         }
         if (query.fitsOnly() && vehicle.isPresent()) {
             filter = filter.and(p -> fitsOrLikely(fit(p, vehicle)));
@@ -141,9 +141,11 @@ public class CatalogService {
                 .limit(4)
                 .map(o -> view(o, vehicle))
                 .toList();
-        BigDecimal exVat = p.price().multiply(BigDecimal.valueOf(5)).divide(BigDecimal.valueOf(6), 2, RoundingMode.HALF_UP);
+        BigDecimal exVat = p.sellingPrice().multiply(BigDecimal.valueOf(5)).divide(BigDecimal.valueOf(6), 2, RoundingMode.HALF_UP);
+        CatalogRepository.Extras extras = repository.extras(p);
         return new ProductDetail(view(p, vehicle), p.partNumber(), p.engineCode(), p.brand(), p.subType(), exVat,
-                description(p), fits, related);
+                extras.description() != null && !extras.description().isBlank() ? extras.description() : description(p), fits, related,
+                extras.photos(), extras.specifics(), extras.descriptionHtml());
     }
 
     /** Matches a part when any of its values is one of the wanted ones (case-insensitive). No wanted values matches all. */
@@ -189,8 +191,8 @@ public class CatalogService {
     private static Comparator<Product> order(ShopQuery.Sort sort) {
         return switch (sort) {
             case NEWEST -> Comparator.comparing(Product::addedOn).reversed();
-            case PRICE_LOW -> Comparator.comparing(Product::price);
-            case PRICE_HIGH -> Comparator.comparing(Product::price).reversed();
+            case PRICE_LOW -> Comparator.comparing(Product::sellingPrice);
+            case PRICE_HIGH -> Comparator.comparing(Product::sellingPrice).reversed();
             case BEST_SELLING -> Comparator.comparing((Product p) -> !p.bestSeller())
                     .thenComparing(Comparator.comparing(Product::addedOn).reversed());
         };
@@ -249,7 +251,8 @@ public class CatalogService {
     public ProductView view(Product p, Optional<Vehicle> vehicle) {
         String categoryName = repository.category(p.categoryId()).map(Category::name).orElse("");
         return new ProductView(p.id(), p.name(), p.categoryId(), categoryName, p.condition().label(), p.grade(),
-                p.price(), p.reference(), p.imageUrl(), p.shipping(), p.stock(), p.stock() > 0, fit(p, vehicle));
+                p.sellingPrice(), p.reference(), p.imageUrl(), p.shipping(), p.stock(), p.stock() > 0, fit(p, vehicle),
+                p.onSale() ? p.price() : null, p.onSale() ? p.salePercent() : null);
     }
 
     /**

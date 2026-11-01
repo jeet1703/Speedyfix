@@ -48,3 +48,28 @@ services:
         sync: false
       - key: DVSA_TOKEN_URL
         sync: false
+      # Cloudflare R2 bucket for listing photos (Render's disk is wiped on restart). R2_BUCKET defaults to speedyfix-images.
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      # eBay Production keyset, for the photo import and stock sync.
+      - key: EBAY_CLIENT_ID
+        sync: false
+      - key: EBAY_CLIENT_SECRET
+        sync: false
+      # PayPal Checkout. PAYPAL_ENVIRONMENT: sandbox (test money) or live.
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: PAYPAL_ENVIRONMENT
+        sync: false
+      # Google Gemini for the help chat's AI answers (optional: without it the chat answers by itself).
+      - key: GEMINI_API_KEY
+        sync: false
+      # The shop's public address, for the sitemap (https://www.speedyfixautosales.com once the domain is set up).
+      - key: SITE_URL
+        sync: false

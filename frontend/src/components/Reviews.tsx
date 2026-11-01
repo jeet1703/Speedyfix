@@ -1,18 +1,14 @@
 import type { Review } from '../api/types';
 import { SectionHeading } from './SectionHeading';
 
-/** Shows verified reviews from the API. Until a review platform is connected, shows clearly marked placeholders. */
+/** Shows verified reviews from the API; nothing until a review platform is connected and has reviews. */
 export function Reviews({ reviews }: { reviews: Review[] }) {
-  const placeholder = reviews.length === 0;
-  const items = placeholder
-    ? Array.from({ length: 3 }, () => ({ author: '[Customer name]', location: '[Town]', rating: 0, text: '[Verified review text from the review platform]' }))
-    : reviews;
+  if (reviews.length === 0) return null;
+  const items = reviews;
   return (
     <section className="section reviews" aria-labelledby="reviews-title">
       <div className="container">
-        <SectionHeading id="reviews-title" title="What our customers say">
-          {placeholder && <p className="section-heading__note">Placeholders: connect a review platform to show real, verified reviews here.</p>}
-        </SectionHeading>
+        <SectionHeading id="reviews-title" title="What our customers say" />
         <ul className="reviews__list">
           {items.map((r, i) => (
             <li key={i} className="review">

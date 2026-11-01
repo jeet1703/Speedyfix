@@ -37,6 +37,9 @@ export interface ProductRow {
   workStatus: WorkStatus;
   vehicles: number;
   addedOn: string;
+  /** Percentage off during a sale, or null; sellingPrice is the price after it. */
+  salePercent: number | null;
+  sellingPrice: number | null;
 }
 
 export interface Fitment {
@@ -72,6 +75,9 @@ export interface ProductDetail {
   photos: { id: string; url: string }[];
   vehicles: Fitment[];
   addedOn: string;
+  descriptionHtml: string | null;
+  salePercent: number | null;
+  sellingPrice: number | null;
 }
 
 export interface ProductFormData {
@@ -91,6 +97,10 @@ export interface ProductFormData {
   vehicleIds: string[];
   keepPhotoIds: string[];
   status: ProductStatus;
+  /** Blank removes the description. */
+  descriptionHtml: string;
+  /** Percentage off the price, or null for no sale. */
+  salePercent: number | null;
 }
 
 export interface Dashboard {
@@ -174,4 +184,21 @@ export interface CustomerRow {
 export interface CategoryOption {
   id: string;
   name: string;
+}
+
+/** The eBay sync: whether it can run on this server, whether it's running, and the last result since start-up. */
+export interface EbaySyncStatus {
+  available: boolean;
+  running: boolean;
+  startedAt: string | null;
+  last: {
+    at: string;
+    listingsOnEbay: number;
+    added: number;
+    repriced: number;
+    ended: number;
+    endingSkipped: boolean;
+    problems: string[];
+  } | null;
+  lastError: string | null;
 }

@@ -1,7 +1,6 @@
 import type {
   AccountSession, Basket, Customer, HomeData, LookupResult, Order, OrderForm, PartRequestReceived, Product, ProductDetail,
-  ShopResult, SiteData
-} from './types';
+  ShopResult, SiteData, ChatReply } from './types';
 import { progress } from './progress';
 
 export const BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
@@ -78,9 +77,22 @@ export const api = {
   removeFromBasket: (id: string, productId: string) =>
     request<Basket>(`/api/baskets/${id}/items/${productId}`, { method: 'DELETE' }),
 
-  placeOrder: (basketId: string, form: OrderForm) =>
-    request<Order>('/api/orders', { method: 'POST', body: JSON.stringify({ basketId, ...form }) }),
+  /** token links the order to the signed-in shopper's account; leave it out for a guest checkout. */
+  placeOrder: (basketId: string, form: OrderForm, token?: string | null) =>
+    request<Order>('/api/orders', {
+      method: 'POST', body: JSON.stringify({ basketId, ...form }), headers: token ? bearer(token) : undefined
+    }),
   getOrder: (reference: string) => request<Order>(`/api/orders/${encodeURIComponent(reference)}`),
+  /** The help chat's AI answer to the conversation so far (the last message is the shopper's). */
+  chat: (messages: { role: 'user' | 'assistant'; text: string }[], vehicleId?: string | null) =>
+    request<ChatReply>('/api/chat', { method: 'POST', body: JSON.stringify({ messages, vehicleId: vehicleId ?? null }) }),
+  /** An order by its number and the email it was placed with (the help chat's "Where's my order?"). */
+  lookupOrder: (reference: string, email: string) =>
+    request<Order>('/api/orders/lookup', { method: 'POST', body: JSON.stringify({ reference, email }) }),
+  startPayPal: (reference: string) =>
+    request<{ paypalOrderId: string }>(`/api/orders/${encodeURIComponent(reference)}/paypal`, { method: 'POST' }),
+  capturePayPal: (reference: string, paypalOrderId: string) =>
+    request<Order>(`/api/orders/${encodeURIComponent(reference)}/paypal/capture`, { method: 'POST', body: JSON.stringify({ paypalOrderId }) }),
 
   requestPart: (form: FormData) => request<PartRequestReceived>('/api/part-requests', { method: 'POST', body: form }),
 
@@ -89,6 +101,7 @@ export const api = {
     request<AccountSession>('/api/account/google', { method: 'POST', body: JSON.stringify({ credential }) }),
   me: (token: string) => request<Customer>('/api/account', { headers: bearer(token) }),
   signOut: (token: string) => request<void>('/api/account/session', { method: 'DELETE', headers: bearer(token) }),
+  myOrders: (token: string) => request<Order[]>('/api/account/orders', { headers: bearer(token) }),
   searches: (token: string) => request<string[]>('/api/account/searches', { headers: bearer(token) }),
   recordSearch: (token: string, query: string) =>
     request<string[]>('/api/account/searches', { method: 'POST', headers: bearer(token), body: JSON.stringify({ query }) }),

@@ -6,6 +6,7 @@ import { CheckoutPage } from './pages/CheckoutPage';
 import { CardsSkeleton } from './components/Skeleton';
 import { TopLoader } from './components/TopLoader';
 import { ComingSoon } from './pages/ComingSoon';
+import { AboutPage } from './pages/AboutPage';
 import { ContactPage } from './pages/ContactPage';
 import { HomePage } from './pages/HomePage';
 import { OrderReceivedPage } from './pages/OrderReceivedPage';
@@ -47,6 +48,7 @@ export default function App() {
               <Route path="/request-a-part" element={<RequestPartPage />} />
               <Route path="/wishlist" element={<WishlistPage />} />
               <Route path="/contact" element={<ContactPage />} />
+              <Route path="/about" element={<AboutPage />} />
               <Route path="/account" element={<AccountPage />} />
               <Route path="/admin/*" element={<Suspense fallback={<main className="container" style={{ padding: '40px 20px' }}><CardsSkeleton /></main>}><AdminApp /></Suspense>} />
               <Route path="*" element={<ComingSoon />} />

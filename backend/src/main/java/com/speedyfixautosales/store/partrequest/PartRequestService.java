@@ -7,38 +7,24 @@ import com.speedyfixautosales.store.vehicle.VehicleService;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.time.Instant;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.Deque;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-/**
- * Stores part requests for staff. In memory for the prototype; production should email or
- * queue them to the sales team and keep them in the database.
- */
+/** Takes part requests from shoppers and keeps them for staff in a PartRequestStore (the database with "postgres"). */
 @Service
 public class PartRequestService {
 
     static final int MAX_PHOTOS = 4;
-    // Render's free instance has 512 MB, so cap what the in-memory store can hold.
-    static final int MAX_STORED_REQUESTS = 500;
-    static final long MAX_STORED_PHOTO_BYTES = 64L * 1024 * 1024;
 
-    private final Map<String, PartRequest> requests = new ConcurrentHashMap<>();
-    private final Deque<String> oldestFirst = new ArrayDeque<>();
-    private long storedPhotoBytes;
-    private final AtomicInteger sequence = new AtomicInteger(1000);
+    private final PartRequestStore store;
     private final VehicleService vehicles;
 
-    public PartRequestService(VehicleService vehicles) {
+    public PartRequestService(PartRequestStore store, VehicleService vehicles) {
+        this.store = store;
         this.vehicles = vehicles;
     }
 
@@ -53,61 +39,40 @@ public class PartRequestService {
         if (replyBy != PartRequest.ReplyBy.EMAIL && (phone == null || phone.isBlank())) {
             throw new BadRequestException("Enter your phone or WhatsApp number so we can reply.");
         }
+        List<PartRequest.Photo> read = readPhotos(photos);
         Optional<Vehicle> vehicle = vehicles.identify(registration);
-        PartRequest request = new PartRequest("PR-" + sequence.incrementAndGet(), Instant.now(),
+        PartRequest request = new PartRequest(store.nextReference(), Instant.now(),
                 VehicleService.mask(registration),
                 vehicle.map(v -> v.displayName() + ", " + v.engine()).orElse(null),
                 part.trim(), blankToNull(notes), name.trim(), blankToNull(phone), blankToNull(email), replyBy,
-                readPhotos(photos), PartRequest.Status.NEW);
-        store(request);
+                read, PartRequest.Status.NEW);
+        store.add(request);
         return new Received(request.reference(), request.vehicle(), replyBy);
     }
 
-    /** Over the photo budget, the oldest requests lose their photos first; over the count, the oldest go. */
-    private synchronized void store(PartRequest request) {
-        requests.put(request.reference(), request);
-        oldestFirst.addLast(request.reference());
-        storedPhotoBytes += photoBytes(request);
-        for (String ref : oldestFirst) {
-            if (storedPhotoBytes <= MAX_STORED_PHOTO_BYTES) {
-                break;
-            }
-            PartRequest old = requests.get(ref);
-            if (old != null && !old.photos().isEmpty() && !ref.equals(request.reference())) {
-                storedPhotoBytes -= photoBytes(old);
-                requests.put(ref, old.withPhotos(List.of()));
-            }
-        }
-        while (oldestFirst.size() > MAX_STORED_REQUESTS) {
-            PartRequest removed = requests.remove(oldestFirst.removeFirst());
-            if (removed != null) {
-                storedPhotoBytes -= photoBytes(removed);
-            }
-        }
-    }
-
-    /** Newest first, for the admin. */
+    /** Newest first, for the admin. Photo bytes may be left out: use photo() for those. */
     public List<PartRequest> all() {
-        return requests.values().stream().sorted(Comparator.comparing(PartRequest::receivedAt).reversed()).toList();
+        return store.all();
     }
 
     public PartRequest get(String reference) {
-        PartRequest request = reference == null ? null : requests.get(reference.toUpperCase(Locale.UK));
-        if (request == null) {
-            throw new NotFoundException("We couldn’t find that part request.");
-        }
-        return request;
+        return store.find(normalise(reference)).orElseThrow(PartRequestService::notFound);
     }
 
-    /** Synchronized with store(), so a status change can't put back photos the budget just dropped. */
-    public synchronized PartRequest setStatus(String reference, PartRequest.Status status) {
-        PartRequest updated = get(reference).withStatus(status);
-        requests.put(updated.reference(), updated);
-        return updated;
+    public Optional<PartRequest.Photo> photo(String reference, int index) {
+        return store.photo(normalise(reference), index);
     }
 
-    private static long photoBytes(PartRequest r) {
-        return r.photos().stream().mapToLong(p -> p.data().length).sum();
+    public PartRequest setStatus(String reference, PartRequest.Status status) {
+        return store.setStatus(normalise(reference), status).orElseThrow(PartRequestService::notFound);
+    }
+
+    private static String normalise(String reference) {
+        return reference == null ? "" : reference.trim().toUpperCase(Locale.UK);
+    }
+
+    private static NotFoundException notFound() {
+        return new NotFoundException("We couldn’t find that part request.");
     }
 
     private static List<PartRequest.Photo> readPhotos(List<MultipartFile> files) {

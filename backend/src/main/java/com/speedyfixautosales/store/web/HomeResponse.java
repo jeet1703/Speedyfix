@@ -22,11 +22,12 @@ public record HomeResponse(
         Vehicle vehicle) {
 
     public record Site(String name, String tagline, String phone, String whatsapp, String email, String companyName,
-                       String address, String videoUrl, String warranty, String shipsFrom) {
+                       String address, String videoUrl, String warranty, String shipsFrom, String couriers, String returns,
+                       String vatNumber, String companyNumber) {
 
         static Site from(SiteProperties p) {
             return new Site(p.name(), p.tagline(), p.phone(), p.whatsapp(), p.email(), p.companyName(), p.address(),
-                    p.videoUrl(), p.warranty(), p.shipsFrom());
+                    p.videoUrl(), p.warranty(), p.shipsFrom(), p.couriers(), p.returns(), p.vatNumber(), p.companyNumber());
         }
     }
 

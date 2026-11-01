@@ -9,11 +9,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.CopyOnWriteArrayList;
 import javax.imageio.ImageIO;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -53,6 +57,9 @@ class EbayImportServiceTest {
         registry.add("photos.dir", () -> photos.toString());
     }
 
+    /** What the fake eBay search lists for the seller; tests set it. */
+    static final List<EbayItemSource.Listing> SELLER_LISTINGS = new CopyOnWriteArrayList<>();
+
     /** eBay returns details for the ECU only: two photos and some item specifics. */
     @TestConfiguration
     static class FakeEbay {
@@ -73,9 +80,19 @@ class EbayImportServiceTest {
                                 List.of("https://i.ebayimg.com/images/g/a/s-l1600.jpg", "https://i.ebayimg.com/images/g/b/s-l1600.jpg"),
                                 List.of(new Aspect("Brand", "Nissan"), new Aspect("Manufacturer Part Number", "237104ED9B"),
                                         new Aspect("Type", "Engine Control Unit")),
-                                "Nissan", "237104ED9B", "Tested, 12 month warranty."));
+                                "Nissan", "237104ED9B", "Tested, 12 month warranty.", "<h3>Nissan ECU</h3><p>Tested.</p>"));
                     }
                     return found;
+                }
+
+                @Override
+                public Optional<String> sellerOf(String itemNumber) {
+                    return Optional.of("speedyfixenginecomponents");
+                }
+
+                @Override
+                public List<Listing> sellerListings(String seller) {
+                    return List.copyOf(SELLER_LISTINGS);
                 }
             };
         }
@@ -99,6 +116,9 @@ class EbayImportServiceTest {
     private EbayImportService importer;
 
     @Autowired
+    private EbaySyncService sync;
+
+    @Autowired
     private JdbcTemplate jdbc;
 
     @Autowired
@@ -118,6 +138,42 @@ class EbayImportServiceTest {
         Path file = tmp.resolve("report.csv");
         Files.writeString(file, "﻿" + header + rows + "\n");
         return file;
+    }
+
+    @Test
+    void syncAddsNewListingsFollowsPricesAndEndsWhatsGoneFromEbay() throws Exception {
+        jdbc.update("""
+                INSERT INTO products (id, name, category_id, condition, price, stock, status, ebay_item_id) VALUES
+                    ('sync-repriced', 'Repriced part', 'engines', 'USED', 100, 1, 'LIVE', '900000000001'),
+                    ('sync-sold-on-ebay', 'Sold on eBay', 'engines', 'USED', 50, 1, 'LIVE', '900000000002'),
+                    ('sync-sold-here', 'Sold on the website', 'engines', 'USED', 70, 0, 'ENDED', '900000000003'),
+                    ('sync-staff-only', 'Added by staff', 'engines', 'USED', 30, 1, 'LIVE', NULL)""");
+        LocalDate listed = LocalDate.of(2026, 10, 30);
+        SELLER_LISTINGS.clear();
+        SELLER_LISTINGS.addAll(List.of(
+                new EbayItemSource.Listing("900000000001", "Repriced part", new BigDecimal("89.50"), "Used", "33615", "Engines", listed),
+                new EbayItemSource.Listing("900000000003", "Sold on the website", new BigDecimal("70.00"), "Used", "33615", "Engines", listed),
+                new EbayItemSource.Listing("900000000004", "Ford Focus MK3 1.0 EcoBoost Turbocharger 2012-2018", new BigDecimal("149.99"),
+                        "Used", "33615", "Engines", listed)));
+
+        EbaySyncService.Result r = sync.sync();
+
+        assertThat(r.added()).isEqualTo(1);
+        assertThat(r.repriced()).isEqualTo(1);
+        assertThat(r.endingSkipped()).isFalse();
+        assertThat(jdbc.queryForObject("SELECT price FROM products WHERE id = 'sync-repriced'", BigDecimal.class)).isEqualByComparingTo("89.50");
+        assertThat(jdbc.queryForObject("SELECT status FROM products WHERE id = 'sync-sold-on-ebay'", String.class)).isEqualTo("ENDED");
+        // Ended in the shop stays ended, even though eBay still lists it; staff's own parts are never touched.
+        assertThat(jdbc.queryForObject("SELECT status FROM products WHERE id = 'sync-sold-here'", String.class)).isEqualTo("ENDED");
+        assertThat(jdbc.queryForObject("SELECT status FROM products WHERE id = 'sync-staff-only'", String.class)).isEqualTo("LIVE");
+        assertThat(jdbc.queryForObject("SELECT status || ' ' || stock || ' ' || price FROM products WHERE ebay_item_id = '900000000004'", String.class))
+                .isEqualTo("LIVE 1 149.99");
+
+        // Running again changes nothing.
+        EbaySyncService.Result again = sync.sync();
+        assertThat(again.added() + again.repriced() + again.ended()).isZero();
+        SELLER_LISTINGS.clear();
+        jdbc.update("DELETE FROM products WHERE id LIKE 'sync-%' OR ebay_item_id LIKE '90000000000%'");
     }
 
     @Test
@@ -156,10 +212,17 @@ class EbayImportServiceTest {
         assertThat(second.photos()).isZero();
         assertThat(jdbc.queryForObject("SELECT count(*) FROM product_photos WHERE product_id = ?", Integer.class, id)).isEqualTo(2);
 
-        // The shop shows the live listing with its photo, and not the ended one.
+        // The shop shows the live listing with its photos (small on cards, every photo full size on its page) and
+        // eBay's item specifics and description, and not the ended one.
         mvc.perform(get("/api/products/" + id))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.product.imageUrl").value(endsWith("/api/images/listings/" + id + "/0-1200.jpg")))
+                .andExpect(jsonPath("$.product.imageUrl").value(endsWith("/api/images/listings/" + id + "/0-400.jpg")))
+                .andExpect(jsonPath("$.photos.length()").value(2))
+                .andExpect(jsonPath("$.photos[1].url").value(endsWith("/api/images/listings/" + id + "/1-1200.jpg")))
+                .andExpect(jsonPath("$.photos[1].thumbnailUrl").value(endsWith("/api/images/listings/" + id + "/1-400.jpg")))
+                .andExpect(jsonPath("$.specifics[?(@.name == 'Type')].value").value(org.hamcrest.Matchers.contains("Engine Control Unit")))
+                .andExpect(jsonPath("$.description").value("Tested, 12 month warranty."))
+                .andExpect(jsonPath("$.descriptionHtml").value("<h3>Nissan ECU</h3><p>Tested.</p>"))
                 .andExpect(jsonPath("$.partNumber").value("237104ED9B"));
         mvc.perform(get("/api/products/" + starter.get("id"))).andExpect(status().isNotFound());
         mvc.perform(get("/api/images/listings/" + id + "/0-1200.jpg")).andExpect(status().isOk());

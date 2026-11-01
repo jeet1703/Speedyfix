@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 
 class BasketServiceTest {
 
-    private final BasketService baskets = new BasketService(
+    private final BasketService baskets = new BasketService(new InMemoryBasketStore(),
             new CatalogService(new InMemoryCatalogRepository(), new VehicleService(new DemoVehicleLookup())));
 
     @Test

@@ -12,12 +12,11 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 /**
- * In-memory baskets for the prototype. Delivery rules match the design:
+ * Baskets, kept by a BasketStore (the database with the "postgres" profile). Delivery rules match the design:
  * pallet items cost £79; otherwise tracked parcel delivery is £9.95, free over £100.
  */
 @Service
@@ -28,82 +27,77 @@ public class BasketService {
     static final BigDecimal FREE_DELIVERY_FROM = new BigDecimal("100.00");
     static final Duration IDLE_EXPIRY = Duration.ofDays(7);
 
-    private final Map<String, Basket> baskets = new ConcurrentHashMap<>();
+    private final BasketStore baskets;
     private final CatalogService catalog;
 
-    public BasketService(CatalogService catalog) {
+    public BasketService(BasketStore baskets, CatalogService catalog) {
+        this.baskets = baskets;
         this.catalog = catalog;
     }
 
-    /** Drops baskets nobody has changed for a week, so memory doesn't grow forever. The shopper's next add starts a new one. */
+    /** Drops baskets nobody has changed for a week, so storage doesn't grow forever. The shopper's next add starts a new one. */
     @Scheduled(fixedDelayString = "PT1H")
     void removeIdleBaskets() {
-        Instant cutoff = Instant.now().minus(IDLE_EXPIRY);
-        baskets.values().removeIf(b -> b.updatedAt().isBefore(cutoff));
+        baskets.removeIdle(Instant.now().minus(IDLE_EXPIRY));
     }
 
     public BasketView create() {
-        Basket basket = new Basket();
-        baskets.put(basket.id(), basket);
-        return view(basket);
+        return view(baskets.create(), Map.of());
     }
 
     public BasketView get(String basketId) {
-        return view(basket(basketId));
+        return view(basketId, items(basketId));
     }
 
-    public BasketView addItem(String basketId, String productId, int quantity) {
-        Basket basket = basket(basketId);
+    /** Synchronized so two quick adds of the same part can't both pass the stock check. */
+    public synchronized BasketView addItem(String basketId, String productId, int quantity) {
+        Map<String, Integer> items = items(basketId);
         Product product = catalog.getProduct(productId);
-        synchronized (basket) {
-            int next = basket.quantityOf(productId) + quantity;
-            if (next > product.stock()) {
-                throw new ConflictException(stockMessage(product));
-            }
-            basket.set(productId, next);
+        int next = items.getOrDefault(productId, 0) + quantity;
+        if (next > product.stock()) {
+            throw new ConflictException(stockMessage(product));
         }
-        return view(basket);
+        baskets.set(basketId, productId, next);
+        return get(basketId);
     }
 
     public BasketView setQuantity(String basketId, String productId, int quantity) {
-        Basket basket = basket(basketId);
+        items(basketId);
         Product product = catalog.findAny(productId);
         if (quantity > product.stock()) {
             throw new ConflictException(stockMessage(product));
         }
-        basket.set(productId, quantity);
-        return view(basket);
+        baskets.set(basketId, productId, quantity);
+        return get(basketId);
     }
 
     public BasketView remove(String basketId, String productId) {
-        Basket basket = basket(basketId);
-        basket.set(productId, 0);
-        return view(basket);
+        items(basketId);
+        baskets.set(basketId, productId, 0);
+        return get(basketId);
     }
 
     /** Empties the basket once its contents have become an order. */
     public void clear(String basketId) {
-        Basket basket = basket(basketId);
-        basket.snapshot().keySet().forEach(productId -> basket.set(productId, 0));
+        items(basketId);
+        baskets.clear(basketId);
     }
 
-    private Basket basket(String id) {
-        Basket basket = id == null ? null : baskets.get(id);
-        if (basket == null) {
-            throw new NotFoundException("This basket has expired. Start a new one by adding a part.");
-        }
-        return basket;
+    private Map<String, Integer> items(String id) {
+        return baskets.items(id)
+                .orElseThrow(() -> new NotFoundException("This basket has expired. Start a new one by adding a part."));
     }
 
-    BasketView view(Basket basket) {
+    BasketView view(String basketId, Map<String, Integer> items) {
         List<BasketView.Line> lines = new ArrayList<>();
         BigDecimal subtotal = BigDecimal.ZERO;
         int count = 0;
         boolean pallet = false;
-        for (Map.Entry<String, Integer> e : basket.snapshot().entrySet()) {
+        for (Map.Entry<String, Integer> e : items.entrySet()) {
             Product p = catalog.findAny(e.getKey());
-            BigDecimal lineTotal = p.price().multiply(BigDecimal.valueOf(e.getValue()));
-            lines.add(new BasketView.Line(p.id(), p.name(), p.reference(), p.imageUrl(), money(p.price()), e.getValue(),
+            // The sale price when the part is on sale: what the order (and PayPal) will charge.
+            BigDecimal lineTotal = p.sellingPrice().multiply(BigDecimal.valueOf(e.getValue()));
+            lines.add(new BasketView.Line(p.id(), p.name(), p.reference(), p.imageUrl(), money(p.sellingPrice()), e.getValue(),
                     money(lineTotal), p.stock()));
             subtotal = subtotal.add(lineTotal);
             count += e.getValue();
@@ -112,7 +106,7 @@ public class BasketService {
         BasketView.Delivery delivery = delivery(lines.isEmpty(), pallet, subtotal);
         BigDecimal total = subtotal.add(delivery.price());
         BigDecimal vat = total.divide(BigDecimal.valueOf(6), 2, RoundingMode.HALF_UP);
-        return new BasketView(basket.id(), List.copyOf(lines), count, money(subtotal), delivery, money(total), vat);
+        return new BasketView(basketId, List.copyOf(lines), count, money(subtotal), delivery, money(total), vat);
     }
 
     static BasketView.Delivery delivery(boolean empty, boolean pallet, BigDecimal subtotal) {

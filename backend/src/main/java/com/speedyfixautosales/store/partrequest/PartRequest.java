@@ -5,7 +5,7 @@ import java.util.List;
 
 /**
  * A shopper asking us to source a part. The plate is kept masked; staff work from the
- * vehicle it identified. Photos are held in memory for the prototype. Staff move it from NEW to QUOTED
+ * vehicle it identified. Staff move it from NEW to QUOTED
  * once they've replied, and CLOSED when it's done with.
  */
 public record PartRequest(

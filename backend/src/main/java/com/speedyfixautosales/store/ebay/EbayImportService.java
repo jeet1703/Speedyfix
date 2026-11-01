@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -19,6 +20,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
@@ -44,11 +49,23 @@ public class EbayImportService {
 
     private static final Logger log = LoggerFactory.getLogger(EbayImportService.class);
     private static final int BATCH = 20;
+    /** Longer descriptions (eBay allows up to 500,000 characters) are left out rather than cut mid-tag. */
+    private static final int MAX_DESCRIPTION_HTML = 100_000;
+    private static final int PHOTO_THREADS = 16;
     private static final int MAX_PHOTOS = 12;
     private static final Set<String> NOT_A_VALUE = Set.of("does not apply", "n/a", "na", "unbranded", "unknown", "-");
 
     /** dryRun reports what would happen without saving. limit 0 means every row. */
-    public record Options(boolean dryRun, int limit, boolean details, boolean refreshPhotos) {
+    /**
+     * @param keepListings only add photos and item specifics to listings already in the shop: their price, stock,
+     *                     status and title stay as they are (staff may have changed them since the report was made),
+     *                     and rows for listings the shop doesn't have are left out
+     */
+    public record Options(boolean dryRun, int limit, boolean details, boolean refreshPhotos, boolean keepListings,
+                          int photoThreads) {
+        public Options(boolean dryRun, int limit, boolean details, boolean refreshPhotos) {
+            this(dryRun, limit, details, refreshPhotos, false, PHOTO_THREADS);
+        }
     }
 
     public record Summary(long runId, int rows, int created, int updated, int ended, int skipped, int detailsFound,
@@ -74,13 +91,18 @@ public class EbayImportService {
     }
 
     public Summary run(Path csv, Options options) throws IOException {
-        List<EbayCsv.Row> rows = EbayCsv.read(csv);
+        return run(csv.getFileName().toString(), EbayCsv.read(csv), options);
+    }
+
+    /** @param source what the rows came from, for the import history (a report's file name, or "eBay sync") */
+    public Summary run(String source, List<EbayCsv.Row> rows, Options options) throws IOException {
         if (options.limit() > 0 && rows.size() > options.limit()) {
             rows = rows.subList(0, options.limit());
         }
         Long runId = jdbc.queryForObject("INSERT INTO import_runs (file_name, dry_run) VALUES (?, ?) RETURNING id", Long.class,
-                csv.getFileName().toString(), options.dryRun());
-        List<String> problems = new ArrayList<>();
+                source, options.dryRun());
+        // Listings' photos are saved several at a time, so problems can be added from more than one thread.
+        List<String> problems = Collections.synchronizedList(new ArrayList<>());
         int created = 0, updated = 0, ended = 0, skipped = 0, withPartNumber = 0;
         Map<String, String> productByItem = new LinkedHashMap<>();
 
@@ -104,6 +126,14 @@ public class EbayImportService {
             String categoryId = category(row, options.dryRun());
             Optional<String> existing = jdbc.queryForList("SELECT id FROM products WHERE ebay_item_id = ?", String.class,
                     row.itemNumber()).stream().findFirst();
+            if (options.keepListings()) {
+                if (existing.isEmpty()) {
+                    skipped++;
+                } else {
+                    productByItem.put(row.itemNumber(), existing.get());
+                }
+                continue;
+            }
             String id = existing.orElseGet(() -> newId(row.title(), row.itemNumber()));
             if (existing.isPresent()) {
                 updated++;
@@ -121,19 +151,36 @@ public class EbayImportService {
         boolean detailsSkipped = !options.details() || !ebay.enabled() || options.dryRun();
         if (!detailsSkipped) {
             List<String> items = new ArrayList<>(productByItem.keySet());
-            for (int i = 0; i < items.size(); i += BATCH) {
-                List<String> batch = items.subList(i, Math.min(i + BATCH, items.size()));
-                Map<String, EbayItemSource.ItemDetails> found = ebay.fetch(batch);
-                for (String item : batch) {
-                    EbayItemSource.ItemDetails d = found.get(item);
-                    if (d == null) {
-                        problems.add("eBay didn’t return " + item + " (ended, or hidden while out of stock)");
-                        continue;
+            // Downloading, resizing and uploading photos is the slow part, so several listings are done at once.
+            ExecutorService pool = Executors.newFixedThreadPool(Math.max(1, options.photoThreads()));
+            try {
+                for (int i = 0; i < items.size(); i += BATCH) {
+                    List<String> batch = items.subList(i, Math.min(i + BATCH, items.size()));
+                    Map<String, EbayItemSource.ItemDetails> found = ebay.fetch(batch);
+                    List<Future<Integer>> saved = new ArrayList<>();
+                    for (String item : batch) {
+                        EbayItemSource.ItemDetails d = found.get(item);
+                        if (d == null) {
+                            problems.add("eBay didn’t return " + item + " (ended, or hidden while out of stock)");
+                            continue;
+                        }
+                        detailsFound++;
+                        saved.add(pool.submit(() -> applyDetails(productByItem.get(item), d, options.refreshPhotos(), problems)));
                     }
-                    detailsFound++;
-                    photos += applyDetails(productByItem.get(item), d, options.refreshPhotos(), problems);
+                    for (Future<Integer> f : saved) {
+                        try {
+                            photos += f.get();
+                        } catch (ExecutionException e) {
+                            problems.add("Details not saved (" + e.getCause().getMessage() + ")");
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            throw new IOException("Import interrupted", e);
+                        }
+                    }
+                    log.info("eBay details: {} of {} listings done, {} photos so far", Math.min(i + BATCH, items.size()), items.size(), photos);
                 }
-                log.info("eBay details: {} of {} listings done, {} photos so far", Math.min(i + BATCH, items.size()), items.size(), photos);
+            } finally {
+                pool.shutdownNow();
             }
         } else if (options.details() && !ebay.enabled()) {
             problems.add(0, "eBay keys not set (EBAY_CLIENT_ID, EBAY_CLIENT_SECRET): photos and item specifics were skipped");
@@ -237,6 +284,11 @@ public class EbayImportService {
                     description = COALESCE(?, description), updated_at = now() WHERE id = ?""",
                 cut(brand, 60), partNumber == null ? null : cut(partNumber.split(",")[0].trim().toUpperCase(Locale.UK), 40),
                 cut(subType, 60), d.description(), productId);
+        // The listing's own HTML description, unless staff have written one in the admin (theirs is never replaced).
+        if (d.descriptionHtml() != null && !d.descriptionHtml().isBlank() && d.descriptionHtml().length() <= MAX_DESCRIPTION_HTML) {
+            jdbc.update("UPDATE products SET description_html = ? WHERE id = ? AND description_html IS NULL",
+                    d.descriptionHtml().trim(), productId);
+        }
 
         boolean hasPhotos = !jdbc.queryForList("SELECT id FROM product_photos WHERE product_id = ? AND source = 'EBAY'",
                 String.class, productId).isEmpty();
@@ -284,6 +336,11 @@ public class EbayImportService {
     }
 
     /** A readable, stable id: the title as a slug plus the eBay item number, e.g. "nissan-qashqai-j11-auto-ecu-365887388733". */
+    /** The shop condition for an eBay condition name, or null if the shop doesn't sell that condition. */
+    static String conditionOf(String ebayCondition) {
+        return ebayCondition == null ? null : condition(ebayCondition);
+    }
+
     static String newId(String title, String itemNumber) {
         String slug = title.toLowerCase(Locale.UK).replaceAll("[^a-z0-9]+", "-").replaceAll("^-+|-+$", "");
         if (slug.length() > 50) {

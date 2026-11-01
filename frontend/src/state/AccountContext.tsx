@@ -8,6 +8,8 @@ const MAX_SEARCHES = 10;
 interface AccountState {
   /** undefined while a saved session is being checked; null when signed out. */
   customer: Customer | null | undefined;
+  /** The signed-in shopper's session token, for calls made on their behalf (checkout, their orders). */
+  token: string | null;
   signInWithGoogle: (credential: string) => Promise<void>;
   signOut: () => Promise<void>;
   /** Recent searches, newest first: the account's when signed in, this browser's otherwise. */
@@ -82,8 +84,8 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     else storage.set('searches', null);
   }, [token]);
 
-  const value = useMemo(() => ({ customer, signInWithGoogle, signOut, searches, recordSearch, clearSearches }),
-    [customer, signInWithGoogle, signOut, searches, recordSearch, clearSearches]);
+  const value = useMemo(() => ({ customer, token: customer ? token : null, signInWithGoogle, signOut, searches, recordSearch, clearSearches }),
+    [customer, token, signInWithGoogle, signOut, searches, recordSearch, clearSearches]);
   return <AccountContext.Provider value={value}>{children}</AccountContext.Provider>;
 }
 

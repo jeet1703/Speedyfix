@@ -16,6 +16,10 @@ public record SiteProperties(
         String videoUrl,
         String warranty,
         String shipsFrom,
+        String couriers,
+        String returns,
+        String vatNumber,
+        String companyNumber,
         List<String> corsAllowedOrigins) {
 
     public SiteProperties {

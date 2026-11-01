@@ -1,0 +1,11 @@
+# SpeedyFix Auto Sales. Shoppers' own pages (basket, checkout, orders, account) and the staff admin aren't for search.
+User-agent: *
+Disallow: /admin
+Disallow: /basket
+Disallow: /checkout
+Disallow: /order-received/
+Disallow: /account
+Disallow: /wishlist
+
+# Built from the live catalogue by the backend. Update this address when the shop moves to its own domain.
+Sitemap: https://speedyfix-backend.onrender.com/sitemap.xml

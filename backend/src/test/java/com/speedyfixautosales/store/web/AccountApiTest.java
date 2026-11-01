@@ -62,6 +62,37 @@ class AccountApiTest {
         return "Bearer " + JsonPath.read(body, "$.token");
     }
 
+    private String placeOrder(String email, String authorization) throws Exception {
+        String basket = mvc.perform(post("/api/baskets")).andReturn().getResponse().getContentAsString();
+        String basketId = JsonPath.read(basket, "$.id");
+        mvc.perform(post("/api/baskets/" + basketId + "/items").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"productId\":\"gm-sensor\",\"quantity\":1}")).andExpect(status().isOk());
+        var order = post("/api/orders").contentType(MediaType.APPLICATION_JSON).content("""
+                {"basketId":"%s","name":"Erin Shopper","email":"%s","phone":"07700 900123",
+                 "line1":"1 Example Street","town":"London","postcode":"sw1a1aa"}""".formatted(basketId, email));
+        if (authorization != null) {
+            order.header(HttpHeaders.AUTHORIZATION, authorization);
+        }
+        String body = mvc.perform(order).andExpect(status().isCreated()).andExpect(jsonPath("$.customerId").doesNotExist())
+                .andReturn().getResponse().getContentAsString();
+        return JsonPath.read(body, "$.reference");
+    }
+
+    @Test
+    void myOrdersListsOrdersPlacedSignedInAndGuestOrdersWithTheSameEmail() throws Exception {
+        String erin = signIn("erin");
+        String signedIn = placeOrder("erin.work@example.com", erin);
+        String guest = placeOrder("ERIN@example.com", null);
+        placeOrder("someone@example.com", null);
+
+        mvc.perform(get("/api/account/orders").header(HttpHeaders.AUTHORIZATION, erin))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[*].reference", contains(guest, signedIn)))
+                .andExpect(jsonPath("$[0].lines[0].productId").value("gm-sensor"));
+        mvc.perform(get("/api/account/orders").header(HttpHeaders.AUTHORIZATION, signIn("frank"))).andExpect(jsonPath("$", hasSize(0)));
+        mvc.perform(get("/api/account/orders")).andExpect(status().isUnauthorized());
+    }
+
     @Test
     void invalidGoogleCredentialIsRefused() throws Exception {
         mvc.perform(post("/api/account/google").contentType(MediaType.APPLICATION_JSON).content("{\"credential\":\"forged\"}"))

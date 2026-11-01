@@ -27,6 +27,16 @@ class StoreApiTest {
     private MockMvc mvc;
 
     @Test
+    void sitemapListsTheShopsPagesCategoriesAndLiveParts() throws Exception {
+        String xml = mvc.perform(get("/sitemap.xml")).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        org.assertj.core.api.Assertions.assertThat(xml)
+                .startsWith("<?xml")
+                .contains("<loc>https://jeet1703.github.io/Speedyfix/products</loc>", "/products?category=engines</loc>",
+                        "/products/gm-sensor</loc>", "/privacy</loc>")
+                .doesNotContain("/checkout", "/admin", "/basket");
+    }
+
+    @Test
     void homeReturnsEveryHomepageSection() throws Exception {
         mvc.perform(get("/api/home"))
                 .andExpect(status().isOk())

@@ -3,6 +3,7 @@ package com.speedyfixautosales.store.ebay;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
@@ -11,11 +12,13 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +36,8 @@ public class EbayBrowseClient implements EbayItemSource {
     private static final Logger log = LoggerFactory.getLogger(EbayBrowseClient.class);
     private static final String API = "https://api.ebay.com";
     private static final Duration PAUSE = Duration.ofMillis(300);
+    private static final String VEHICLE_PARTS = "131090";
+    private static final int SEARCH_PAGE = 200;
 
     private final String clientId;
     private final String clientSecret;
@@ -81,6 +86,45 @@ public class EbayBrowseClient implements EbayItemSource {
         return found;
     }
 
+    @Override
+    public Optional<String> sellerOf(String itemNumber) throws IOException {
+        JsonNode item = get("/buy/browse/v1/item/get_item_by_legacy_id?legacy_item_id=" + URLEncoder.encode(itemNumber, StandardCharsets.UTF_8));
+        return Optional.ofNullable(text(item.path("seller"), "username"));
+    }
+
+    /** eBay's search returns at most 10,000 results, 200 a page; everything the shop sells is under Vehicle Parts & Accessories. */
+    @Override
+    public List<Listing> sellerListings(String seller) throws IOException {
+        String filter = URLEncoder.encode("sellers:{" + seller + "},buyingOptions:{FIXED_PRICE}", StandardCharsets.UTF_8);
+        List<Listing> listings = new ArrayList<>();
+        int total = Integer.MAX_VALUE;
+        for (int offset = 0; offset < Math.min(total, 10_000); offset += SEARCH_PAGE) {
+            JsonNode page = get("/buy/browse/v1/item_summary/search?category_ids=" + VEHICLE_PARTS + "&filter=" + filter
+                    + "&limit=" + SEARCH_PAGE + "&offset=" + offset);
+            total = page.path("total").asInt(0);
+            for (JsonNode s : page.path("itemSummaries")) {
+                String number = s.hasNonNull("legacyItemId") ? s.path("legacyItemId").asText()
+                        : s.path("itemId").asText().replaceAll("^v1\\|(\\d+)\\|.*$", "$1");
+                JsonNode category = s.path("categories").path(0);
+                String created = text(s, "itemCreationDate");
+                // During an eBay sale, price is the discounted one; the shop keeps the listing's own price.
+                JsonNode price = s.path("marketingPrice").path("originalPrice").hasNonNull("value")
+                        ? s.path("marketingPrice").path("originalPrice") : s.path("price");
+                listings.add(new Listing(number, text(s, "title"),
+                        price.hasNonNull("value") ? new BigDecimal(price.path("value").asText()) : null,
+                        text(s, "condition"), text(category, "categoryId"), text(category, "categoryName"),
+                        created == null ? null : LocalDate.parse(created.substring(0, 10))));
+            }
+            if (page.path("itemSummaries").isEmpty()) {
+                break;
+            }
+        }
+        if (listings.size() < Math.min(total, 10_000)) {
+            throw new IOException("eBay listed " + listings.size() + " of " + total + " listings");
+        }
+        return listings;
+    }
+
     private ItemDetails details(JsonNode item) {
         List<String> images = new ArrayList<>();
         if (item.path("image").hasNonNull("imageUrl")) {
@@ -98,7 +142,7 @@ public class EbayBrowseClient implements EbayItemSource {
         String legacyId = item.hasNonNull("legacyItemId") ? item.path("legacyItemId").asText()
                 : item.path("itemId").asText().replaceAll("^v1\\|(\\d+)\\|.*$", "$1");
         return new ItemDetails(legacyId, images.stream().distinct().toList(), aspects, text(item, "brand"), text(item, "mpn"),
-                text(item, "shortDescription"));
+                text(item, "shortDescription"), text(item, "description"));
     }
 
     /** eBay photo addresses end in s-l<size>.jpg; ask for the 1600 px version. */

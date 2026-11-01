@@ -6,7 +6,7 @@ import { gbpOrDash, OrderPill, when } from '../components';
 import type { Order, OrderStatus } from '../types';
 import { CardsSkeleton } from '../../components/Skeleton';
 
-const COURIERS = ['Royal Mail', 'Parcelforce', 'DPD', 'Evri', 'Pallet network', 'Collected'];
+const COURIERS = ['FedEx', 'UPS', 'Royal Mail', 'DHL', 'DPD', 'Pallet network', 'Collected'];
 
 /** /admin/orders/:reference : the buyer, what they ordered, and the next step (paid, dispatched or cancelled). */
 export function OrderDetailPage() {
@@ -73,12 +73,19 @@ export function OrderDetailPage() {
                 <li><strong>Total (inc. {gbpOrDash(order.vatIncluded)} VAT)</strong><strong>{gbpOrDash(order.total)}</strong></li>
               </ul>
               {order.notes && <p><strong>Buyer’s note:</strong> {order.notes}</p>}
+              {order.payment?.captureId && (
+                <p className="admin-muted">
+                  Paid with PayPal{order.payment.paidAt ? ` on ${new Date(order.payment.paidAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}` : ''}.
+                  PayPal transaction <span className="mono">{order.payment.captureId}</span> (find it in PayPal under Activity; refunds are made there).
+                </p>
+              )}
             </section>
 
             {order.status === 'AWAITING_PAYMENT' && (
               <section className="card" aria-labelledby="pay-title">
                 <h2 id="pay-title" className="card__title">Take payment</h2>
-                <p className="admin-muted">Online payment isn’t connected yet. Once the buyer has paid (by phone or bank transfer), mark the order as paid to move it to Awaiting dispatch.</p>
+                <p className="admin-muted">The buyer can pay online with PayPal or a card from their order page; the order moves to Awaiting dispatch by itself once PayPal confirms it. If they paid another way (by phone or bank transfer), mark it as paid.</p>
+                {order.payment && !order.payment.captureId && <p className="admin-muted">The buyer has started a PayPal payment but hasn’t finished it.</p>}
                 <div><button type="button" className="btn btn--primary" disabled={busy} onClick={() => void change('AWAITING_DISPATCH', 'Marked as paid. The order is now awaiting dispatch.')}>Mark as paid</button></div>
               </section>
             )}

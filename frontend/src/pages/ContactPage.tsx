@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Layout } from '../components/Layout';
 import { PageTitle } from '../components/PageTitle';
+import { telHref, whatsAppHref } from '../components/contactLinks';
 import { useSite } from '../state/SiteContext';
 
 export function ContactPage() {
@@ -13,11 +14,12 @@ export function ContactPage() {
         <section className="panel" aria-labelledby="contact-title">
           <h2 id="contact-title" className="panel__title">Get in touch</h2>
           <dl className="specs">
-            <div><dt>Phone</dt><dd>{site?.phone}</dd></div>
-            <div><dt>WhatsApp</dt><dd>{site?.whatsapp}</dd></div>
-            <div><dt>Email</dt><dd>{site?.email}</dd></div>
+            <div><dt>Phone</dt><dd>{site && <a href={telHref(site.phone)}>{site.phone}</a>}</dd></div>
+            <div><dt>WhatsApp</dt><dd>{site && <a href={whatsAppHref(site.whatsapp)} target="_blank" rel="noopener noreferrer">Message us on WhatsApp</a>}</dd></div>
+            <div><dt>Email</dt><dd>{site && <a href={`mailto:${site.email}`}>{site.email}</a>}</dd></div>
             <div><dt>Address</dt><dd>{site?.address}</dd></div>
-            <div><dt>Company</dt><dd>{site?.companyName}</dd></div>
+            <div><dt>Company</dt><dd>{site?.companyName}, company no. {site?.companyNumber}</dd></div>
+            <div><dt>VAT number</dt><dd>{site?.vatNumber}</dd></div>
           </dl>
         </section>
         <aside className="panel panel--dark" aria-labelledby="contact-part-title">

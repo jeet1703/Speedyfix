@@ -9,6 +9,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 
@@ -23,6 +24,21 @@ public class InMemoryCatalogRepository implements CatalogRepository {
     private final Map<String, Category> categories = new LinkedHashMap<>();
     private final Map<String, Product> products = new LinkedHashMap<>();
     private final Map<String, String> sampleImages = new LinkedHashMap<>();
+    private final Map<String, String> descriptions = new ConcurrentHashMap<>();
+
+    @Override
+    public Optional<String> descriptionHtml(String id) {
+        return Optional.ofNullable(descriptions.get(id));
+    }
+
+    @Override
+    public void saveDescriptionHtml(String id, String html) {
+        if (html == null) {
+            descriptions.remove(id);
+        } else {
+            descriptions.put(id, html);
+        }
+    }
 
     public InMemoryCatalogRepository() {
         // Popular categories show on the homepage in sortOrder: engines, gearboxes, accessories, turbochargers.
@@ -33,7 +49,7 @@ public class InMemoryCatalogRepository implements CatalogRepository {
         category("rebuild-kits", "Rebuild kits", "1720244253125-f39d7aeccccf", false, 5);
         category("cylinder-heads", "Cylinder heads", "1786028924575-9948c6a58b22", false, 6);
         category("engine-mounts", "Engine mounts", "1767340078222-98633f3ffd27", false, 7);
-        category("fuel-injection", "Fuel injection", "1759148413911-5ded7ed2ec06", false, 8);
+        category("fuel-injection", "Fuel Injection", "1759148413911-5ded7ed2ec06", false, 8);
         category("cooling-ac", "Cooling and A/C", "1486262715619-67b85e0b08d3", false, 9);
         category("electrics-sensors", "Electrics and sensors", "1584809923235-fabdba83d1df", false, 10);
         category("brakes", "Brakes", "1696494561430-de087dd0bd69", false, 11);

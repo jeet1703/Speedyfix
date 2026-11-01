@@ -25,6 +25,9 @@ export interface Product {
   stock: number;
   inStock: boolean;
   fit: FitStatus;
+  /** During a sale: the price before it (shown struck through), and the percentage off. price is the sale price. */
+  originalPrice: number | null;
+  salePercent: number | null;
 }
 
 export interface Category {
@@ -55,7 +58,8 @@ export interface Feature {
 
 export interface MenuGroup {
   title: string;
-  links: { label: string; href: string }[];
+  /** imageUrl: the category's photo for the hover preview; null for links that aren't a category. */
+  links: { label: string; href: string; imageUrl: string | null }[];
 }
 
 export interface Review {
@@ -76,6 +80,12 @@ export interface Site {
   videoUrl: string;
   warranty: string;
   shipsFrom: string;
+  /** The delivery partners, as a phrase: "FedEx, UPS, Royal Mail, DHL and DPD". */
+  couriers: string;
+  returns: string;
+  vatNumber: string;
+  /** Companies House registration number. */
+  companyNumber: string;
 }
 
 export interface SiteData {
@@ -85,6 +95,19 @@ export interface SiteData {
   googleClientId: string;
   /** True until DVSA is connected, while only the sample plates resolve. */
   demoPlates: boolean;
+  /** PayPal's public client id for its buttons; empty until PayPal is set up. */
+  paypalClientId: string;
+  /** How long an unpaid order keeps its parts, in minutes (0: no limit). */
+  unpaidHoldMinutes: number;
+  /** True when the help chat can answer with AI (Gemini); otherwise it answers by itself. */
+  chatAi: boolean;
+}
+
+/** An AI answer in the help chat, with the parts and vehicle its lookups found. */
+export interface ChatReply {
+  text: string;
+  parts: Product[];
+  vehicle: Vehicle | null;
 }
 
 export type ShopSort = 'best-selling' | 'newest' | 'price-low' | 'price-high';
@@ -116,6 +139,12 @@ export interface ProductDetail {
   description: string;
   fitsVehicles: string[];
   related: Product[];
+  /** Every photo of the listing, the main one first. */
+  photos: { url: string; thumbnailUrl: string }[];
+  /** eBay's item specifics, like "Manufacturer Part Number". */
+  specifics: { name: string; value: string }[];
+  /** The description staff wrote as HTML, or null. Show it through ListingHtml, which cleans it. */
+  descriptionHtml: string | null;
 }
 
 export interface OrderForm {
@@ -142,6 +171,8 @@ export interface Order {
   total: number;
   vatIncluded: number;
   dispatch: { courier: string; trackingNumber: string | null; dispatchedAt: string } | null;
+  /** A PayPal payment: captureId and paidAt are set once the money is taken. Null for orders paid by hand. */
+  payment: { paypalOrderId: string; captureId: string | null; paidAt: string | null } | null;
 }
 
 export type OrderStatus = 'AWAITING_PAYMENT' | 'AWAITING_DISPATCH' | 'DISPATCHED' | 'CANCELLED';
