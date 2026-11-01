@@ -72,8 +72,9 @@ public class AdminCatalogService {
     }
 
     /** A vehicle a part fits, or might fit, and why we think so. */
-    public record Fitment(String vehicleId, String vehicle, String engine, String engineCode, Integer year, String source,
-                          Confidence confidence) {
+    /** yearTo is set for a compatibility row (year is then its first year). */
+    public record Fitment(String vehicleId, String vehicle, String engine, String engineCode, Integer year, Integer yearTo,
+                          String source, Confidence confidence) {
     }
 
     public record Photo(String id, String url) {
@@ -396,8 +397,8 @@ public class AdminCatalogService {
         return p.live() ? WorkStatus.LIVE : WorkStatus.DRAFT;
     }
 
-    private static Fitment fitment(Vehicle v, String source, Confidence confidence) {
-        return new Fitment(v.id(), v.displayName(), v.engine(), v.engineCode(), v.year(), source, confidence);
+    static Fitment fitment(Vehicle v, String source, Confidence confidence) {
+        return new Fitment(v.id(), v.displayName(), v.engine(), v.engineCode(), v.year(), v.yearTo(), source, confidence);
     }
 
     /** "Nissan Navara D40, YD25DDTi", or the engine description when there's no engine code. */

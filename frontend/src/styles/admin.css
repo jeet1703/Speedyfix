@@ -255,3 +255,12 @@ select.input--sm { padding-right: 32px; }
 /* "Sync with eBay" on the Listings page, with what the last sync did. */
 .ebay-sync { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; max-width: 360px; }
 .ebay-sync__note { font-size: 13px; color: var(--ink-2); text-align: right; margin: 0; }
+/* Vehicle picker (eBay's vehicle list) in the listing editor. */
+.vpick { border: 1px solid var(--admin-line, #e3e6ea); border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 10px; background: #fafafa; }
+.vpick__title { font-weight: 600; margin: 0; }
+.vpick__row { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.4fr) minmax(0, 0.7fr) minmax(0, 0.7fr); gap: 10px; }
+.vpick__engines { border: 0; padding: 0; margin: 0; }
+.vpick__engines legend { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+.vpick__engines ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 4px 12px; max-height: 220px; overflow-y: auto; }
+.vpick__engines label { display: flex; gap: 8px; align-items: center; font-size: 13px; cursor: pointer; }
+@media (max-width: 760px) { .vpick__row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }

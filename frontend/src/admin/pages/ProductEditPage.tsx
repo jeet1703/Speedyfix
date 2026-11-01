@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState, type DragEvent, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import type { Vehicle } from '../../api/types';
 import { Icon } from '../../components/Icons';
 import { adminApi, errorMessage } from '../adminApi';
 import { AdminLayout } from '../AdminLayout';
 import { ConfidencePill } from '../components';
+import { VehiclePicker } from '../VehiclePicker';
 import type { CategoryOption, Condition, Fitment, ProductDetail, ProductStatus, Shipping } from '../types';
 import { CardsSkeleton } from '../../components/Skeleton';
 import { ListingHtml } from '../../components/ListingHtml';
@@ -51,11 +51,9 @@ export function ProductEditPage() {
   const [detail, setDetail] = useState<ProductDetail | null>(null);
   const [loadError, setLoadError] = useState('');
   const [categories, setCategories] = useState<CategoryOption[]>([]);
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
 
   const [partNumber, setPartNumber] = useState('');
   const [rows, setRows] = useState<FitRow[]>([]);
-  const [manualId, setManualId] = useState('');
   const [fitNote, setFitNote] = useState('');
   const [fitError, setFitError] = useState('');
   const [finding, setFinding] = useState(false);
@@ -98,7 +96,6 @@ export function ProductEditPage() {
       setCategories(c);
       setCategoryId((current) => current || c[0]?.id || '');
     }).catch(() => setLoadError('The categories didn’t load. Reload the page.'));
-    adminApi.vehicles().then(setVehicles).catch(() => setVehicles([]));
     if (id) {
       adminApi.product(id).then(fill).catch((err) => setLoadError(errorMessage(err, 'This part didn’t load. Try again.')));
     }
@@ -155,7 +152,7 @@ export function ProductEditPage() {
       merge(found, (f) => f.confidence === 'HIGH');
       setFitNote(found.length
         ? `Found ${found.length} ${found.length === 1 ? 'vehicle' : 'vehicles'} from parts with this part number.`
-        : 'No vehicles are confirmed for this part number yet. Apply the engine-code rule or add vehicles by hand.');
+        : 'No vehicles are confirmed for this part number yet. Apply the engine-code rule, or add vehicles from eBay’s list below.');
     } catch (err) {
       setFitError(errorMessage(err, 'We couldn’t search for vehicles. Try again.'));
     } finally {
@@ -184,12 +181,6 @@ export function ProductEditPage() {
     }
   }
 
-  function addManual() {
-    const v = vehicles.find((x) => x.id === manualId);
-    if (!v) return;
-    merge([{ vehicleId: v.id, vehicle: `${v.make} ${v.model}`, engine: v.engine, engineCode: v.engineCode, year: v.year, source: 'Added by hand', confidence: 'HIGH' }], () => true);
-    setManualId('');
-  }
 
   function addRefinement() {
     const value = (newRefinement ?? '').trim();
@@ -296,7 +287,6 @@ export function ProductEditPage() {
 
   const previewImage = added[0]?.url ?? kept[0]?.url ?? (usesSample ? detail?.imageUrl : null);
   const reference = partNumber.trim() ? `Part no. ${partNumber.trim()}` : engineCode.trim() ? `Engine code ${engineCode.trim()}` : '';
-  const manualOptions = vehicles.filter((v) => !rows.some((r) => r.fit.vehicleId === v.id));
 
   return (
     <AdminLayout title={title} crumbs={[{ label: 'Listings', to: '/admin/listings' }, { label: id ? 'Edit listing' : 'Create listing' }]} actions={actions}>
@@ -346,7 +336,7 @@ export function ProductEditPage() {
                           </td>
                           <td>{r.fit.vehicle}<span className="table__sub">{r.fit.engine}</span></td>
                           <td className="mono">{r.fit.engineCode ?? '—'}</td>
-                          <td>{r.fit.year ?? '—'}</td>
+                          <td>{r.fit.year == null ? '—' : r.fit.yearTo != null && r.fit.yearTo !== r.fit.year ? `${r.fit.year}–${r.fit.yearTo}` : r.fit.year}</td>
                           <td>{r.fit.source}</td>
                           <td><ConfidencePill confidence={r.fit.confidence} /></td>
                         </tr>
@@ -355,15 +345,8 @@ export function ProductEditPage() {
                   </table>
                 </div>
               )}
+              <VehiclePicker onAdd={(found) => merge(found, () => true)} />
               <div className="fit-actions">
-                <div className="inline-row inline-row--sm">
-                  <label className="sr-only" htmlFor="manual-vehicle">Vehicle to add</label>
-                  <select id="manual-vehicle" className="input input--sm" value={manualId} onChange={(e) => setManualId(e.target.value)}>
-                    <option value="">Add vehicle manually…</option>
-                    {manualOptions.map((v) => <option key={v.id} value={v.id}>{v.make} {v.model}, {v.engine}{v.engineCode ? ` (${v.engineCode})` : ''}</option>)}
-                  </select>
-                  <button type="button" className="link-btn" disabled={!manualId} onClick={addManual}>Add</button>
-                </div>
                 <button type="button" className="link-btn" disabled={finding} onClick={() => void applyEngineRule()}>Apply engine-code rule</button>
               </div>
             </section>

@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -20,9 +22,49 @@ public class VehicleService {
             Pattern.compile("^[0-9]{1,4}[A-Z]{1,3}$"));
 
     private final VehicleLookup lookup;
+    private final VehicleRanges ranges;
 
+    /** Without the database: compatibility rows are kept in memory (tests, the demo catalogue). */
     public VehicleService(VehicleLookup lookup) {
+        this(lookup, new InMemoryVehicleRanges());
+    }
+
+    @Autowired
+    public VehicleService(VehicleLookup lookup, VehicleRanges ranges) {
         this.lookup = lookup;
+        this.ranges = ranges;
+    }
+
+    /** Adds a compatibility row picked from eBay's vehicle catalogue (the same row twice is kept once). */
+    public Vehicle addRange(VehicleRange range) {
+        return ranges.save(range).toVehicle();
+    }
+
+    /**
+     * Whether a shopper's car is one of a part's vehicles: the same vehicle, or inside one of its compatibility rows
+     * (make, model, years and engine; see VehicleMatch).
+     */
+    public boolean fits(List<String> partVehicleIds, Vehicle car) {
+        if (partVehicleIds.contains(car.id())) {
+            return true;
+        }
+        DvsaVehicleLookup.Facts facts = DvsaVehicleLookup.facts(car.id()).orElse(new DvsaVehicleLookup.Facts(null, null));
+        for (String id : partVehicleIds) {
+            if (id.startsWith(VehicleRange.ID_PREFIX)) {
+                Optional<VehicleRange> range = ranges.find(id);
+                if (range.isPresent() && VehicleMatch.matches(range.get(), car, facts.cc(), facts.fuel())) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /** "Nissan Qashqai, 2014 to 2021, 1.5L diesel, 110HP (K9K)" for a compatibility row; "Nissan Navara D40, 2.5 dCi diesel" otherwise. */
+    public static String describe(Vehicle v) {
+        String years = v.yearTo() != null && v.year() != null
+                ? (v.year().equals(v.yearTo()) ? ", " + v.year() : ", " + v.year() + " to " + v.yearTo()) : "";
+        return v.displayName() + years + ", " + v.engine() + (v.engineCode() != null && v.yearTo() != null ? " (" + v.engineCode() + ")" : "");
     }
 
     public Vehicle lookUp(String rawRegistration) {
@@ -54,11 +96,22 @@ public class VehicleService {
     }
 
     public Optional<Vehicle> findById(String id) {
-        return id == null || id.isBlank() ? Optional.empty() : lookup.findById(id);
+        if (id == null || id.isBlank()) {
+            return Optional.empty();
+        }
+        if (id.startsWith(VehicleRange.ID_PREFIX)) {
+            return ranges.find(id).map(VehicleRange::toVehicle);
+        }
+        // A DVSA vehicle's id carries its details, so it reads back without DVSA (or its keys) being there.
+        if (id.startsWith(DvsaVehicleLookup.ID_PREFIX)) {
+            return DvsaVehicleLookup.decode(id);
+        }
+        return lookup.findById(id);
     }
 
+    /** The demo vehicles and every compatibility row staff have added. */
     public List<Vehicle> all() {
-        return lookup.all();
+        return Stream.concat(lookup.all().stream(), ranges.all().stream().map(VehicleRange::toVehicle)).toList();
     }
 
     /** True while plates come from the sample list rather than DVSA, so pages can suggest the demo plates. */

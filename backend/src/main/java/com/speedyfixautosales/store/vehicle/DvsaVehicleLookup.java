@@ -122,6 +122,25 @@ public class DvsaVehicleLookup implements VehicleLookup {
         }
     }
 
+    /** Engine size in cc and fuel carried in a DVSA vehicle's id, for matching it against compatibility rows. */
+    public record Facts(Integer cc, String fuel) {
+    }
+
+    static Optional<Facts> facts(String id) {
+        if (id == null || !id.startsWith(ID_PREFIX)) {
+            return Optional.empty();
+        }
+        try {
+            String[] f = new String(Base64.getUrlDecoder().decode(id.substring(ID_PREFIX.length())), StandardCharsets.UTF_8).split("\\|", -1);
+            if (f.length != 5) {
+                return Optional.empty();
+            }
+            return Optional.of(new Facts(f[3].isEmpty() ? null : Integer.valueOf(f[3]), f[4].isEmpty() ? null : f[4]));
+        } catch (IllegalArgumentException e) {
+            return Optional.empty();
+        }
+    }
+
     private static String nz(String s) {
         return s == null ? "" : s.replace("|", " ");
     }

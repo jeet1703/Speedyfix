@@ -71,6 +71,14 @@ export const adminApi = {
     return authed<ProductDetail>(id ? `/api/admin/products/${encodeURIComponent(id)}` : '/api/admin/products', { method: 'POST', body });
   },
 
+  catalogueMakes: () => authed<string[]>('/api/admin/vehicle-catalogue/makes'),
+  catalogueModels: (make: string) => authed<string[]>(`/api/admin/vehicle-catalogue/models?make=${encodeURIComponent(make)}`),
+  catalogueYears: (make: string, model: string) =>
+    authed<string[]>(`/api/admin/vehicle-catalogue/years?make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}`),
+  catalogueEngines: (make: string, model: string, yearFrom: number, yearTo: number) =>
+    authed<string[]>(`/api/admin/vehicle-catalogue/engines?make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}&yearFrom=${yearFrom}&yearTo=${yearTo}`),
+  addVehicleRange: (range: { make: string; model: string; yearFrom: number; yearTo: number; engines: string[] }) =>
+    authed<Fitment[]>('/api/admin/vehicle-catalogue', json('POST', range)),
   fitment: (partNumber: string, engineCode: string, productId: string | null) => {
     const q = new URLSearchParams();
     if (partNumber) q.set('partNumber', partNumber);

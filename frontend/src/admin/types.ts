@@ -48,6 +48,8 @@ export interface Fitment {
   engine: string;
   engineCode: string | null;
   year: number | null;
+  /** Set for a row picked from eBay's vehicle list: year is then its first year, yearTo its last. */
+  yearTo: number | null;
   source: string;
   confidence: Confidence;
 }

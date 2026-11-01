@@ -48,4 +48,12 @@ public interface EbayItemSource {
     default List<Listing> sellerListings(String seller) throws IOException {
         throw new IOException("Listing a seller's items isn't supported here.");
     }
+
+    /**
+     * Values from eBay UK's vehicle catalogue (parts compatibility): property is "Car Make", "Model", "Cars Year",
+     * "Engine" or "Variant"; filter narrows it, like "Car Make:Nissan,Model:Qashqai".
+     */
+    default List<String> compatibilityValues(String property, String filter) throws IOException {
+        throw new IOException("The vehicle catalogue isn't available here.");
+    }
 }

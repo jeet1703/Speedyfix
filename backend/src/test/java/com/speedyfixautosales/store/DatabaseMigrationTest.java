@@ -218,6 +218,21 @@ class DatabaseMigrationTest {
                 .satisfies(c -> assertThat(c.imageUrl()).endsWith("/listings/dear-box/0-1200.jpg"));
     }
 
+    @Autowired
+    private com.speedyfixautosales.store.vehicle.VehicleService vehicleService;
+
+    @Test
+    void compatibilityRowsAreKeptInTheVehiclesTable() {
+        var row = com.speedyfixautosales.store.vehicle.VehicleRange.of("Nissan", "Qashqai", 2014, 2021, "1461cc 81KW 110HP K9K 646", "diesel");
+        String id = vehicleService.addRange(row).id();
+        vehicleService.addRange(row);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM vehicles WHERE id = ?", Integer.class, id)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT engine_code || ' ' || fuel || ' ' || year_from || '-' || year_to FROM vehicles WHERE id = ?", String.class, id))
+                .isEqualTo("K9K 646 diesel 2014-2021");
+        assertThat(vehicleService.findById(id)).get().satisfies(v -> assertThat(v.engine()).isEqualTo("1.5L diesel, 110HP"));
+        assertThat(vehicleService.all()).extracting(com.speedyfixautosales.store.vehicle.Vehicle::id).contains(id);
+    }
+
     @Test
     void anEbayItemCanOnlyBeImportedOnce() {
         jdbc.update("INSERT INTO products (id, name, category_id, condition, ebay_item_id) VALUES ('a', 'Part A', 'engines', 'USED', '365887388733')");

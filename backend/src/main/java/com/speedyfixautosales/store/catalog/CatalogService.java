@@ -131,7 +131,7 @@ public class CatalogService {
         List<String> fits = p.fitsVehicleIds().stream()
                 .map(vehicles::findById)
                 .flatMap(Optional::stream)
-                .map(v -> v.displayName() + ", " + v.engine())
+                .map(VehicleService::describe)
                 .toList();
         // Related: same category first, then parts for the same vehicles or engine code.
         List<ProductView> related = repository.liveProducts().stream()
@@ -263,7 +263,7 @@ public class CatalogService {
         if (vehicle.isEmpty()) {
             return FitStatus.NO_VEHICLE;
         }
-        if (p.fitsVehicleIds().contains(vehicle.get().id())) {
+        if (vehicles.fits(p.fitsVehicleIds(), vehicle.get())) {
             return FitStatus.FITS;
         }
         TitleFitment.Verdict fromTitle = titleFitment.judge(p, vehicle.get());

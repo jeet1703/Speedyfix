@@ -125,6 +125,21 @@ public class EbayBrowseClient implements EbayItemSource {
         return listings;
     }
 
+    /** eBay UK's category tree is 3; 33615 (Engines) carries the full car compatibility catalogue. */
+    @Override
+    public List<String> compatibilityValues(String property, String filter) throws IOException {
+        String path = "/commerce/taxonomy/v1/category_tree/3/get_compatibility_property_values?category_id=33615&compatibility_property="
+                + URLEncoder.encode(property, StandardCharsets.UTF_8)
+                + (filter == null || filter.isBlank() ? "" : "&filter=" + URLEncoder.encode(filter, StandardCharsets.UTF_8));
+        List<String> values = new ArrayList<>();
+        for (JsonNode v : get(path).path("compatibilityPropertyValues")) {
+            if (v.hasNonNull("value") && !v.path("value").asText().isBlank()) {
+                values.add(v.path("value").asText());
+            }
+        }
+        return values;
+    }
+
     private ItemDetails details(JsonNode item) {
         List<String> images = new ArrayList<>();
         if (item.path("image").hasNonNull("imageUrl")) {
