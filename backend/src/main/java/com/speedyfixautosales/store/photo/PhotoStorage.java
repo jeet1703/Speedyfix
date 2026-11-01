@@ -7,17 +7,22 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Locale;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
- * Listing photos, by key ("listings/{productId}/0-1600.jpg"). With R2 set up (R2Client) they go to the bucket,
- * which is what the live site needs: Render's disk is wiped on every restart. Every photo is also kept on disk
- * under PHOTOS_DIR (default ../storage, so `storage/` in the project when the backend runs from `backend/`),
- * which serves as a cache in front of R2.
+ * Listing photos, by key ("listings/{productId}/0-1200.jpg"). With R2 set up (R2Client), the bucket is where photos
+ * live: they're saved there and read from there, which is what the live site needs (Render's disk is wiped on every
+ * restart, and the app's user can't write outside its own folder). Without R2 (development), photos are files under
+ * PHOTOS_DIR (default ../storage). A file on disk is used first when there is one, so a development copy of the
+ * photos works offline.
  */
 @Component
 public class PhotoStorage {
+
+    private static final Logger log = LoggerFactory.getLogger(PhotoStorage.class);
 
     private final Path root;
     private final R2Client r2;
@@ -32,34 +37,43 @@ public class PhotoStorage {
         try {
             if (r2.enabled()) {
                 r2.put(key, data, contentType(key));
+                writeQuietly(target, data);
+            } else {
+                write(target, data);
             }
-            write(target, data);
         } catch (IOException e) {
             throw new UncheckedIOException("Couldn’t save photo " + key, e);
         }
     }
 
-    /** The file for a key, on disk or fetched from R2 (and kept on disk). Keys that would step outside the storage folder ("../") are refused. */
-    public Optional<Path> file(String key) {
+    /** The photo's bytes: from disk when there's a copy, else from R2. Empty if it doesn't exist or the key is unsafe. */
+    public Optional<byte[]> read(String key) {
         Optional<Path> path = resolve(key);
-        if (path.isEmpty() || Files.isRegularFile(path.get()) || !r2.enabled()) {
-            return path.filter(Files::isRegularFile);
+        if (path.isEmpty()) {
+            return Optional.empty();
         }
         try {
-            Optional<byte[]> data = r2.get(key);
-            if (data.isEmpty()) {
-                return Optional.empty();
+            if (Files.isRegularFile(path.get())) {
+                return Optional.of(Files.readAllBytes(path.get()));
             }
-            write(path.get(), data.get());
-            return path;
+            return r2.enabled() ? r2.get(key) : Optional.empty();
         } catch (IOException e) {
-            throw new UncheckedIOException("Couldn’t fetch photo " + key, e);
+            throw new UncheckedIOException("Couldn’t read photo " + key, e);
         }
     }
 
     public static String contentType(String key) {
         String k = key.toLowerCase(Locale.ROOT);
         return k.endsWith(".webp") ? "image/webp" : k.endsWith(".png") ? "image/png" : "image/jpeg";
+    }
+
+    /** A local copy next to R2, for working offline in development; on the live server it's skipped if it can't be written. */
+    private void writeQuietly(Path target, byte[] data) {
+        try {
+            write(target, data);
+        } catch (IOException | RuntimeException e) {
+            log.debug("No local copy of {}: {}", target, e.getMessage());
+        }
     }
 
     private static void write(Path target, byte[] data) throws IOException {
@@ -69,6 +83,7 @@ public class PhotoStorage {
         Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
     }
 
+    /** Keys that would step outside the storage folder ("../") are refused. */
     private Optional<Path> resolve(String key) {
         if (key == null || key.isBlank()) {
             return Optional.empty();

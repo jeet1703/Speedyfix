@@ -4,11 +4,9 @@ import com.speedyfixautosales.store.catalog.Images;
 import com.speedyfixautosales.store.common.NotFoundException;
 import com.speedyfixautosales.store.photo.PhotoStorage;
 import jakarta.servlet.http.HttpServletRequest;
-import java.nio.file.Path;
 import java.time.Duration;
-import java.util.Locale;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.CacheControl;
 import org.springframework.http.MediaType;
@@ -17,8 +15,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Serves listing photos from local storage at /api/images/{key}, plus the "photo coming soon" placeholder.
- * Once photos move to Cloudflare R2 (IMAGES_BASE_URL), shoppers load them from there instead.
+ * Serves listing photos at /api/images/{key} (from R2, or the local folder in development; see PhotoStorage), plus the
+ * "photo coming soon" placeholder.
  */
 @RestController
 public class ImageController {
@@ -39,15 +37,12 @@ public class ImageController {
                     .header("X-Content-Type-Options", "nosniff")
                     .body(new ClassPathResource("static/placeholder.svg"));
         }
-        Path file = storage.file(key).orElseThrow(() -> new NotFoundException("No photo at " + key + "."));
-        String name = file.getFileName().toString().toLowerCase(Locale.ROOT);
-        MediaType type = name.endsWith(".webp") ? MediaType.valueOf("image/webp")
-                : name.endsWith(".png") ? MediaType.IMAGE_PNG : MediaType.IMAGE_JPEG;
+        byte[] photo = storage.read(key).orElseThrow(() -> new NotFoundException("No photo at " + key + "."));
         // A key never changes content (a replaced photo gets a new key), so browsers and Cloudflare can keep it a year.
         return ResponseEntity.ok()
-                .contentType(type)
+                .contentType(MediaType.valueOf(PhotoStorage.contentType(key)))
                 .cacheControl(CacheControl.maxAge(Duration.ofDays(365)).cachePublic().immutable())
                 .header("X-Content-Type-Options", "nosniff")
-                .body(new FileSystemResource(file));
+                .body(new ByteArrayResource(photo));
     }
 }
