@@ -101,6 +101,14 @@ export interface SiteData {
   unpaidHoldMinutes: number;
   /** True when the help chat can answer with AI (Gemini); otherwise it answers by itself. */
   chatAi: boolean;
+  /** True when FedEx prices parcel delivery from the postcode at checkout; otherwise the flat prices apply. */
+  deliveryQuotes: boolean;
+  /** True when shoppers can also sign up with an email address and password (off until the shop's email is set up). */
+  emailSignIn: boolean;
+  /** True when a paid order emails the buyer their VAT invoice. */
+  orderEmails: boolean;
+  /** True when only signed-in shoppers can check out. */
+  signInToBuy: boolean;
 }
 
 /** An AI answer in the help chat, with the parts and vehicle its lookups found. */
@@ -183,6 +191,8 @@ export interface Customer {
   name: string;
   pictureUrl: string | null;
   joinedAt: string;
+  /** How the shopper signs in: Google, or an email address and password. */
+  signInMethod: 'GOOGLE' | 'EMAIL';
 }
 
 export interface AccountSession {
@@ -227,9 +237,28 @@ export interface Basket {
   lines: BasketLine[];
   itemCount: number;
   subtotal: number;
-  delivery: { method: 'NONE' | 'STANDARD' | 'PALLET'; label: string | null; price: number };
+  delivery: Delivery;
   total: number;
   vatIncluded: number;
+}
+
+/**
+ * QUOTE: FedEx prices it at checkout, once the postcode is in. FEDEX: a FedEx service chosen at checkout.
+ * MANUAL: the shopper pays for the parts only and contacts us afterwards for a quote from another courier.
+ */
+export interface Delivery {
+  method: 'NONE' | 'STANDARD' | 'PALLET' | 'FEDEX' | 'QUOTE' | 'MANUAL';
+  label: string | null;
+  price: number;
+}
+
+/** A delivery choice at checkout; send its id with the order. arrives is a date (yyyy-MM-dd), or null. */
+export interface DeliveryOption {
+  id: string;
+  method: Delivery['method'];
+  label: string;
+  price: number;
+  arrives: string | null;
 }
 
 export interface LookupResult {

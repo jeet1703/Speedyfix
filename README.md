@@ -39,7 +39,7 @@ Laid out like eBay Seller Hub, with tabs across the top.
 - **Create listing / Edit listing**: part number, fitment suggested from other parts with the same part number (high confidence) or the same engine code (medium), part details including brand, sub type and up to 5 featured refinements, up to 4 photos (JPG, PNG or WebP, checked by file signature), a checklist and a shopper preview. Drafts can be saved without a price or photo; listing needs a part number or engine code, a price and a photo. Live listings can be ended.
 - **Part requests**: shoppers' requests with contact details and photos, moved from New to Quoted to Closed
 - **Vehicle lookup tester**: which vehicle a plate identifies, the parts confirmed for it, and unconfirmed parts with the same engine code. Staff checks aren't counted as shopper searches.
-- **Settings**: cost per plate lookup, monthly cap and buying team email (starting values from `ADMIN_LOOKUP_COST`, `ADMIN_LOOKUP_BUDGET`, `ADMIN_BUYING_TEAM_EMAIL`)
+- **Settings**: buying team email (starting value from `ADMIN_BUYING_TEAM_EMAIL`)
 
 Like the rest of the prototype, parts, photos, requests and settings are held in memory, so a redeploy resets them. Staff photo uploads share a 64 MB budget.
 

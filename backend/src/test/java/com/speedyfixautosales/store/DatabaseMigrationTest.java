@@ -15,7 +15,6 @@ import com.speedyfixautosales.store.order.OrderStore;
 import com.speedyfixautosales.store.partrequest.PartRequest;
 import com.speedyfixautosales.store.partrequest.PartRequestService;
 import com.speedyfixautosales.store.vehicle.LookupLog;
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -146,7 +145,7 @@ class DatabaseMigrationTest {
         assertThat(partRequests.setStatus(r.reference(), PartRequest.Status.QUOTED).status()).isEqualTo(PartRequest.Status.QUOTED);
         assertThat(partRequests.all()).extracting(PartRequest::reference).contains(r.reference());
 
-        settings.set(new AdminSettings.Values(new BigDecimal("0.0500"), new BigDecimal("20.00"), "buyers@example.com"));
+        settings.set(new AdminSettings.Values("buyers@example.com"));
         assertThat(jdbc.queryForObject("SELECT buying_team_email FROM settings WHERE saved", String.class)).isEqualTo("buyers@example.com");
 
         Instant start = Instant.now().minus(1, ChronoUnit.MINUTES);
@@ -239,5 +238,23 @@ class DatabaseMigrationTest {
         assertThatThrownBy(() -> jdbc.update(
                         "INSERT INTO products (id, name, category_id, condition, ebay_item_id) VALUES ('b', 'Part B', 'engines', 'USED', '365887388733')"))
                 .isInstanceOf(DuplicateKeyException.class);
+    }
+
+    @Test
+    void emailAccountsKeepTheirPasswordHashAndOnlyOneMayUseEachAddress() {
+        customers.signIn(new GoogleTokenVerifier.GoogleIdentity("g-ann", "ann@example.com", "Ann", null));
+        assertThat(customers.accountFor("ANN@example.com")).contains(CustomerService.SignInMethod.GOOGLE);
+
+        CustomerService.Customer ann = customers.createWithPassword("Ann@Example.com", "Ann", "pbkdf2$1$c2FsdA$aGFzaA");
+        assertThat(ann.id()).startsWith(CustomerService.EMAIL_ID_PREFIX);
+        assertThat(ann.signInMethod()).isEqualTo(CustomerService.SignInMethod.EMAIL);
+        assertThat(customers.accountFor("ann@example.com")).contains(CustomerService.SignInMethod.EMAIL);
+        assertThat(customers.passwordAccount("ann@EXAMPLE.com")).hasValueSatisfying(a -> {
+            assertThat(a.customer().id()).isEqualTo(ann.id());
+            assertThat(a.passwordHash()).isEqualTo("pbkdf2$1$c2FsdA$aGFzaA");
+        });
+        assertThat(customers.recordSignIn(ann.id()).signIns()).isEqualTo(2);
+        assertThatThrownBy(() -> customers.createWithPassword("ann@example.com", "Ann again", "pbkdf2$1$c2FsdA$aGFzaA"))
+                .isInstanceOf(com.speedyfixautosales.store.common.ConflictException.class);
     }
 }

@@ -9,6 +9,7 @@ import com.speedyfixautosales.store.catalog.ProductView;
 import com.speedyfixautosales.store.common.NotFoundException;
 import com.speedyfixautosales.store.common.UnavailableException;
 import com.speedyfixautosales.store.config.SiteProperties;
+import com.speedyfixautosales.store.shipping.DeliveryQuotes;
 import com.speedyfixautosales.store.vehicle.Vehicle;
 import com.speedyfixautosales.store.vehicle.VehicleService;
 import java.io.IOException;
@@ -67,16 +68,18 @@ public class ChatService {
     private final CatalogService catalog;
     private final VehicleService vehicles;
     private final SiteProperties site;
+    private final DeliveryQuotes quotes;
     private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
     private final ObjectMapper json = new ObjectMapper();
 
     public ChatService(@Value("${gemini.api-key:}") String apiKey, @Value("${gemini.models:gemini-3.5-flash,gemini-3.5-flash-lite}") List<String> models,
-                       CatalogService catalog, VehicleService vehicles, SiteProperties site) {
+                       CatalogService catalog, VehicleService vehicles, SiteProperties site, DeliveryQuotes quotes) {
         this.apiKey = apiKey.trim();
         this.models = models.stream().map(String::trim).filter(m -> !m.isEmpty()).toList();
         this.catalog = catalog;
         this.vehicles = vehicles;
         this.site = site;
+        this.quotes = quotes;
     }
 
     public boolean enabled() {
@@ -208,7 +211,13 @@ public class ChatService {
             }
             case "shopInfo" -> {
                 out.put("delivery", "UK delivery usually within 7 working days with " + site.couriers()
-                        + ". Parcels £9.95, free on orders of £100 or more; engines and gearboxes go by pallet, £79 per order."
+                        + (quotes.live()
+                            ? ". Parcels go by FedEx, priced from the postcode at checkout (the price and delivery date of each service show there); the cheapest service is free on orders of £100 or more."
+                            : ". Parcels £9.95, free on orders of £100 or more.")
+                        + (quotes.live()
+                            ? " Engines and gearboxes go by FedEx Freight, also priced at checkout; free delivery doesn't apply to them."
+                                + " Manual delivery is also offered at checkout: pay for the parts, then get a quote from another courier."
+                            : " Engines and gearboxes go by pallet, £79 per order.")
                         + " International shipping by UK Pallets or FedEx at extra cost, 3 to 10 working days after dispatch;"
                         + " the buyer pays any import VAT or duties.");
                 out.put("returns", site.returns());

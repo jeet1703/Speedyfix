@@ -3,8 +3,23 @@ import { useParams } from 'react-router-dom';
 import { adminApi, errorMessage } from '../adminApi';
 import { AdminLayout } from '../AdminLayout';
 import { gbpOrDash, OrderPill, when } from '../components';
-import type { Order, OrderStatus } from '../types';
+import type { InvoiceStatus, Order, OrderStatus } from '../types';
+import { invoiceUrl } from '../../api/client';
 import { CardsSkeleton } from '../../components/Skeleton';
+
+const EMAIL_KINDS: Record<InvoiceStatus['emails'][number]['kind'], string> = {
+  CUSTOMER_INVOICE: 'Invoice to the buyer',
+  STAFF_NEW_ORDER: 'Staff copy',
+  CUSTOMER_CANCELLED: 'Cancellation to the buyer',
+  STAFF_PAYMENT_CHECK: 'Payment check to staff'
+};
+
+/** "sent 3 Nov, 22:19", "retrying (HTTP 503)". */
+function emailState(e: InvoiceStatus['emails'][number]) {
+  if (e.status === 'SENT') return `sent ${when(e.sentAt!)}`;
+  if (e.status === 'FAILED') return `not sent${e.lastError ? ` (${e.lastError})` : ''}`;
+  return e.attempts > 0 ? `retrying${e.lastError ? ` (${e.lastError})` : ''}` : 'sending…';
+}
 
 const COURIERS = ['FedEx', 'UPS', 'Royal Mail', 'DHL', 'DPD', 'Pallet network', 'Collected'];
 
@@ -18,10 +33,34 @@ export function OrderDetailPage() {
   const [courier, setCourier] = useState('');
   const [tracking, setTracking] = useState('');
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [invoice, setInvoice] = useState<InvoiceStatus | null>(null);
 
   useEffect(() => {
     adminApi.order(reference).then(setOrder).catch((err) => setError(errorMessage(err, 'This order didn’t load. Try again.')));
   }, [reference]);
+
+  // The invoice is numbered once the order is paid, so look again whenever its status changes.
+  useEffect(() => {
+    if (!order) return;
+    adminApi.orderInvoice(order.reference).then(setInvoice).catch(() => setInvoice(null));
+  }, [order?.reference, order?.status]);
+
+  async function emailInvoice() {
+    setError('');
+    setNotice('');
+    setBusy(true);
+    try {
+      const status = await adminApi.emailInvoice(reference);
+      setInvoice(status);
+      const sent = status.emails.find((e) => e.kind === 'CUSTOMER_INVOICE');
+      if (sent?.status === 'SENT') setNotice(`Invoice emailed to ${sent.recipient}.`);
+      else setError(`The invoice wasn’t sent${sent?.lastError ? ` (${sent.lastError})` : ''}. It will be tried again shortly.`);
+    } catch (err) {
+      setError(errorMessage(err, 'We couldn’t email the invoice. Try again.'));
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function change(status: OrderStatus, message: string) {
     setError('');
@@ -72,6 +111,9 @@ export function OrderDetailPage() {
                 <li><span>Delivery{order.delivery.label ? ` (${order.delivery.label})` : ''}</span><span>{gbpOrDash(order.delivery.price)}</span></li>
                 <li><strong>Total (inc. {gbpOrDash(order.vatIncluded)} VAT)</strong><strong>{gbpOrDash(order.total)}</strong></li>
               </ul>
+              {order.delivery.method === 'MANUAL' && (
+                <p><strong>Manual delivery:</strong> the buyer didn’t want FedEx and hasn’t paid for delivery. They’ll contact you for a quote from another courier; agree it and take payment before sending.</p>
+              )}
               {order.notes && <p><strong>Buyer’s note:</strong> {order.notes}</p>}
               {order.payment?.captureId && (
                 <p className="admin-muted">
@@ -139,6 +181,32 @@ export function OrderDetailPage() {
               </address>
               <p className="admin-muted">Placed {when(order.placedAt)}</p>
             </section>
+
+            {invoice?.invoiceNumber && (
+              <section className="card" aria-labelledby="invoice-title">
+                <h2 id="invoice-title" className="card__title">Invoice {invoice.invoiceNumber}</h2>
+                <p className="admin-muted">VAT invoice, dated {when(invoice.issuedAt!)}.</p>
+                <div className="request-actions">
+                  <a className="btn btn--outline" href={invoiceUrl(order.reference)} target="_blank" rel="noopener">View PDF</a>
+                  {invoice.emailOn && <button type="button" className="btn btn--outline" disabled={busy} onClick={() => void emailInvoice()}>Email it again</button>}
+                </div>
+                {!invoice.emailOn && <p className="admin-muted">Email isn’t set up yet, so it wasn’t emailed. Download it and send it yourself if the buyer asks.</p>}
+              </section>
+            )}
+
+            {invoice && invoice.emails.length > 0 && (
+              <section className="card" aria-labelledby="emails-title">
+                <h2 id="emails-title" className="card__title">Emails</h2>
+                <ul className="contact">
+                  {invoice.emails.map((e) => (
+                    <li key={e.id}>
+                      <strong>{EMAIL_KINDS[e.kind]}:</strong> {emailState(e)}
+                      {e.kind === 'STAFF_PAYMENT_CHECK' && e.details && <span className="admin-muted"> {e.details}</span>}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
 
             {open && (
               <section className="card" aria-labelledby="cancel-title">

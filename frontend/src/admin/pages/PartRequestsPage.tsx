@@ -60,7 +60,6 @@ export function PartRequestsPage() {
               </li>
             ))}
           </ul>
-          <p className="card__foot admin-muted">Requests are held in memory on this prototype server, so a redeploy clears them.</p>
         </section>
 
         {selected ? (

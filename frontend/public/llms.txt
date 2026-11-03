@@ -1,0 +1,21 @@
+# SpeedyFix Auto Sales
+
+> UK online shop for used, remanufactured and new car engines and engine parts, run by SpeedyFix Auto Sales Ltd from Uxbridge (Company number 16664355, VAT GB 508552979). Parts are checked against the buyer's registration before they buy. Every part has a 28-day warranty; tracked UK delivery is £9.95, free on orders of £100 or more, and engines and other heavy parts go by pallet for £79. Payment is by PayPal.
+
+## Shop
+
+- [All parts](products): search the catalogue by part, part number or registration
+- [Request a part](request-a-part): ask us to find a part that isn't listed
+- [Sitemap](https://speedyfix-backend.onrender.com/sitemap.xml): every live part and category
+
+## Help
+
+- [Delivery and returns](delivery): delivery prices, couriers, international shipping, warranty and returns
+- [FAQs](faq): compatibility, photos, payment, delivery and returns questions
+- [About us](about): who we are and how we work
+- [Contact](contact): phone and WhatsApp +44 7707 704977, email eBay.speedyfix@gmail.com
+
+## Legal
+
+- [Terms and conditions](terms)
+- [Privacy policy](privacy)

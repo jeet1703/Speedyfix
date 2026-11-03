@@ -24,7 +24,7 @@ public class BasketService {
 
     static final BigDecimal PALLET_PRICE = new BigDecimal("79.00");
     static final BigDecimal STANDARD_PRICE = new BigDecimal("9.95");
-    static final BigDecimal FREE_DELIVERY_FROM = new BigDecimal("100.00");
+    public static final BigDecimal FREE_DELIVERY_FROM = new BigDecimal("100.00");
     static final Duration IDLE_EXPIRY = Duration.ofDays(7);
 
     private final BasketStore baskets;
@@ -103,10 +103,19 @@ public class BasketService {
             count += e.getValue();
             pallet |= p.shipping() == Shipping.PALLET;
         }
-        BasketView.Delivery delivery = delivery(lines.isEmpty(), pallet, subtotal);
-        BigDecimal total = subtotal.add(delivery.price());
+        return totals(new BasketView(basketId, List.copyOf(lines), count, money(subtotal), null, null, null),
+                delivery(lines.isEmpty(), pallet, subtotal));
+    }
+
+    /** The basket with another delivery (a FedEx quote, say), and its total and VAT worked out again. */
+    public static BasketView withDelivery(BasketView basket, BasketView.Delivery delivery) {
+        return totals(basket, delivery);
+    }
+
+    private static BasketView totals(BasketView b, BasketView.Delivery delivery) {
+        BigDecimal total = b.subtotal().add(delivery.price());
         BigDecimal vat = total.divide(BigDecimal.valueOf(6), 2, RoundingMode.HALF_UP);
-        return new BasketView(basketId, List.copyOf(lines), count, money(subtotal), delivery, money(total), vat);
+        return new BasketView(b.id(), b.lines(), b.itemCount(), b.subtotal(), delivery, money(total), vat);
     }
 
     static BasketView.Delivery delivery(boolean empty, boolean pallet, BigDecimal subtotal) {

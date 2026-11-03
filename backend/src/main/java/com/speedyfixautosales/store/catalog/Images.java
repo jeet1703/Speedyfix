@@ -14,6 +14,15 @@ public final class Images {
                 + "?auto=format&fit=crop&w=" + width + "&h=" + height + "&q=70";
     }
 
+    /**
+     * The site's own WebP copy of an Unsplash photo, served by the frontend from public/img/stock (the shopper's
+     * browser adds the site's base path). Used for the slides, tiles and category photos so they load from our
+     * own host; listings keep their own photos.
+     */
+    static String stock(String photoId, int width, int height) {
+        return "/img/stock/" + photoId + "-" + width + "x" + height + ".webp";
+    }
+
     /** Shown for a listing with no photos yet (served by ImageController). */
     public static final String PLACEHOLDER_KEY = "placeholder.svg";
 

@@ -104,8 +104,7 @@ class AdminApiTest {
         // Seeded parts use sample photos, so every one is missing a real photo; seven have no confirmed vehicles.
         mvc.perform(get("/api/admin/dashboard").header(HttpHeaders.AUTHORIZATION, bearer))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.workQueue[0].workStatus").value("NEEDS_FITMENT"))
-                .andExpect(jsonPath("$.lookupBudget").value(0));
+                .andExpect(jsonPath("$.workQueue[0].workStatus").value("NEEDS_FITMENT"));
     }
 
     @Test
@@ -309,14 +308,13 @@ class AdminApiTest {
     @Test
     void settingsAreValidatedAndSaved() throws Exception {
         mvc.perform(put("/api/admin/settings").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"lookupCost\":-1,\"lookupBudget\":50}").header(HttpHeaders.AUTHORIZATION, bearer))
+                        .content("{\"buyingTeamEmail\":\"not-an-email\"}").header(HttpHeaders.AUTHORIZATION, bearer))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.detail").value("The cost can’t be below £0."));
+                .andExpect(jsonPath("$.detail").value("Enter an email address like buying@example.com."));
         mvc.perform(put("/api/admin/settings").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"lookupCost\":0.05,\"lookupBudget\":50,\"buyingTeamEmail\":\"buying@example.com\"}")
+                        .content("{\"buyingTeamEmail\":\"buying@example.com\"}")
                         .header(HttpHeaders.AUTHORIZATION, bearer))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.values.lookupBudget").value(50))
                 .andExpect(jsonPath("$.values.buyingTeamEmail").value("buying@example.com"));
     }
 

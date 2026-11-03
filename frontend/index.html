@@ -13,10 +13,31 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=JetBrains+Mono:wght@500&family=Sora:wght@400;600;700&display=swap" rel="stylesheet" />
-    <link rel="preconnect" href="https://images.unsplash.com" />
+    <!-- The first homepage slide's photo, so it downloads while the page and its data load. Keep in step with SLIDES in StorefrontContent.java. -->
+    <link rel="preload" as="image" type="image/webp" fetchpriority="high"
+      href="%BASE_URL%img/stock/1655103955676-c9fbc4b65525-1920x900.webp"
+      imagesrcset="%BASE_URL%img/stock/1655103955676-c9fbc4b65525-828x900.webp 828w, %BASE_URL%img/stock/1655103955676-c9fbc4b65525-1280x600.webp 1280w, %BASE_URL%img/stock/1655103955676-c9fbc4b65525-1920x900.webp 1920w"
+      imagesizes="100vw" />
   </head>
   <body>
     <div id="root"></div>
+    <!-- What crawlers and AI assistants that don't run JavaScript read. Keep the details in step with site: in application.yml. -->
+    <noscript>
+      <h1>SpeedyFix Auto Sales: engines and engine parts</h1>
+      <p>Used, remanufactured and new car engines and engine parts, checked against your registration before you buy.
+        Every part comes with a 28-day warranty. Tracked UK delivery from Uxbridge, free on orders of £100 or more.</p>
+      <ul>
+        <li><a href="%BASE_URL%products">Browse all parts</a></li>
+        <li><a href="%BASE_URL%request-a-part">Request a part</a></li>
+        <li><a href="%BASE_URL%delivery">Delivery and returns</a></li>
+        <li><a href="%BASE_URL%faq">FAQs</a></li>
+        <li><a href="%BASE_URL%about">About us</a></li>
+        <li><a href="%BASE_URL%contact">Contact</a></li>
+      </ul>
+      <p>SpeedyFix Auto Sales Ltd, Unit 2E, Tomo Industrial Estate, Packet Boat Lane, Uxbridge, Middlesex, UB8 2JP.
+        Phone and WhatsApp +44 7707 704977. Email eBay.speedyfix@gmail.com. Company number 16664355, VAT GB 508552979.</p>
+      <p>The shop needs JavaScript to search parts and check your car. Turn it on, or call us and we'll help.</p>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -67,6 +67,24 @@ services:
         sync: false
       - key: PAYPAL_ENVIRONMENT
         sync: false
+      # FedEx delivery prices at checkout (optional: without them the flat delivery prices apply).
+      - key: FEDEX_API_KEY
+        sync: false
+      - key: FEDEX_SECRET_KEY
+        sync: false
+      - key: FEDEX_ACCOUNT_NUMBER
+        sync: false
+      # "live" with production keys. Never put the sandbox (test) keys on the live site: they show test prices.
+      - key: FEDEX_ENVIRONMENT
+        sync: false
+      # Order emails through Resend: the buyer's VAT invoice, and a copy to staff (optional: without the key, invoices
+      # are still on the order page). MAIL_FROM must be on the domain verified in Resend.
+      - key: RESEND_API_KEY
+        sync: false
+      - key: MAIL_FROM
+        value: "SpeedyFix Auto Sales <orders@speedyfixautosales.com>"
+      - key: MAIL_STAFF_ORDERS
+        sync: false
       # Google Gemini for the help chat's AI answers (optional: without it the chat answers by itself).
       - key: GEMINI_API_KEY
         sync: false

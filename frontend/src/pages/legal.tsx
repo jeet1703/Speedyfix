@@ -9,7 +9,8 @@ import type { Site } from '../api/types';
 
 const UPDATED = '1 November 2026';
 
-export function TermsBody(site: Site) {
+/** fedex: parcels are priced by FedEx at checkout rather than the flat £9.95. */
+export function TermsBody(site: Site, fedex = false) {
   return (
     <>
       <p className="info__note">Draft for review. Last updated {UPDATED}.</p>
@@ -26,7 +27,7 @@ export function TermsBody(site: Site) {
         <li>When you place an order, we reserve the parts and you pay through PayPal (with a PayPal account, or a debit or credit card).</li>
         <li>Our contract with you starts when your payment is confirmed. We’ll show the confirmation on screen, and you can check your order’s status at any time with its order number.</li>
         <li>An unpaid order is cancelled after 2 hours, and the parts go back on sale.</li>
-        <li>Most of our parts are one-offs. If a part sells elsewhere (for example on eBay) before your order is confirmed, or a listing has an obvious error such as a wrong price, we’ll tell you and refund anything you’ve paid in full.</li>
+        <li>Most of our parts are one-offs. If a part sells elsewhere before your order is confirmed, or a listing has an obvious error such as a wrong price, we’ll tell you and refund anything you’ve paid in full.</li>
       </ul>
 
       <h2 className="info__heading">3. Prices and payment</h2>
@@ -43,7 +44,7 @@ export function TermsBody(site: Site) {
       <h2 className="info__heading">5. Delivery</h2>
       <ul className="info__list">
         <li>UK delivery is usually within 7 working days (estimated) with {site.couriers}. Delivery times can vary with courier delays.</li>
-        <li>Parcels cost £9.95, or are free on orders of £100 or more. Engines, gearboxes and other heavy parts go by pallet at £79 per order. Someone needs to be available to receive a pallet.</li>
+        <li>{fedex ? 'Parcel delivery is priced by FedEx at checkout from your postcode, and the cheapest service is free on orders of £100 or more.' : 'Parcels cost £9.95, or are free on orders of £100 or more.'} {fedex ? 'Engines, gearboxes and other heavy parts go by FedEx Freight, priced at checkout; free delivery over £100 doesn’t apply to them. You can also choose manual delivery and pay a separate delivery quote.' : 'Engines, gearboxes and other heavy parts go by pallet at £79 per order.'} Someone needs to be available to receive a heavy delivery.</li>
         <li>We ship abroad by UK Pallets or FedEx at extra cost; allow 3 to 10 working days after dispatch. You are responsible for customs clearance and any import VAT or duties.</li>
         <li>The parts are your responsibility once they’re delivered. Please check them when they arrive and tell us within 48 hours if anything is damaged or missing. [to confirm: 48 hours]</li>
       </ul>

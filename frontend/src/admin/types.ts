@@ -80,6 +80,9 @@ export interface ProductDetail {
   descriptionHtml: string | null;
   salePercent: number | null;
   sellingPrice: number | null;
+  /** The packed weight staff set for FedEx's prices, or null to use the category's typical one (defaultWeightKg). */
+  weightKg: number | null;
+  defaultWeightKg: number;
 }
 
 export interface ProductFormData {
@@ -103,6 +106,8 @@ export interface ProductFormData {
   descriptionHtml: string;
   /** Percentage off the price, or null for no sale. */
   salePercent: number | null;
+  /** Packed weight in kg for FedEx's delivery prices; null uses the category's typical weight. */
+  weightKg: number | null;
 }
 
 export interface Dashboard {
@@ -125,8 +130,6 @@ export interface Dashboard {
   missingPhotos: number;
   noMatchSearches: number;
   lookupsThisMonth: number;
-  lookupSpend: number;
-  lookupBudget: number;
   buyingTeamEmail: string;
   workQueue: ProductRow[];
   /** vehicle is null for plates the data source didn't recognise. */
@@ -158,8 +161,6 @@ export interface PartRequest {
 }
 
 export interface SettingsValues {
-  lookupCost: number;
-  lookupBudget: number;
   buyingTeamEmail: string;
 }
 
@@ -189,6 +190,25 @@ export interface CategoryOption {
 }
 
 /** The eBay sync: whether it can run on this server, whether it's running, and the last result since start-up. */
+/** An order's VAT invoice (null until paid) and the emails it has sent or tried to send. */
+export interface InvoiceStatus {
+  invoiceNumber: string | null;
+  issuedAt: string | null;
+  emailOn: boolean;
+  emails: {
+    id: number;
+    kind: 'CUSTOMER_INVOICE' | 'STAFF_NEW_ORDER' | 'CUSTOMER_CANCELLED' | 'STAFF_PAYMENT_CHECK';
+    recipient: string;
+    status: 'PENDING' | 'SENT' | 'FAILED';
+    attempts: number;
+    lastError: string | null;
+    createdAt: string;
+    nextAttemptAt: string;
+    sentAt: string | null;
+    details: string | null;
+  }[];
+}
+
 export interface EbaySyncStatus {
   available: boolean;
   running: boolean;

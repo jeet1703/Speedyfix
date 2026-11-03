@@ -25,7 +25,6 @@ export function OverviewPage() {
   }, []);
 
   const rows = data ? data.workQueue.filter((r) => inQueue(r, filter) && r.workStatus !== 'LIVE') : [];
-  const overBudget = data && data.lookupBudget > 0 && data.lookupSpend > data.lookupBudget;
 
   const needsAttention = data ? data.workQueue.filter((r) => r.vehicles === 0 || !r.hasPhoto).length : 0;
   const tiles = data ? [
@@ -153,12 +152,7 @@ export function OverviewPage() {
               ) : (
                 <p className="admin-muted">Add the buying team’s email in <Link to="/admin/settings">Settings</Link> to send them this list.</p>
               ))}
-              <p className={'stat__note' + (overBudget ? ' stat__note--bad' : '')}>
-                Plate lookups this month: {data.lookupsThisMonth}.{' '}
-                {data.lookupBudget > 0
-                  ? <>{gbp.format(data.lookupSpend)} of {gbp.format(data.lookupBudget)} cap.</>
-                  : <>{gbp.format(data.lookupSpend)} spent. <Link to="/admin/settings">Set a cap</Link></>}
-              </p>
+              <p className="stat__note">Plate lookups this month: {data.lookupsThisMonth}.</p>
             </section>
           </div>
         </>

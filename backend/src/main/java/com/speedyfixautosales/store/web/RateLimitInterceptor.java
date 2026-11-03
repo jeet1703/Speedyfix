@@ -36,9 +36,12 @@ public class RateLimitInterceptor implements HandlerInterceptor {
             new Rule("order-lookup", "/api/orders/lookup", 20, 1_000, "Too many order lookups. Wait a few minutes, or call us with your order number."),
             new Rule("part-request", "/api/part-requests", 10, 200, "You’ve sent a lot of part requests in the last hour. Call or WhatsApp us instead."),
             new Rule("plate-lookup", "/api/vehicles/lookup", 60, 2_000, "Too many reg lookups in the last hour. Try again later, or search by part number."),
+            new Rule("delivery-quote", "/api/baskets/*/delivery-options", 60, 3_000, "Too many delivery quotes in the last hour. Wait a few minutes, or call us for a price."),
             new Rule("basket", "/api/baskets", 120, 3_000, "Too many new baskets. Wait a few minutes and try again."),
             new Rule("chat", "/api/chat", 40, 2_000, "You’ve asked a lot of questions in the last hour. WhatsApp or call us and we’ll help."),
-            new Rule("sign-in", "/api/account/google", 30, 1_000, "Too many sign-in attempts. Wait a few minutes and try again."));
+            new Rule("sign-in", "/api/account/google", 30, 1_000, "Too many sign-in attempts. Wait a few minutes and try again."),
+            // Sign-up and resend each send an email, so this is tighter than Google sign-in.
+            new Rule("email-sign-in", "/api/account/email/*", 20, 500, "Too many sign-in attempts. Wait a few minutes and try again."));
 
     private final AntPathMatcher paths = new AntPathMatcher();
     private final Map<String, Deque<Instant>> byClient = new ConcurrentHashMap<>();

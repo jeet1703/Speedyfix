@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useSite } from '../state/SiteContext';
 import { BasketDrawer } from './BasketDrawer';
 import { Footer } from './Footer';
@@ -10,12 +11,31 @@ import { TopBar } from './TopBar';
 
 const DEFAULT_DESCRIPTION = 'Used, remanufactured and new engine parts, checked against your registration before you buy. UK delivery.';
 
+/** Finds or adds a tag in the page head, so each page can set its own. */
+function headTag<T extends HTMLElement>(selector: string, create: () => T): T {
+  let tag = document.head.querySelector<T>(selector);
+  if (!tag) {
+    tag = create();
+    document.head.appendChild(tag);
+  }
+  return tag;
+}
+
 /**
  * Header, footer, basket drawer and toast around every page. title sets the browser tab; description the page's
- * summary for search engines and link previews (the shop's own when left out).
+ * summary for search engines and link previews (the shop's own when left out). noindex keeps a page out of search
+ * (a missing page, which the host still serves with the shop). jsonLd is the page's structured data for search
+ * engines and AI assistants, such as a part's price and stock.
  */
-export function Layout({ title, description, children }: { title?: string; description?: string; children: ReactNode }) {
+export function Layout({ title, description, noindex = false, jsonLd, children }: {
+  title?: string;
+  description?: string;
+  noindex?: boolean;
+  jsonLd?: object;
+  children: ReactNode;
+}) {
   const { data, error, waking, retry } = useSite();
+  const { pathname, search } = useLocation();
 
   useEffect(() => {
     document.title = title ? `${title} | SpeedyFix Auto Sales` : 'SpeedyFix Auto Sales | Engines and engine parts';
@@ -30,6 +50,38 @@ export function Layout({ title, description, children }: { title?: string; descr
     }
     meta.content = description ?? DEFAULT_DESCRIPTION;
   }, [description]);
+
+  // One address per page for search engines: no query string, except the category a parts list shows.
+  useEffect(() => {
+    const category = pathname === '/products' ? new URLSearchParams(search).get('category') : null;
+    const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+    const link = headTag('link[rel="canonical"]', () => Object.assign(document.createElement('link'), { rel: 'canonical' }));
+    link.href = `${window.location.origin}${base}${pathname}${category ? `?category=${encodeURIComponent(category)}` : ''}`;
+  }, [pathname, search]);
+
+  useEffect(() => {
+    const robots = headTag<HTMLMetaElement>('meta[name="robots"]', () => Object.assign(document.createElement('meta'), { name: 'robots' }));
+    robots.content = noindex ? 'noindex' : 'index, follow';
+  }, [noindex]);
+
+  // The shop's own details on every page, and the page's own data (a part) when it has some.
+  const ld = JSON.stringify([
+    data && {
+      '@context': 'https://schema.org',
+      '@type': 'AutoPartsStore',
+      name: data.site.companyName,
+      url: `${window.location.origin}${import.meta.env.BASE_URL}`,
+      telephone: data.site.phone,
+      email: data.site.email,
+      address: data.site.address,
+      vatID: data.site.vatNumber
+    },
+    jsonLd
+  ].filter(Boolean));
+  useEffect(() => {
+    const script = headTag('script#page-ld', () => Object.assign(document.createElement('script'), { id: 'page-ld', type: 'application/ld+json' }));
+    script.textContent = ld;
+  }, [ld]);
 
   if (error && !data) {
     return (
@@ -69,7 +121,7 @@ export function Layout({ title, description, children }: { title?: string; descr
       <Footer site={data.site} />
       <BasketDrawer />
       <Toast />
-      <HelpChat site={data.site} ai={data.chatAi} />
+      <HelpChat site={data.site} ai={data.chatAi} fedex={data.deliveryQuotes} />
     </>
   );
 }

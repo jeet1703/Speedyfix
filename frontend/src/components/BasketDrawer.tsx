@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useEffect, useRef } from 'react';
-import { money } from '../api/client';
+import { deliveryPrice, money } from '../api/client';
 import { useStore } from '../state/StoreContext';
 import { Icon } from './Icons';
 
@@ -61,7 +61,7 @@ export function BasketDrawer() {
             </ul>
             <dl className="drawer__totals">
               <div><dt>Subtotal</dt><dd>{money(basket!.subtotal)}</dd></div>
-              <div><dt>{basket!.delivery.label}</dt><dd>{basket!.delivery.price ? money(basket!.delivery.price) : 'Free'}</dd></div>
+              <div><dt>{basket!.delivery.label}</dt><dd>{deliveryPrice(basket!.delivery)}</dd></div>
               <div className="drawer__total"><dt>Total</dt><dd>{money(basket!.total)}</dd></div>
             </dl>
             <p className="drawer__vat">Includes VAT of {money(basket!.vatIncluded)}</p>

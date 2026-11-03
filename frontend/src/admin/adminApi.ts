@@ -2,7 +2,7 @@ import { ApiError, BASE, request } from '../api/client';
 import type { Vehicle } from '../api/types';
 import type {
   AdminSession, StaffSession, CategoryOption, CustomerRow, Dashboard, Fitment, Order, OrderStatus, PartRequest, PartRequestStatus, PlateCheck,
-  ProductDetail, ProductFormData, ProductRow, SettingsValues, SettingsView, EbaySyncStatus
+  ProductDetail, ProductFormData, ProductRow, SettingsValues, SettingsView, EbaySyncStatus, InvoiceStatus
 } from './types';
 
 const KEY = 'sf_admin_token';
@@ -102,6 +102,8 @@ export const adminApi = {
   order: (reference: string) => authed<Order>(`/api/admin/orders/${encodeURIComponent(reference)}`),
   setOrderStatus: (reference: string, status: OrderStatus, courier?: string, trackingNumber?: string) =>
     authed<Order>(`/api/admin/orders/${encodeURIComponent(reference)}`, json('PATCH', { status, courier, trackingNumber })),
+  orderInvoice: (reference: string) => authed<InvoiceStatus>(`/api/admin/orders/${encodeURIComponent(reference)}/invoice`),
+  emailInvoice: (reference: string) => authed<InvoiceStatus>(`/api/admin/orders/${encodeURIComponent(reference)}/invoice/email`, { method: 'POST' }),
 
   customers: () => authed<CustomerRow[]>('/api/admin/customers'),
 

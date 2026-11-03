@@ -20,7 +20,8 @@ import java.util.List;
  * The Create listing / Edit listing form. A draft can be saved without a price or photo; AdminCatalogService checks
  * what publishing needs. keepPhotoIds lists the part's current photos to keep (null keeps them all).
  * descriptionHtml is the listing description as HTML; null leaves it as it is, blank removes it. salePercent is the
- * percentage off the price during a sale; null for none.
+ * percentage off the price during a sale; null for none. weightKg is the packed part's weight for FedEx's
+ * delivery prices; null uses the category's typical weight.
  */
 public record ProductForm(
         @NotBlank(message = "Enter the title shoppers will see.") @Size(max = 200, message = "Keep the title under 200 characters.") String name,
@@ -43,5 +44,8 @@ public record ProductForm(
         @NotNull ProductStatus status,
         @Size(max = AdminCatalogService.MAX_DESCRIPTION_HTML, message = "Keep the description under 100,000 characters.") String descriptionHtml,
         @Min(value = 1, message = "A sale takes at least 1% off. Leave it empty for no sale.")
-        @Max(value = Product.MAX_SALE_PERCENT, message = "A sale can take up to 90% off.") Integer salePercent) {
+        @Max(value = Product.MAX_SALE_PERCENT, message = "A sale can take up to 90% off.") Integer salePercent,
+        @DecimalMin(value = "0.1", message = "Enter a weight of at least 0.1 kg, or leave it empty.")
+        @DecimalMax(value = "999", message = "Enter a weight under 1,000 kg.")
+        @Digits(integer = 3, fraction = 2, message = "Enter the weight in kilograms, like 7.5.") BigDecimal weightKg) {
 }

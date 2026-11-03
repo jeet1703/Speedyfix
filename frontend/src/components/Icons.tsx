@@ -18,7 +18,9 @@ const paths: Record<string, JSX.Element> = {
   menu: <path d="M4 7h16M4 12h16M4 17h16" />,
   play: <path d="M8 5.5v13l10.5-6.5z" fill="currentColor" stroke="none" />,
   minus: <path d="M6 12h12" />,
-  plus: <path d="M12 6v12M6 12h12" />
+  plus: <path d="M12 6v12M6 12h12" />,
+  file: <><path d="M6 3h8l4 4v14H6z" /><path d="M14 3v4h4M9 12h6M9 16h6" /></>,
+  download: <path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 20h14" />
 };
 
 export type IconName = keyof typeof paths;

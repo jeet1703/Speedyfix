@@ -3,6 +3,8 @@ package com.speedyfixautosales.store.web;
 import com.speedyfixautosales.store.account.CustomerAuthService;
 import com.speedyfixautosales.store.admin.AdminAuthInterceptor;
 import com.speedyfixautosales.store.common.NotFoundException;
+import com.speedyfixautosales.store.common.UnauthorizedException;
+import com.speedyfixautosales.store.invoice.InvoiceService;
 import com.speedyfixautosales.store.order.Order;
 import com.speedyfixautosales.store.order.OrderPaymentService;
 import com.speedyfixautosales.store.order.OrderService;
@@ -12,13 +14,18 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -31,11 +38,16 @@ public class OrderController {
     private final OrderService orders;
     private final CustomerAuthService accounts;
     private final OrderPaymentService payments;
+    private final InvoiceService invoices;
+    private final boolean requireSignIn;
 
-    public OrderController(OrderService orders, CustomerAuthService accounts, OrderPaymentService payments) {
+    public OrderController(OrderService orders, CustomerAuthService accounts, OrderPaymentService payments,
+                           InvoiceService invoices, @Value("${orders.require-sign-in:false}") boolean requireSignIn) {
         this.orders = orders;
         this.accounts = accounts;
         this.payments = payments;
+        this.invoices = invoices;
+        this.requireSignIn = requireSignIn;
     }
 
     public record PayPalStarted(String paypalOrderId) {
@@ -87,24 +99,48 @@ public class OrderController {
             @Size(max = 120) String line2,
             @NotBlank(message = "Enter your town or city.") @Size(max = 80) String town,
             @NotBlank(message = "Enter your postcode.") @Pattern(regexp = POSTCODE, message = "Enter a full UK postcode, like SW1A 1AA.") String postcode,
-            @Size(max = 500, message = "Keep delivery notes under 500 characters.") String notes) {
+            @Size(max = 500, message = "Keep delivery notes under 500 characters.") String notes,
+            /** The delivery option chosen at checkout (an id from the basket's delivery options); null for the cheapest. */
+            @Size(max = 60) String deliveryOption) {
     }
 
-    /** A signed-in shopper sends their account token, so the order shows in their account; guests send none. */
+    /**
+     * A signed-in shopper sends their account token, so the order shows in their account. With ORDERS_REQUIRE_SIGN_IN=true,
+     * only signed-in shoppers can order; otherwise (the default) guests can too.
+     */
     @PostMapping
     public ResponseEntity<Order> place(@Valid @RequestBody PlaceOrderRequest r, HttpServletRequest request) {
         String customerId = accounts.customerId(AdminAuthInterceptor.bearerToken(request)).orElse(null);
+        if (customerId == null && requireSignIn) {
+            throw new UnauthorizedException("Sign in to place your order. Your basket is kept.");
+        }
         Order order = orders.place(r.basketId(),
                 new Order.Customer(r.name().trim(), r.email().trim(), r.phone().trim()),
                 new Order.Address(r.line1().trim(), r.line2() == null ? null : r.line2().trim(), r.town().trim(),
                         formatPostcode(r.postcode())),
-                r.notes(), customerId);
+                r.notes(), customerId, r.deliveryOption());
         return ResponseEntity.status(HttpStatus.CREATED).body(order);
     }
 
     @GetMapping("/{reference}")
     public Order get(@PathVariable String reference) {
         return orders.get(reference);
+    }
+
+    /**
+     * The paid order's VAT invoice as a PDF, shown in the browser, or saved with download=true. Like the order itself,
+     * anyone with the (unguessable) order number can open it.
+     */
+    @GetMapping("/{reference}/invoice.pdf")
+    public ResponseEntity<byte[]> invoice(@PathVariable String reference, @RequestParam(defaultValue = "false") boolean download) {
+        InvoiceService.Document doc = invoices.document(orders.get(reference));
+        ContentDisposition disposition = (download ? ContentDisposition.attachment() : ContentDisposition.inline())
+                .filename(doc.fileName()).build();
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
+                .header(HttpHeaders.CACHE_CONTROL, "private, no-store")
+                .body(doc.pdf());
     }
 
     /** "sw1a1aa" becomes "SW1A 1AA". */

@@ -64,6 +64,8 @@ export function ProductEditPage() {
   const [grade, setGrade] = useState('A');
   const [price, setPrice] = useState('');
   const [sale, setSale] = useState('');
+  const [weight, setWeight] = useState('');
+  const [typicalWeight, setTypicalWeight] = useState<number | null>(null);
   const [stock, setStock] = useState('1');
   const [shipping, setShipping] = useState<Shipping>('PARCEL');
   const [engineCode, setEngineCode] = useState('');
@@ -119,6 +121,8 @@ export function ProductEditPage() {
     setGrade(d.grade ?? '');
     setPrice(d.price === null ? '' : d.price.toFixed(2));
     setSale(d.salePercent ? String(d.salePercent) : '');
+    setWeight(d.weightKg != null ? String(d.weightKg) : '');
+    setTypicalWeight(d.defaultWeightKg);
     setStock(String(d.stock));
     setShipping(d.shipping);
     setEngineCode(d.engineCode ?? '');
@@ -216,12 +220,16 @@ export function ProductEditPage() {
   const priceValue = price.trim() === '' ? null : Number(price);
   const priceOk = priceValue !== null && Number.isFinite(priceValue) && priceValue > 0;
   const saleValue = sale.trim() === '' ? null : Number(sale);
+  const weightValue = weight.trim() === '' ? null : Number(weight);
+  const weightOk = weightValue === null || (weightValue >= 0.1 && weightValue < 1000);
   const saleOk = saleValue === null || (Number.isInteger(saleValue) && saleValue >= 1 && saleValue <= 90);
   // Same rounding as the server: to the penny, half a penny up.
   const salePrice = priceOk && saleValue && saleOk ? Math.round(priceValue! * (100 - saleValue)) / 100 : null;
   const photoCount = kept.length + added.length;
   const usesSample = photoCount === 0 && !!detail?.samplePhoto;
-  const photoOk = photoCount > 0 || usesSample;
+  // Imported listings show their eBay photos, which aren't in the uploaded list; they count as the listing's photo.
+  const usesEbayPhotos = photoCount === 0 && !detail?.samplePhoto && !!detail?.imageUrl;
+  const photoOk = photoCount > 0 || usesSample || usesEbayPhotos;
   const refOk = !!(partNumber.trim() || engineCode.trim());
   const blocker = !photoOk ? 'add a photo first' : !priceOk ? 'add a price first' : !refOk ? 'add a part number first' : '';
   const isLive = detail?.status === 'LIVE';
@@ -234,13 +242,14 @@ export function ProductEditPage() {
     if (!categoryId) return setSaveError('Choose a category.');
     if (priceValue !== null && !priceOk) return setSaveError('Enter a price above £0, like 149.00.');
     if (!saleOk) return setSaveError('Enter a sale between 1% and 90% off, or leave it empty for no sale.');
+    if (!weightOk) return setSaveError('Enter a weight between 0.1 and 999 kg, or leave it empty for the typical weight.');
     if (stock.trim() === '' || !Number.isInteger(stockValue) || stockValue < 0 || stockValue > 999) return setSaveError('Enter a stock quantity from 0 to 999.');
     setSaving(true);
     try {
       const saved = await adminApi.saveProduct(id ?? null, {
         name: name.trim(), categoryId, condition, grade, price: priceValue, partNumber: partNumber.trim(),
         engineCode: engineCode.trim(), brand: brand.trim(), subType: subType.trim(), refinements, shipping, stock: stockValue, bestSeller,
-        vehicleIds: ticked.map((r) => r.fit.vehicleId), keepPhotoIds: kept.map((p) => p.id), status, descriptionHtml, salePercent: saleValue
+        vehicleIds: ticked.map((r) => r.fit.vehicleId), keepPhotoIds: kept.map((p) => p.id), status, descriptionHtml, salePercent: saleValue, weightKg: weightValue
       }, added.map((p) => p.file));
       const message = status === 'LIVE'
         ? (isLive ? 'Changes saved. The listing is live in the shop.' : 'Listed. The part is now in the shop.')
@@ -285,7 +294,7 @@ export function ProductEditPage() {
     );
   }
 
-  const previewImage = added[0]?.url ?? kept[0]?.url ?? (usesSample ? detail?.imageUrl : null);
+  const previewImage = added[0]?.url ?? kept[0]?.url ?? (usesSample || usesEbayPhotos ? detail?.imageUrl : null);
   const reference = partNumber.trim() ? `Part no. ${partNumber.trim()}` : engineCode.trim() ? `Engine code ${engineCode.trim()}` : '';
 
   return (
@@ -398,6 +407,16 @@ export function ProductEditPage() {
                     {SHIPPING.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
                   </select>
                 </div>
+                {shipping === 'PARCEL' && (
+                  <div className="field">
+                    <label htmlFor="weight">Packed weight (kg)<span className="field__optional"> (optional)</span></label>
+                    <input id="weight" className="input" inputMode="decimal" placeholder={typicalWeight != null ? String(typicalWeight) : 'e.g. 7.5'} value={weight}
+                      aria-describedby="weight-hint" onChange={(e) => setWeight(e.target.value.replace(/[^0-9.]/g, '').slice(0, 6))} />
+                    <p id="weight-hint" className={'field__hint' + (weightOk ? '' : ' field-error')}>
+                      {!weightOk ? 'Between 0.1 and 999 kg.' : 'For FedEx’s delivery price. Leave empty to use the category’s typical weight' + (typicalWeight != null ? ` (${typicalWeight} kg).` : '.')}
+                    </p>
+                  </div>
+                )}
                 <div className="field">
                   <label htmlFor="engine-code">Engine code<span className="field__optional"> (optional)</span></label>
                   <input id="engine-code" className="input mono" value={engineCode} onChange={(e) => setEngineCode(e.target.value)} maxLength={20} spellCheck={false} />
@@ -468,6 +487,12 @@ export function ProductEditPage() {
             <section className="card" aria-labelledby="step-4">
               <h2 id="step-4" className="card__title">4. Photos</h2>
               {usesSample && <p className="notice">This part is using a sample photo. Upload real photos of this unit to replace it.</p>}
+              {usesEbayPhotos && (
+                <div className="notice">
+                  <img src={detail!.imageUrl!} alt="" width={64} height={64} style={{ objectFit: 'cover', borderRadius: 4, float: 'left', marginRight: 12 }} />
+                  <p>This listing shows its photos from eBay. You can save changes without uploading any; photos you upload here are added to it.</p>
+                </div>
+              )}
               <div className="photos">
                 {photoCount < MAX_PHOTOS && (
                   <div className={'dropzone' + (dragging ? ' dropzone--over' : '')}
@@ -503,7 +528,7 @@ export function ProductEditPage() {
               <ul className="checklist">
                 <Check ok={refOk} label={partNumber.trim() ? 'Part number entered' : refOk ? 'Engine code entered' : 'Part number or engine code'} />
                 <Check ok={highTicked > 0} label={highTicked > 0 ? `High-confidence compatibility (${highTicked})` : 'High-confidence compatibility (recommended)'} />
-                <Check ok={photoOk} label={usesSample ? 'Photo (sample only)' : 'At least one photo'} />
+                <Check ok={photoOk} label={usesSample ? 'Photo (sample only)' : usesEbayPhotos ? 'Photos from eBay' : 'At least one photo'} />
                 <Check ok={priceOk} label="Price set" />
               </ul>
               {detail && <p className="admin-muted">Currently {detail.status === 'LIVE' ? 'live in the shop' : detail.status === 'ENDED' ? 'ended (not in the shop)' : 'a draft'}.</p>}

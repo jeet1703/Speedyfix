@@ -36,7 +36,7 @@ export function ProductPage() {
 
   if (error && !detail) {
     return (
-      <Layout title="Part not found">
+      <Layout title="Part not found" noindex>
         <div className="container state">
           <h1 className="h-display">We couldn’t find that part</h1>
           <p>{error}</p>
@@ -57,7 +57,7 @@ export function ProductPage() {
   const itemNumber = p.id.match(/-(\d{9,})$/)?.[1];
   const samplePhoto = p.imageUrl.includes('images.unsplash.com');
   return (
-    <Layout title={p.name} description={`${p.name}. ${p.condition}, ${p.salePercent ? `on sale (${p.salePercent}% off), ` : ''}£${p.price.toFixed(2)} inc. VAT${p.inStock ? ', in stock' : ''}. ${data?.site.warranty ?? ''} warranty, UK delivery from SpeedyFix Auto Sales.`.replace(/\s+/g, ' ')}>
+    <Layout title={p.name} jsonLd={productLd(detail)} description={`${p.name}. ${p.condition}, ${p.salePercent ? `on sale (${p.salePercent}% off), ` : ''}£${p.price.toFixed(2)} inc. VAT${p.inStock ? ', in stock' : ''}. ${data?.site.warranty ?? ''} warranty, UK delivery from SpeedyFix Auto Sales.`.replace(/\s+/g, ' ')}>
       <PageTitle title={p.categoryName} heading={false} crumbs={[
         { label: 'Products', to: '/products' },
         { label: p.categoryName, to: `/products?category=${p.categoryId}` },
@@ -229,7 +229,9 @@ function Perks({ shipping }: { shipping: 'PARCEL' | 'PALLET' }) {
   return (
     <ul className="perks">
       <li><Icon name="shield" size={20} />{data?.site.warranty} warranty.</li>
-      <li><Icon name="truck" size={20} />{shipping === 'PALLET' ? 'Pallet delivery across the UK, £79.' : 'Tracked parcel delivery, £9.95 or free from £100.'}</li>
+      <li><Icon name="truck" size={20} />{data?.deliveryQuotes
+        ? shipping === 'PALLET' ? 'Tracked FedEx Freight delivery, priced at checkout.' : 'Tracked FedEx delivery, priced at checkout. Free from £100.'
+        : shipping === 'PALLET' ? 'Pallet delivery across the UK, £79.' : 'Tracked parcel delivery, £9.95 or free from £100.'}</li>
     </ul>
   );
 }
@@ -340,13 +342,39 @@ function DeliveryTab({ shipping }: { shipping: 'PARCEL' | 'PALLET' }) {
   return (
     <>
       <dl className="specs">
-        <div><dt>This part</dt><dd>{shipping === 'PALLET' ? 'Ships by pallet' : 'Ships as a tracked parcel'}</dd></div>
-        <div><dt>Pallet delivery</dt><dd>£79 per order, for engines and gearboxes</dd></div>
-        <div><dt>Parcel delivery</dt><dd>£9.95, free on orders of £100 or more</dd></div>
+        <div><dt>This part</dt><dd>{shipping === 'PALLET' ? (data?.deliveryQuotes ? 'Ships by FedEx Freight' : 'Ships by pallet') : 'Ships as a tracked parcel'}</dd></div>
+        {data?.deliveryQuotes
+          ? <div><dt>Heavy parts</dt><dd>Engines and gearboxes go by FedEx Freight, priced at checkout from your postcode</dd></div>
+          : <div><dt>Pallet delivery</dt><dd>£79 per order, for engines and gearboxes</dd></div>}
+        <div><dt>Parcel delivery</dt><dd>{data?.deliveryQuotes ? 'FedEx, priced at checkout from your postcode; the cheapest service is free on orders of £100 or more' : '£9.95, free on orders of £100 or more'}</dd></div>
         <div><dt>Ships from</dt><dd>{data?.site.shipsFrom}</dd></div>
         <div><dt>Warranty</dt><dd>{data?.site.warranty}</dd></div>
         <div><dt>Returns</dt><dd>{data?.site.returns}</dd></div>
       </dl>
     </>
   );
+}
+
+/** schema.org data for a part, so search engines and AI assistants can read its price, condition and stock. */
+function productLd(detail: ProductDetail) {
+  const p = detail.product;
+  const condition = /new/i.test(p.condition) ? 'NewCondition' : /reman|recon/i.test(p.condition) ? 'RefurbishedCondition' : 'UsedCondition';
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: p.name,
+    description: detail.description,
+    image: detail.photos.length ? detail.photos.map((ph) => ph.url) : [p.imageUrl],
+    category: p.categoryName,
+    ...(detail.partNumber ? { mpn: detail.partNumber } : {}),
+    ...(detail.brand ? { brand: { '@type': 'Brand', name: detail.brand } } : {}),
+    offers: {
+      '@type': 'Offer',
+      url: window.location.href.split('?')[0],
+      price: p.price.toFixed(2),
+      priceCurrency: 'GBP',
+      itemCondition: `https://schema.org/${condition}`,
+      availability: `https://schema.org/${p.inStock ? 'InStock' : 'OutOfStock'}`
+    }
+  };
 }

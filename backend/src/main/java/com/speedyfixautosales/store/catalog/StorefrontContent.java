@@ -1,6 +1,6 @@
 package com.speedyfixautosales.store.catalog;
 
-import static com.speedyfixautosales.store.catalog.Images.unsplash;
+import static com.speedyfixautosales.store.catalog.Images.stock;
 
 import com.speedyfixautosales.store.catalog.MenuGroup.MenuLink;
 import java.util.List;
@@ -12,39 +12,49 @@ final class StorefrontContent {
     private StorefrontContent() {
     }
 
-    /** Banner photos for categories until the business supplies its own (Unsplash samples). */
+    /** Banner photos for categories until the business supplies its own (Unsplash samples, served as WebP from the site). */
     static final Map<String, String> CATEGORY_SAMPLE_PHOTOS = Map.of(
-            "engines", unsplash("1552656967-7a0991a13906", 900, 1140),
-            "gearboxes", unsplash("1711199694531-e982a79ea381", 900, 1140),
-            "accessories", unsplash("1537462715879-360eeb61a0ad", 900, 1140),
-            "turbochargers", unsplash("1664695221759-21ed7295f697", 900, 1140),
-            "cylinder-heads", unsplash("1786028924575-9948c6a58b22", 900, 1140),
-            "rebuild-kits", unsplash("1720244253125-f39d7aeccccf", 900, 1140),
-            "fuel-injection", unsplash("1759148413911-5ded7ed2ec06", 900, 1140),
-            "cooling-ac", unsplash("1486262715619-67b85e0b08d3", 900, 1140),
-            "electrics-sensors", unsplash("1584809923235-fabdba83d1df", 900, 1140),
-            "brakes", unsplash("1696494561430-de087dd0bd69", 900, 1140));
+            "engines", stock("1779263569870-e7a0fbc25686", 900, 1140),
+            "gearboxes", stock("1711199694531-e982a79ea381", 900, 1140),
+            "accessories", stock("1537462715879-360eeb61a0ad", 900, 1140),
+            "turbochargers", stock("1655103955676-c9fbc4b65525", 900, 1140),
+            "cylinder-heads", stock("1786028924575-9948c6a58b22", 900, 1140),
+            "rebuild-kits", stock("1703181226035-1c26d7e5f6ee", 900, 1140),
+            "fuel-injection", stock("1759148413911-5ded7ed2ec06", 900, 1140),
+            "cooling-ac", stock("1665564590151-7fe9493b478a", 900, 1140),
+            "electrics-sensors", stock("1584809923235-fabdba83d1df", 900, 1140),
+            "brakes", stock("1613214150384-14921ff659b2", 900, 1140));
+
+    /**
+     * The homepage's popular-category tiles: dark close-ups in the same style as the slides (Unsplash, no logos or
+     * people), not the category's own photo. Different shots from the slides, except turbochargers.
+     */
+    static final Map<String, String> POPULAR_TILE_PHOTOS = Map.of(
+            "engines", stock("1429772011165-0c2e054367b8", 900, 1140),
+            "gearboxes", stock("1567093322102-6bdd32fba67d", 900, 1140),
+            "accessories", stock("1537462715879-360eeb61a0ad", 900, 1140),
+            "turbochargers", stock("1655103955676-c9fbc4b65525", 900, 1140));
 
     static final List<Slide> SLIDES = List.of(
             new Slide("turbochargers", "Category spotlight", "Turbochargers",
-                    "Remanufactured and used turbos, matched to your engine code and tested before dispatch.",
-                    unsplash("1664695221759-21ed7295f697", 1920, 900),
+                    "Remanufactured and used turbos, matched to your engine code. We test each one before dispatch.",
+                    stock("1655103955676-c9fbc4b65525", 1920, 900),
                     "Shop turbochargers", "/products?category=turbochargers", "View all categories", "/products"),
             new Slide("engines", "Category spotlight", "Complete engines",
-                    "Used engines removed from donor vehicles, tested and graded before they’re listed.",
-                    unsplash("1527383418406-f85a3b146499", 1920, 900),
+                    "Used engines from donor vehicles. We test and grade each one before we list it.",
+                    stock("1779263569870-e7a0fbc25686", 1920, 900),
                     "Shop engines", "/products?category=engines", "View all categories", "/products"),
             new Slide("cylinder-heads", "Category spotlight", "Cylinder heads",
                     "Bare and assembled heads, with gasket and bolt kits to match.",
-                    unsplash("1786028924575-9948c6a58b22", 1920, 900),
+                    stock("1786028924575-9948c6a58b22", 1920, 900),
                     "Shop cylinder heads", "/products?category=cylinder-heads", "View all categories", "/products"),
             new Slide("gearboxes", "Category spotlight", "Gearboxes",
-                    "Manual and automatic gearboxes, checked and matched to your engine and model.",
-                    unsplash("1711199694531-e982a79ea381", 1920, 900),
+                    "Manual and automatic gearboxes, which we check against your engine and model.",
+                    stock("1711199694531-e982a79ea381", 1920, 900),
                     "Shop gearboxes", "/products?category=gearboxes", "View all categories", "/products"));
 
     static final List<Feature> FEATURES = List.of(
-            new Feature("wrench", "Expert team", "Every part tested and graded"),
+            new Feature("wrench", "Expert team", "We test and grade every part"),
             new Feature("truck", "Our delivery partners", "FedEx, UPS, Royal Mail, DHL and DPD, tracked to your door"),
             new Feature("shield", "Quick UK shipping", "Usually within 7 working days, with a 28-day warranty"));
 

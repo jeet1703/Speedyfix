@@ -53,9 +53,7 @@ admin:
   name: ${ADMIN_NAME:Master admin}
   # Signs the staff JWTs (32+ characters, a secret). Without it a random key is used, so a restart signs everyone out.
   jwt-secret: ${ADMIN_JWT_SECRET:}
-  # Starting values for the Settings page. Staff can change them there (kept in the database once saved).
-  lookup-cost: ${ADMIN_LOOKUP_COST:0}
-  lookup-budget: ${ADMIN_LOOKUP_BUDGET:0}
+  # Starting value for the Settings page. Staff can change it there (kept in the database once saved).
   buying-team-email: ${ADMIN_BUYING_TEAM_EMAIL:}
 
 account:
@@ -64,6 +62,9 @@ account:
   google-client-id: ${GOOGLE_CLIENT_ID:1077960801718-u7b9qn4nbcbhhu12s9s4c0bt7qc7b5cu.apps.googleusercontent.com}
   # Signs shopper session tokens (32+ characters, a secret). Without it a random key is used, so a restart signs shoppers out.
   jwt-secret: ${ACCOUNT_JWT_SECRET:}
+  # Sign up and sign in with an email address and password, confirmed with a 6-digit code by email. Leave off until
+  # the shop's email is set up (RESEND_API_KEY, below): until then codes only go to the server log.
+  email-sign-in: ${ACCOUNT_EMAIL_SIGN_IN:false}
 
 photos:
   # Where listing photos are stored on this computer (storage/ in the project when the backend runs from backend/).
@@ -98,13 +99,48 @@ paypal:
   client-secret: ${PAYPAL_CLIENT_SECRET:}
   environment: ${PAYPAL_ENVIRONMENT:sandbox}
 
+fedex:
+  # FedEx delivery prices at checkout (Rate API). Project keys from developer.fedex.com (My Projects), and the FedEx
+  # account number the rates are for. Secret: set them in the environment, never in this file. Without them, the
+  # flat prices apply (parcels £9.95, free over £100; pallets £79). FEDEX_ENVIRONMENT is "sandbox" or "live".
+  api-key: ${FEDEX_API_KEY:}
+  secret-key: ${FEDEX_SECRET_KEY:}
+  account-number: ${FEDEX_ACCOUNT_NUMBER:}
+  environment: ${FEDEX_ENVIRONMENT:sandbox}
+  # Where parcels are sent from (the shop's unit).
+  ship-from-postcode: ${FEDEX_SHIP_FROM_POSTCODE:UB8 2JP}
+  ship-from-country: GB
+  # What the shopper pays on top of FedEx's charge to the shop: a percentage and a fixed fee (GBP, before VAT).
+  markup-percent: ${FEDEX_MARKUP_PERCENT:0}
+  handling-fee: ${FEDEX_HANDLING_FEE:0}
+  # FedEx quotes before VAT; the shop's prices include it.
+  add-vat: true
+
 gemini:
   # The help chat's AI answers (Google Gemini). Without a key the chat still works, answering by itself.
   # Secret: set it in the environment, never in this file. GEMINI_MODELS are tried in order when one is busy.
   api-key: ${GEMINI_API_KEY:}
   models: ${GEMINI_MODELS:gemini-3.5-flash,gemini-3.5-flash-lite}
 
+mail:
+  # Order emails: each paid order emails the buyer their VAT invoice (PDF), and staff a new-order note. Sent through
+  # Resend (resend.com, free for 3,000 a month), whose API works from Render's free servers (they block SMTP).
+  # RESEND_API_KEY is secret: set it in the environment, never in this file. MAIL_FROM must be on a domain verified in
+  # Resend. Without the key, invoices are still numbered and shown on the order page, just not emailed.
+  resend-api-key: ${RESEND_API_KEY:}
+  from: ${MAIL_FROM:SpeedyFix Auto Sales <orders@speedyfixautosales.com>}
+  # Sign-up codes come from this address. Resend verifies the whole domain, so any address on it works without a
+  # mailbox behind it.
+  account-from: ${MAIL_ACCOUNT_FROM:SpeedyFix Auto Sales <account@speedyfixautosales.com>}
+  # Where buyers' replies go.
+  reply-to: ${MAIL_REPLY_TO:eBay.speedyfix@gmail.com}
+  # Gets a copy of each paid order, invoice attached. Blank: none.
+  staff-orders: ${MAIL_STAFF_ORDERS:}
+
 orders:
+  # true: only signed-in shoppers (Google, or email once it's on) can check out. Off by default, so guests can order
+  # until Google sign-in works on the live address; then set ORDERS_REQUIRE_SIGN_IN=true.
+  require-sign-in: ${ORDERS_REQUIRE_SIGN_IN:false}
   # With PayPal set up, an order left unpaid this long is cancelled and its parts go back on sale. PT0S: never.
   unpaid-expiry: ${ORDERS_UNPAID_EXPIRY:PT2H}
 

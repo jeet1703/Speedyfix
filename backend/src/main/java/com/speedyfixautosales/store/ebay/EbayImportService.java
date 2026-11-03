@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+import java.util.regex.Pattern;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -51,6 +52,8 @@ public class EbayImportService {
     private static final int BATCH = 20;
     /** Longer descriptions (eBay allows up to 500,000 characters) are left out rather than cut mid-tag. */
     private static final int MAX_DESCRIPTION_HTML = 100_000;
+    private static final Pattern EBAY_COMMENT = Pattern.compile("<!--[^>]*ebay[^>]*-->", Pattern.CASE_INSENSITIVE);
+    private static final Pattern TRUSTED_EBAY_SELLER = Pattern.compile("trusted\\s+ebay\\s+seller", Pattern.CASE_INSENSITIVE);
     private static final int PHOTO_THREADS = 16;
     private static final int MAX_PHOTOS = 12;
     private static final Set<String> NOT_A_VALUE = Set.of("does not apply", "n/a", "na", "unbranded", "unknown", "-");
@@ -288,7 +291,7 @@ public class EbayImportService {
         // The listing's own HTML description, unless staff have written one in the admin (theirs is never replaced).
         if (d.descriptionHtml() != null && !d.descriptionHtml().isBlank() && d.descriptionHtml().length() <= MAX_DESCRIPTION_HTML) {
             jdbc.update("UPDATE products SET description_html = ? WHERE id = ? AND description_html IS NULL",
-                    d.descriptionHtml().trim(), productId);
+                    withoutEbay(d.descriptionHtml().trim()), productId);
         }
 
         boolean hasPhotos = !jdbc.queryForList("SELECT id FROM product_photos WHERE product_id = ? AND source = 'EBAY'",
@@ -321,6 +324,11 @@ public class EbayImportService {
 
     private static String aspect(EbayItemSource.ItemDetails d, String name) {
         return d.aspects().stream().filter(a -> a.name().equalsIgnoreCase(name)).map(EbayItemSource.Aspect::value).findFirst().orElse(null);
+    }
+
+    /** The listing's HTML without eBay's name: "Trusted eBay seller" becomes "Trusted seller", template comments go. */
+    static String withoutEbay(String html) {
+        return TRUSTED_EBAY_SELLER.matcher(EBAY_COMMENT.matcher(html).replaceAll("")).replaceAll("Trusted seller");
     }
 
     private static String firstReal(String... values) {

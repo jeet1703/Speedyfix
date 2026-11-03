@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api/client';
 import type { HomeData } from '../api/types';
+import { AboutShort } from '../components/AboutShort';
 import { CategoryBanners } from '../components/CategoryBanners';
 import { Features } from '../components/Features';
 import { HeroSlider } from '../components/HeroSlider';
@@ -9,7 +10,6 @@ import { PlateFinder } from '../components/PlateFinder';
 import { ProductCarousel } from '../components/ProductCarousel';
 import { Reviews } from '../components/Reviews';
 import { HomeSkeleton } from '../components/Skeleton';
-import { VideoSection } from '../components/VideoSection';
 import { useStore } from '../state/StoreContext';
 
 export function HomePage() {
@@ -41,7 +41,7 @@ export function HomePage() {
           <HeroSlider slides={data.slides} />
           <PlateFinder />
           <Features items={data.features} />
-          <VideoSection videoUrl={data.site.videoUrl} />
+          <AboutShort site={data.site} />
           <CategoryBanners categories={data.popularCategories} />
           <ProductCarousel id="best-selling" title="Best selling products" products={data.bestSelling} />
           <ProductCarousel id="latest" title="Latest products" products={data.latest} />

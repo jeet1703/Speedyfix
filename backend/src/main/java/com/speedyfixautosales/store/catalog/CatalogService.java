@@ -37,7 +37,10 @@ public class CatalogService {
     }
 
     public List<Category> popularCategories() {
-        return repository.categories().stream().filter(Category::popular).toList();
+        return repository.categories().stream().filter(Category::popular)
+                .map(c -> new Category(c.id(), c.name(),
+                        StorefrontContent.POPULAR_TILE_PHOTOS.getOrDefault(c.id(), c.imageUrl()), c.popular(), c.sortOrder()))
+                .toList();
     }
 
     public List<ProductView> bestSelling(String vehicleId) {

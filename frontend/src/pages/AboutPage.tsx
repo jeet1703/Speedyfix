@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
+import { siteImage, siteSrcSet } from '../api/images';
 import type { ShopResult } from '../api/types';
 import { telHref, whatsAppHref } from '../components/contactLinks';
 import { Icon } from '../components/Icons';
@@ -33,11 +34,11 @@ export function AboutPage() {
         <div className="container about-hero__inner">
           <div>
             <p className="eyebrow">{site?.tagline ?? 'Quality OEM and aftermarket car parts'}</p>
-            <h2 className="about-hero__title">Quality car parts, checked, photographed and ready to ship</h2>
+            <h2 className="about-hero__title">Car parts we’ve checked and photographed, ready to ship</h2>
             <p className="about-hero__text">
               {site?.companyName ?? 'SpeedyFix Auto Sales'} supplies used, remanufactured and new car parts from our unit in
               {' '}{site?.shipsFrom.replace(/, UK$/, '') ?? 'Uxbridge'}: complete engines and gearboxes, turbos, injectors,
-              ECUs, body panels and much more, for garages and drivers across the UK and abroad.
+              ECUs, body panels and more, for garages and drivers across the UK and abroad.
             </p>
             <div className="empty__actions">
               <Link className="btn btn--primary" to="/products">Browse parts</Link>
@@ -60,12 +61,12 @@ export function AboutPage() {
             <li>
               <Icon name="search" size={26} />
               <h3>The actual part</h3>
-              <p>Every listing shows photos of the exact part you’ll receive, not a stock image, with its part number so you can match it to your old one.</p>
+              <p>Every listing shows photos of the exact part you’ll receive and its part number, so you can match it to your old one.</p>
             </li>
             <li>
               <Icon name="truck" size={26} />
               <h3>Checked to fit</h3>
-              <p>Enter your reg to see what fits your vehicle. Not sure? Send us your reg or VIN and we’ll confirm before you buy.</p>
+              <p>Enter your reg to see what fits your vehicle. If you’re unsure, send us your reg or VIN and we’ll confirm before you buy.</p>
             </li>
             <li>
               <Icon name="shield" size={26} />
@@ -75,7 +76,7 @@ export function AboutPage() {
             <li>
               <Icon name="wrench" size={26} />
               <h3>Shipped safely</h3>
-              <p>Securely packed and tracked with {site?.couriers ?? 'our delivery partners'}. Engines and gearboxes travel by pallet.</p>
+              <p>We pack each part to survive the trip and track it with {site?.couriers ?? 'our delivery partners'}. Engines and gearboxes are strapped down and sent by freight.</p>
             </li>
           </ul>
         </section>
@@ -89,7 +90,7 @@ export function AboutPage() {
                 return (
                   <li key={c.id}>
                     <Link to={href}>
-                      {photos.get(href) ? <img src={photos.get(href)} alt="" width={120} height={120} loading="lazy" /> : <span className="about-cats__blank" />}
+                      {photos.get(href) ? <img src={siteImage(photos.get(href)!)} srcSet={siteSrcSet(photos.get(href)!)} sizes="120px" alt="" width={120} height={120} loading="lazy" /> : <span className="about-cats__blank" />}
                       <span><strong>{c.name}</strong><span>{c.count.toLocaleString('en-GB')} in stock</span></span>
                     </Link>
                   </li>
@@ -99,14 +100,10 @@ export function AboutPage() {
           </section>
         )}
 
-        <section className="about__section about__split" aria-labelledby="ebay-title">
+        <section className="about__section about__split" aria-labelledby="request-title">
           <div>
-            <h2 id="ebay-title" className="about__heading">Also on eBay</h2>
-            <p>
-              We’re a trusted eBay seller too, and our website and eBay shop share the same stock: new parts on eBay appear
-              here within the hour. Buying here, you get the same parts, the same warranty and the same team.
-            </p>
-            <p>Can’t find what you need? Many parts aren’t listed yet. Tell us what you’re after and we’ll try to source it.</p>
+            <h2 id="request-title" className="about__heading">Can’t find a part?</h2>
+            <p>Many parts aren’t listed yet. Tell us what you’re after and we’ll try to source it.</p>
             <Link className="btn btn--outline" to="/request-a-part">Request a Part</Link>
           </div>
           {site && (

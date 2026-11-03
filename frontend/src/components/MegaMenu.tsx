@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { siteImage, siteSrcSet } from '../api/images';
 import type { MenuGroup } from '../api/types';
 
 type MenuLink = MenuGroup['links'][number];
@@ -33,7 +34,7 @@ export function MegaMenu({ groups, id, onNavigate }: { groups: MenuGroup[]; id: 
       <div className="megamenu__side">
         {shown?.imageUrl && (
           <Link className="megamenu__preview" to={shown.href} onClick={onNavigate} tabIndex={-1} aria-hidden="true">
-            <img key={shown.imageUrl} src={shown.imageUrl} alt="" width={260} height={180} />
+            <img key={shown.imageUrl} src={siteImage(shown.imageUrl)} srcSet={siteSrcSet(shown.imageUrl)} sizes="260px" alt="" width={260} height={180} />
             <span>{shown.label}</span>
           </Link>
         )}

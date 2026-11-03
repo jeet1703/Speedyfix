@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { siteImage, siteSrcSet } from '../api/images';
 import type { Slide } from '../api/types';
 import { Icon } from './Icons';
 
@@ -10,6 +11,11 @@ export function HeroSlider({ slides }: { slides: Slide[] }) {
   const [paused, setPaused] = useState(false);
   const count = slides.length;
   const go = useCallback((i: number) => setIndex(((i % count) + count) % count), [count]);
+
+  // The current slide's photo loads first; the next one starts once it's in, so they never compete.
+  const [wanted, setWanted] = useState<Set<number>>(() => new Set([0]));
+  const want = useCallback((i: number) => setWanted((w) => (w.has(i) ? w : new Set([...w, i]))), []);
+  useEffect(() => want(index), [index, want]);
 
   useEffect(() => {
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -27,7 +33,10 @@ export function HeroSlider({ slides }: { slides: Slide[] }) {
       {slides.map((s, i) => (
         <div key={s.id} className={'hero__slide' + (i === index ? ' is-active' : '')} role="group"
           aria-roledescription="slide" aria-label={`${i + 1} of ${count}: ${s.title}`} aria-hidden={i !== index}>
-          <img className="hero__img" src={s.imageUrl} alt="" loading={i === 0 ? 'eager' : 'lazy'} />
+          {wanted.has(i) && (
+            <img className="hero__img" src={siteImage(s.imageUrl)} srcSet={siteSrcSet(s.imageUrl)} sizes="100vw" alt=""
+              onLoad={i === index ? () => want((i + 1) % count) : undefined} />
+          )}
           <div className="container hero__content">
             <p className="hero__kicker">{s.kicker}</p>
             <h1 className="hero__title">{s.title}</h1>

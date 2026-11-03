@@ -19,6 +19,7 @@ import com.speedyfixautosales.store.partrequest.PartRequestService;
 import com.speedyfixautosales.store.photo.PhotoUrls;
 import com.speedyfixautosales.store.vehicle.LookupLog;
 import com.speedyfixautosales.store.vehicle.Vehicle;
+import com.speedyfixautosales.store.shipping.ParcelSizes;
 import com.speedyfixautosales.store.vehicle.VehicleService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -87,7 +88,8 @@ public class AdminCatalogService {
                          String partNumber, String engineCode, String brand, String subType, List<String> refinements,
                          Shipping shipping, int stock, boolean bestSeller, ProductStatus status, WorkStatus workStatus,
                          String imageUrl, boolean samplePhoto, List<Photo> photos, List<Fitment> vehicles,
-                         LocalDate addedOn, String descriptionHtml, Integer salePercent, BigDecimal sellingPrice) {
+                         LocalDate addedOn, String descriptionHtml, Integer salePercent, BigDecimal sellingPrice,
+                         BigDecimal weightKg, BigDecimal defaultWeightKg) {
     }
 
     /** vehicle is null for plates the data source didn't recognise. */
@@ -123,8 +125,8 @@ public class AdminCatalogService {
 
     public record Dashboard(Tasks tasks, List<Sales> sales, List<SalesDay> dailySales, OrderCounts orders,
                             CustomerCounts customers, Listings listings, long needFitment, long missingPhotos,
-                            long noMatchSearches, long lookupsThisMonth, BigDecimal lookupSpend, BigDecimal lookupBudget,
-                            String buyingTeamEmail, List<Row> workQueue, List<NoMatch> noMatch) {
+                            long noMatchSearches, long lookupsThisMonth, String buyingTeamEmail,
+                            List<Row> workQueue, List<NoMatch> noMatch) {
     }
 
     /** A staff plate check: the vehicle, the parts confirmed for it, and unconfirmed parts with its engine code. */
@@ -140,11 +142,14 @@ public class AdminCatalogService {
     private final PartRequestService partRequests;
     private final CustomerService customers;
     private final PhotoUrls photoUrls;
+    private final ParcelSizes parcelSizes;
 
     public AdminCatalogService(CatalogRepository repository, ProductPhotoStore photos, VehicleService vehicles,
                                LookupLog lookups, AdminSettings settings, OrderService orders,
-                               PartRequestService partRequests, CustomerService customers, PhotoUrls photoUrls) {
+                               PartRequestService partRequests, CustomerService customers, PhotoUrls photoUrls,
+                               ParcelSizes parcelSizes) {
         this.photoUrls = photoUrls;
+        this.parcelSizes = parcelSizes;
         this.repository = repository;
         this.photos = photos;
         this.vehicles = vehicles;
@@ -176,8 +181,6 @@ public class AdminCatalogService {
         Instant weekAgo = Instant.now().minus(Duration.ofDays(7));
         Instant monthStart = LocalDate.now(UK).withDayOfMonth(1).atStartOfDay(UK).toInstant();
         long lookupsThisMonth = lookups.countSince(monthStart);
-        AdminSettings.Values s = settings.get();
-        BigDecimal spend = s.lookupCost().multiply(BigDecimal.valueOf(lookupsThisMonth)).setScale(2, RoundingMode.HALF_UP);
         List<NoMatch> noMatch = lookups.noMatchByVehicle(weekAgo).entrySet().stream()
                 .limit(NO_MATCH_LIST_SIZE)
                 .map(e -> new NoMatch(e.getKey() == null ? null : vehicles.findById(e.getKey()).map(AdminCatalogService::describe).orElse(null),
@@ -214,7 +217,7 @@ public class AdminCatalogService {
         Listings listings = new Listings(rows.stream().filter(r -> r.status() == ProductStatus.LIVE).count(),
                 rows.stream().filter(r -> r.status() == ProductStatus.DRAFT).count(), outOfStock);
         return new Dashboard(tasks, sales, daily, orderCounts, customerCounts, listings, needFitment, missingPhotos,
-                lookups.noMatchSince(weekAgo), lookupsThisMonth, spend, s.lookupBudget(), s.buyingTeamEmail(), open, noMatch);
+                lookups.noMatchSince(weekAgo), lookupsThisMonth, settings.get().buyingTeamEmail(), open, noMatch);
     }
 
     private static long countOrders(List<Order> all, Order.Status status) {
@@ -310,6 +313,7 @@ public class AdminCatalogService {
         if (form.descriptionHtml() != null) {
             repository.saveDescriptionHtml(id, form.descriptionHtml().isBlank() ? null : form.descriptionHtml().trim());
         }
+        parcelSizes.setWeight(id, form.weightKg());
         return detail(saved);
     }
 
@@ -384,7 +388,8 @@ public class AdminCatalogService {
         return new Detail(p.id(), p.name(), p.categoryId(), p.condition(), p.grade(), p.price(), p.partNumber(),
                 p.engineCode(), p.brand(), p.subType(), p.refinements(), p.shipping(), p.stock(), p.bestSeller(), p.status(),
                 workStatus(p), p.imageUrl(), p.imageUrl() != null && !p.hasPhoto() && !Images.isPlaceholder(p.imageUrl()),
-                uploaded, fits, p.addedOn(), repository.descriptionHtml(p.id()).orElse(null), p.salePercent(), p.sellingPrice());
+                uploaded, fits, p.addedOn(), repository.descriptionHtml(p.id()).orElse(null), p.salePercent(), p.sellingPrice(),
+                parcelSizes.weight(p.id()).orElse(null), ParcelSizes.typicalWeight(p.categoryId()));
     }
 
     static WorkStatus workStatus(Product p) {

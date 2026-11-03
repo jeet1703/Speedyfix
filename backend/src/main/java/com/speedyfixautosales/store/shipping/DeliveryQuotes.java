@@ -1,0 +1,202 @@
+package com.speedyfixautosales.store.shipping;
+
+import com.speedyfixautosales.store.basket.BasketService;
+import com.speedyfixautosales.store.basket.BasketView;
+import com.speedyfixautosales.store.catalog.CatalogService;
+import com.speedyfixautosales.store.catalog.Product;
+import com.speedyfixautosales.store.common.ConflictException;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+/**
+ * The delivery choices for a basket going to a postcode. With FedEx set up (FedExClient), everything is priced by
+ * FedEx, heavy parts (engines, gearboxes) included: FedEx quotes those as FedEx Freight. The price is FedEx's charge to
+ * the shop plus any markup (fedex.markup-percent, fedex.handling-fee) and VAT, with the cheapest service free on
+ * orders over the free-delivery amount, except for heavy parts. Manual delivery (a quote by hand after payment) is
+ * always offered too, and is the only choice when FedEx can't price the order, so checkout never stops. Without
+ * FedEx set up, the flat prices apply (BasketService).
+ */
+@Service
+public class DeliveryQuotes {
+
+    private static final Logger log = LoggerFactory.getLogger(DeliveryQuotes.class);
+    private static final Duration CACHE_FOR = Duration.ofMinutes(30);
+    private static final int MAX_CACHED = 1_000;
+    /** More boxes than this and the order is quoted by hand (manual delivery only). */
+    static final int MAX_PARCELS = 20;
+    static final String FEDEX = "FEDEX";
+    /** The basket's delivery before a postcode is known, while FedEx prices it. */
+    public static final String AT_CHECKOUT = "QUOTE";
+    /**
+     * The shopper doesn't want FedEx: they pay for the parts only, then contact the shop for a quote from another
+     * delivery partner, paid separately.
+     */
+    public static final String MANUAL = "MANUAL";
+    static final Option MANUAL_OPTION = new Option(MANUAL, MANUAL, "Manual delivery: contact us for a quote after payment",
+            BigDecimal.ZERO.setScale(2), null);
+
+    /** True when the order's delivery is quoted by hand after payment, so it isn't in the order total. */
+    public static boolean manual(BasketView.Delivery delivery) {
+        return delivery != null && MANUAL.equals(delivery.method());
+    }
+
+    /** One choice at checkout. id is what the shopper sends back to choose it; arrives is a date (yyyy-MM-dd), or null. */
+    public record Option(String id, String method, String label, BigDecimal price, String arrives) {
+        BasketView.Delivery delivery() {
+            return new BasketView.Delivery(method, label, price);
+        }
+    }
+
+    private record Cached(List<FedExClient.Rate> rates, Instant at) {
+    }
+
+    private final FedExClient fedex;
+    private final ParcelSizes sizes;
+    private final CatalogService catalog;
+    private final BigDecimal markupPercent;
+    private final BigDecimal handlingFee;
+    private final boolean addVat;
+    private final Map<String, Cached> cache = new ConcurrentHashMap<>();
+
+    public DeliveryQuotes(FedExClient fedex, ParcelSizes sizes, CatalogService catalog,
+                          @Value("${fedex.markup-percent:0}") BigDecimal markupPercent,
+                          @Value("${fedex.handling-fee:0}") BigDecimal handlingFee,
+                          @Value("${fedex.add-vat:true}") boolean addVat) {
+        this.fedex = fedex;
+        this.sizes = sizes;
+        this.catalog = catalog;
+        this.markupPercent = markupPercent;
+        this.handlingFee = handlingFee;
+        this.addVat = addVat;
+    }
+
+    /** True when parcels are priced by FedEx from the postcode at checkout. */
+    public boolean live() {
+        return fedex.enabled();
+    }
+
+    /**
+     * The basket as the shop shows it before checkout: with FedEx on, parcel delivery is shown as worked out at
+     * checkout (unless it's free anyway), rather than a price that would change.
+     */
+    public BasketView beforeCheckout(BasketView basket) {
+        String method = basket.delivery().method();
+        boolean flatPriced = "STANDARD".equals(method) || "PALLET".equals(method);
+        if (!live() || !flatPriced || ("STANDARD".equals(method) && basket.delivery().price().signum() == 0)) {
+            return basket;
+        }
+        return BasketService.withDelivery(basket, new BasketView.Delivery(AT_CHECKOUT, "Delivery, worked out at checkout", BigDecimal.ZERO.setScale(2)));
+    }
+
+    /** The choices for the basket to the postcode, the cheapest first, then manual delivery for parcels. */
+    public List<Option> options(BasketView basket, String postcode) {
+        if (basket.lines().isEmpty()) {
+            return List.of();
+        }
+        BasketView.Delivery flat = basket.delivery();
+        Option fallback = new Option(flat.method(), flat.method(), flat.label(), flat.price(), null);
+        if (!live()) {
+            return List.of(fallback);
+        }
+        List<Option> options = new ArrayList<>(fedexOptions(basket, postcode, "PALLET".equals(flat.method())));
+        options.add(MANUAL_OPTION);
+        return List.copyOf(options);
+    }
+
+    /** FedEx's services for the basket, cheapest first; empty when FedEx can't price it. heavy: engines or gearboxes. */
+    private List<Option> fedexOptions(BasketView basket, String postcode, boolean heavy) {
+        List<FedExClient.Parcel> parcels = new ArrayList<>();
+        for (BasketView.Line line : basket.lines()) {
+            Product p = catalog.findAny(line.productId());
+            for (int i = 0; i < line.quantity(); i++) {
+                parcels.add(sizes.parcel(p));
+            }
+        }
+        if (parcels.size() > MAX_PARCELS) {
+            return List.of();
+        }
+        List<FedExClient.Rate> rates;
+        try {
+            rates = rates(normalise(postcode), parcels);
+        } catch (IOException | RuntimeException e) {
+            log.warn("FedEx didn't quote delivery to {}: {}", outward(postcode), e.getMessage());
+            return List.of();
+        }
+        // Free delivery is for parcels: an engine's FedEx Freight costs the shop about £170 before VAT.
+        boolean free = !heavy && basket.subtotal().compareTo(BasketService.FREE_DELIVERY_FROM) >= 0;
+        List<Option> options = new ArrayList<>();
+        for (FedExClient.Rate r : rates) {
+            BigDecimal price = free && options.isEmpty() ? BigDecimal.ZERO.setScale(2) : price(r.chargeExVat());
+            options.add(new Option(r.serviceType(), FEDEX, label(r.serviceName()), price,
+                    r.arrives() == null || r.arrives().length() < 10 ? null : r.arrives().substring(0, 10)));
+        }
+        return List.copyOf(options);
+    }
+
+    /** The delivery the order is charged: the chosen option, priced again here so the browser can't set it. */
+    public BasketView.Delivery choose(BasketView basket, String postcode, String optionId) {
+        List<Option> options = options(basket, postcode);
+        if (options.isEmpty()) {
+            return basket.delivery();
+        }
+        // The shopper chose a FedEx service, but FedEx can't price the order now: don't switch them to manual delivery.
+        boolean fedexChosen = optionId != null && optionId.startsWith("FEDEX");
+        if (fedexChosen && options.stream().noneMatch(o -> FEDEX.equals(o.method()))) {
+            throw new ConflictException("We couldn’t confirm the FedEx delivery price just now. Try again in a moment, or choose manual delivery.");
+        }
+        return options.stream().filter(o -> o.id().equals(optionId)).findFirst().orElse(options.get(0)).delivery();
+    }
+
+    /** What the shopper pays: FedEx's charge, the markup and handling fee, and VAT. */
+    BigDecimal price(BigDecimal chargeExVat) {
+        BigDecimal p = chargeExVat.multiply(BigDecimal.ONE.add(markupPercent.movePointLeft(2))).add(handlingFee);
+        if (addVat) {
+            p = p.multiply(new BigDecimal("1.20"));
+        }
+        return p.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private List<FedExClient.Rate> rates(String postcode, List<FedExClient.Parcel> parcels) throws IOException {
+        String key = postcode + "|" + parcels;
+        Cached hit = cache.get(key);
+        if (hit != null && hit.at().plus(CACHE_FOR).isAfter(Instant.now())) {
+            return hit.rates();
+        }
+        List<FedExClient.Rate> rates = fedex.rates(postcode, "GB", parcels);
+        if (cache.size() > MAX_CACHED) {
+            cache.clear();
+        }
+        cache.put(key, new Cached(rates, Instant.now()));
+        return rates;
+    }
+
+    static String label(String serviceName) {
+        String name = serviceName.replace("®", "").trim();
+        return name.toLowerCase(Locale.UK).startsWith("fedex") ? name : "FedEx " + name;
+    }
+
+    /** "sw1a1aa" becomes "SW1A 1AA", as FedEx expects. */
+    static String normalise(String postcode) {
+        String p = postcode == null ? "" : postcode.replaceAll("\\s", "").toUpperCase(Locale.UK);
+        return p.length() > 3 ? p.substring(0, p.length() - 3) + " " + p.substring(p.length() - 3) : p;
+    }
+
+    /** Only the first half of a postcode goes in the log. */
+    private static String outward(String postcode) {
+        String p = normalise(postcode);
+        int space = p.indexOf(' ');
+        return space > 0 ? p.substring(0, space) : "?";
+    }
+}

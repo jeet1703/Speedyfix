@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { api, money } from '../api/client';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { api, hasInvoice, invoiceUrl, money } from '../api/client';
 import type { Order, OrderStatus } from '../api/types';
+import { EmailSignIn } from '../components/EmailSignIn';
 import { GoogleSignInButton } from '../components/GoogleSignInButton';
 import { Layout } from '../components/Layout';
 import { PageTitle } from '../components/PageTitle';
@@ -20,13 +21,21 @@ const STATUS: Record<OrderStatus, string> = {
   CANCELLED: 'Cancelled'
 };
 
-/** /account: sign in with Google, or the signed-in shopper's details and recent searches. */
+/** /account: sign in with Google (or email, once it's switched on), or the signed-in shopper's details and recent searches. */
 export function AccountPage() {
   const { customer, token, signInWithGoogle, signOut, searches, clearSearches } = useAccount();
   const { data } = useSite();
   const { wishlist } = useStore();
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const navigate = useNavigate();
+  // ?next=/checkout: back to where the shopper was once they're signed in (only this site's own pages).
+  const [params] = useSearchParams();
+  const next = params.get('next');
+  const backTo = next && next.startsWith('/') && !next.startsWith('//') ? next : null;
+  useEffect(() => {
+    if (customer && backTo) navigate(backTo, { replace: true });
+  }, [customer, backTo, navigate]);
 
   async function onCredential(credential: string) {
     setError('');
@@ -41,6 +50,7 @@ export function AccountPage() {
   }
 
   const clientId = data?.googleClientId ?? '';
+  const emailSignIn = data?.emailSignIn ?? false;
   const orders = useMyOrders(token);
 
   return (
@@ -55,18 +65,29 @@ export function AccountPage() {
 
         {customer === null && (
           <section className="account__card" aria-labelledby="signin-title">
-            <h2 id="signin-title" className="account__title">Sign in or create an account</h2>
-            <p>Use your Google account. It’s one click, and there’s no new password to remember.</p>
+            <h2 id="signin-title" className="account__title">{backTo === '/checkout' ? 'Sign in to check out' : 'Sign in or create an account'}</h2>
+            {backTo === '/checkout' && <p>You need an account to place an order, so you can follow it and find your invoice later. Your basket is kept.</p>}
+            <p>{emailSignIn
+              ? 'Use your Google account in one click, or your email address and a password.'
+              : 'Use your Google account. It’s one click, and there’s no new password to remember.'}</p>
             {error && <p className="notice notice--error" role="alert">{error}</p>}
             {!data ? <Skeleton width={240} height={44} radius={4} /> : clientId ? (
               <div aria-busy={busy}>
                 <GoogleSignInButton clientId={clientId} onCredential={(c) => void onCredential(c)} />
                 {busy && <p className="page-body__note">Signing you in…</p>}
               </div>
-            ) : (
-              <p className="notice">Google sign-in isn’t switched on yet. You can still shop and check out without an account.</p>
+            ) : !emailSignIn && (
+              <p className="notice">Google sign-in isn’t switched on yet.{data.signInToBuy ? ` Call us on ${data.site.phone} to order.` : ' You can still shop and check out without an account.'}</p>
             )}
-            <p className="page-body__note">We only use your name, email and profile photo from Google. You can shop and check out without an account.</p>
+            {emailSignIn && (
+              <>
+                {clientId && <p className="account__or"><span>or</span></p>}
+                <EmailSignIn />
+              </>
+            )}
+            <p className="page-body__note">
+              {clientId ? 'We only use your name, email and profile photo from Google. ' : ''}{data?.signInToBuy ? 'You need an account to check out.' : 'You can shop and check out without an account.'}
+            </p>
           </section>
         )}
 
@@ -80,7 +101,7 @@ export function AccountPage() {
                 <div>
                   <h2 id="profile-title" className="account__title">{customer.name}</h2>
                   <p>{customer.email}</p>
-                  <p className="page-body__note">Member since {joined.format(new Date(customer.joinedAt))} · Signed in with Google</p>
+                  <p className="page-body__note">Member since {joined.format(new Date(customer.joinedAt))} · Signed in with {customer.signInMethod === 'EMAIL' ? 'email' : 'Google'}</p>
                 </div>
               </div>
               <div className="empty__actions">
@@ -108,6 +129,9 @@ export function AccountPage() {
                         {placed.format(new Date(o.placedAt))} · {o.lines.reduce((n, l) => n + l.quantity, 0)} item{o.lines.reduce((n, l) => n + l.quantity, 0) === 1 ? '' : 's'} · {money(o.total)}
                       </p>
                       <p className="my-orders__lines">{o.lines.map((l) => (l.quantity > 1 ? `${l.quantity} × ${l.name}` : l.name)).join(', ')}</p>
+                      {hasInvoice(o) && (
+                        <p className="page-body__note"><a href={invoiceUrl(o.reference)} target="_blank" rel="noopener">VAT invoice (PDF)</a></p>
+                      )}
                       {o.dispatch && (
                         <p className="page-body__note">
                           Sent with {o.dispatch.courier}{o.dispatch.trackingNumber ? `, tracking number ${o.dispatch.trackingNumber}` : ''}

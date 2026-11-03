@@ -74,7 +74,9 @@ export function BasketPage() {
               <p className="panel__note">
                 {basket!.delivery.method === 'PALLET'
                   ? 'Engines and gearboxes travel by pallet, so this order has pallet delivery.'
-                  : 'Tracked parcel delivery is free on orders of £100 or more.'}
+                  : basket!.delivery.method === 'QUOTE'
+                    ? 'We work out FedEx delivery from your postcode at checkout. The cheapest service is free on orders of £100 or more.'
+                    : 'Tracked parcel delivery is free on orders of £100 or more.'}
               </p>
             </aside>
           </div>

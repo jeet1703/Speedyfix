@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { siteImage, siteSrcSet } from '../api/images';
 import type { Category } from '../api/types';
 import { SectionHeading } from './SectionHeading';
 
@@ -11,7 +12,7 @@ export function CategoryBanners({ categories }: { categories: Category[] }) {
           {categories.map((c) => (
             <li key={c.id}>
               <Link className="banner" to={`/products?category=${c.id}`}>
-                <img src={c.imageUrl} alt="" loading="lazy" />
+                <img src={siteImage(c.imageUrl)} srcSet={siteSrcSet(c.imageUrl)} sizes="(max-width: 700px) 50vw, 300px" alt="" loading="lazy" />
                 <span className="banner__text">
                   <strong>{c.name}</strong>
                   <span>View more</span>

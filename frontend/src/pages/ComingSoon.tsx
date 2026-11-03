@@ -8,15 +8,21 @@ import { useSite } from '../state/SiteContext';
 import { PrivacyBody, TermsBody } from './legal';
 
 /** Information pages. Terms and privacy are drafts for the client's legal adviser to review (see PENDING.md). */
-const PAGES: Record<string, { title: string; body: (site: Site) => ReactNode }> = {
+/** fedex: parcel delivery is priced by FedEx from the postcode at checkout (SiteData.deliveryQuotes). */
+const PAGES: Record<string, { title: string; body: (site: Site, fedex: boolean) => ReactNode }> = {
   '/delivery': {
     title: 'Delivery and returns',
-    body: (site) => (
+    body: (site, fedex) => (
       <>
         <h2 className="info__heading">UK delivery</h2>
         <ul className="info__list">
-          <li>Tracked parcel delivery is £9.95, and free on orders of £100 or more.</li>
-          <li>Engines, gearboxes and other heavy parts go by pallet: £79 per order.</li>
+          {fedex
+            ? <li>Parcels go by FedEx. Enter your postcode at checkout to see the price and delivery date for each service. The cheapest service is free on orders of £100 or more.</li>
+            : <li>Tracked parcel delivery is £9.95, and free on orders of £100 or more.</li>}
+          {fedex
+            ? <li>Engines, gearboxes and other heavy parts go by FedEx Freight, priced the same way at checkout. Free delivery over £100 is for parcels only.</li>
+            : <li>Engines, gearboxes and other heavy parts go by pallet: £79 per order.</li>}
+          {fedex && <li>Prefer another courier? Choose manual delivery at checkout: pay for the parts, then we’ll quote you delivery separately.</li>}
           <li>UK delivery is usually within 7 working days (estimated). Courier delays can happen.</li>
           <li>Everything is securely packed and you get tracking once it’s dispatched from {site.shipsFrom}.</li>
         </ul>
@@ -33,7 +39,7 @@ const PAGES: Record<string, { title: string; body: (site: Site) => ReactNode }> 
   },
   '/faq': {
     title: 'FAQs',
-    body: (site) => (
+    body: (site, fedex) => (
       <dl className="info__faq">
         <dt>How do I know a part fits my car?</dt>
         <dd>Enter your reg on the part’s page to check it against our compatibility list, and compare the part number with the one on your old part. If you’re unsure, message us your reg or VIN and we’ll confirm compatibility before you order.</dd>
@@ -42,7 +48,7 @@ const PAGES: Record<string, { title: string; body: (site: Site) => ReactNode }> 
         <dt>What warranty do I get?</dt>
         <dd>A {site.warranty} warranty from the date of delivery, covering the part (not labour or fitting).</dd>
         <dt>How long does delivery take?</dt>
-        <dd>UK orders usually arrive within 7 working days, with {site.couriers}. Engines and gearboxes travel by pallet. See <Link to="/delivery">Delivery and returns</Link>.</dd>
+        <dd>UK orders usually arrive within 7 working days, with {site.couriers}. {fedex ? 'Engines and gearboxes go by FedEx Freight.' : 'Engines and gearboxes travel by pallet.'} See <Link to="/delivery">Delivery and returns</Link>.</dd>
         <dt>Which couriers do you use?</dt>
         <dd>{site.couriers}. You get a tracking number once your order is dispatched.</dd>
         <dt>Can I return a part?</dt>
@@ -64,11 +70,11 @@ export function ComingSoon() {
   const page = PAGES[pathname.replace(/\/$/, '')];
   const title = page?.title ?? 'Page not found';
   return (
-    <Layout title={title}>
+    <Layout title={title} noindex={!page}>
       <PageTitle title={title} crumbs={[{ label: title }]} />
       <div className="container page-body">
         <div className="page-body__text info">
-          {page ? (data ? page.body(data.site) : null) : <p>We couldn’t find that page. It may have moved.</p>}
+          {page ? (data ? page.body(data.site, data.deliveryQuotes) : null) : <p>We couldn’t find that page. It may have moved.</p>}
         </div>
         <div className="empty__actions">
           <Link className="btn btn--primary" to="/products">Browse parts</Link>

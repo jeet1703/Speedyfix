@@ -10,6 +10,7 @@ import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -32,9 +33,11 @@ public class OrderPaymentService {
     private final PayPalClient paypal;
     private final String brandName;
     private final Duration unpaidExpiry;
+    private final ApplicationEventPublisher events;
 
     public OrderPaymentService(OrderStore orders, OrderService orderService, PayPalClient paypal, SiteProperties site,
-                               @Value("${orders.unpaid-expiry:PT2H}") Duration unpaidExpiry) {
+                               @Value("${orders.unpaid-expiry:PT2H}") Duration unpaidExpiry, ApplicationEventPublisher events) {
+        this.events = events;
         this.orders = orders;
         this.orderService = orderService;
         this.paypal = paypal;
@@ -88,6 +91,8 @@ public class OrderPaymentService {
         if (!matches) {
             // Money may have moved without matching this order: staff check it in PayPal rather than us guessing.
             log.error("PayPal capture for {} doesn't match the order: {}", order.reference(), c);
+            // Staff are emailed (once per order, however often this repeats).
+            events.publishEvent(new PaymentNeedsChecking(order, c.status(), c.currency(), c.amount()));
             throw new PaymentMismatchException("We couldn’t confirm your payment. Please call us with your order number before trying again.");
         }
         orders.save(order.withPayment(new Order.Payment(paypalOrderId, c.captureId(), Instant.now())));

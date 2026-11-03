@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { api, ApiError } from '../api/client';
-import type { Customer } from '../api/types';
+import type { AccountSession, Customer } from '../api/types';
 import { storage } from './storage';
 
 const MAX_SEARCHES = 10;
@@ -11,6 +11,12 @@ interface AccountState {
   /** The signed-in shopper's session token, for calls made on their behalf (checkout, their orders). */
   token: string | null;
   signInWithGoogle: (credential: string) => Promise<void>;
+  /** Email sign-in, once it's switched on (SiteData.emailSignIn). */
+  signInWithEmail: (email: string, password: string) => Promise<void>;
+  /** Finishes an email sign-up with the code from the email, which creates the account and signs in. */
+  confirmEmail: (email: string, code: string) => Promise<void>;
+  /** Sets a new password with the code from the "Forgot password" email, and signs in. */
+  resetPassword: (email: string, code: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   /** Recent searches, newest first: the account's when signed in, this browser's otherwise. */
   searches: string[];
@@ -48,8 +54,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     // Only on first load: sign-in sets the customer itself.
   }, []);
 
-  const signInWithGoogle = useCallback(async (credential: string) => {
-    const session = await api.signInWithGoogle(credential);
+  const start = useCallback(async (session: AccountSession) => {
     storage.set('account_token', session.token);
     setToken(session.token);
     setCustomer(session.customer);
@@ -61,6 +66,12 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     storage.set('searches', null);
     setSearches(list);
   }, []);
+
+  const signInWithGoogle = useCallback(async (credential: string) => start(await api.signInWithGoogle(credential)), [start]);
+  const signInWithEmail = useCallback(async (email: string, password: string) => start(await api.signInWithEmail(email, password)), [start]);
+  const confirmEmail = useCallback(async (email: string, code: string) => start(await api.confirmEmail(email, code)), [start]);
+  const resetPassword = useCallback(async (email: string, code: string, password: string) =>
+    start(await api.resetPassword(email, code, password)), [start]);
 
   const signOut = useCallback(async () => {
     if (token) await api.signOut(token).catch(() => undefined);
@@ -84,8 +95,9 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     else storage.set('searches', null);
   }, [token]);
 
-  const value = useMemo(() => ({ customer, token: customer ? token : null, signInWithGoogle, signOut, searches, recordSearch, clearSearches }),
-    [customer, token, signInWithGoogle, signOut, searches, recordSearch, clearSearches]);
+  const value = useMemo(() => ({
+    customer, token: customer ? token : null, signInWithGoogle, signInWithEmail, confirmEmail, resetPassword, signOut, searches, recordSearch, clearSearches
+  }), [customer, token, signInWithGoogle, signInWithEmail, confirmEmail, resetPassword, signOut, searches, recordSearch, clearSearches]);
   return <AccountContext.Provider value={value}>{children}</AccountContext.Provider>;
 }
 

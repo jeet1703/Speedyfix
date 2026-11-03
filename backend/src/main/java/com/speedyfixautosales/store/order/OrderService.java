@@ -7,11 +7,13 @@ import com.speedyfixautosales.store.catalog.Product;
 import com.speedyfixautosales.store.common.BadRequestException;
 import com.speedyfixautosales.store.common.ConflictException;
 import com.speedyfixautosales.store.common.NotFoundException;
+import com.speedyfixautosales.store.shipping.DeliveryQuotes;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 /**
@@ -28,16 +30,31 @@ public class OrderService {
     private final OrderStore orders;
     private final BasketService baskets;
     private final CatalogRepository catalog;
+    private final DeliveryQuotes quotes;
+    private final ApplicationEventPublisher events;
 
-    public OrderService(OrderStore orders, BasketService baskets, CatalogRepository catalog) {
+    public OrderService(OrderStore orders, BasketService baskets, CatalogRepository catalog, DeliveryQuotes quotes,
+                        ApplicationEventPublisher events) {
         this.orders = orders;
         this.baskets = baskets;
         this.catalog = catalog;
+        this.quotes = quotes;
+        this.events = events;
     }
 
-    /** @param customerId the signed-in shopper's account, or null for a guest checkout */
+    /** With the cheapest delivery. */
     public Order place(String basketId, Order.Customer customer, Order.Address address, String notes, String customerId) {
-        BasketView basket = baskets.get(basketId);
+        return place(basketId, customer, address, notes, customerId, null);
+    }
+
+    /**
+     * @param customerId     the signed-in shopper's account, or null for a guest checkout
+     * @param deliveryOption the delivery chosen at checkout (DeliveryQuotes), priced again here; null for the cheapest
+     */
+    public Order place(String basketId, Order.Customer customer, Order.Address address, String notes, String customerId,
+                       String deliveryOption) {
+        BasketView raw = baskets.get(basketId);
+        BasketView basket = BasketService.withDelivery(raw, quotes.choose(raw, address.postcode(), deliveryOption));
         if (basket.lines().isEmpty()) {
             throw new BadRequestException("Your basket is empty.");
         }
@@ -108,6 +125,12 @@ public class OrderService {
         }
         Order updated = order.withStatus(status, dispatch);
         orders.save(updated);
+        // The invoice and emails (OrderEmails); they never stop the order changing.
+        if (status == Order.Status.AWAITING_DISPATCH) {
+            events.publishEvent(new OrderPaid(updated));
+        } else if (status == Order.Status.CANCELLED) {
+            events.publishEvent(new OrderCancelled(updated));
+        }
         return updated;
     }
 

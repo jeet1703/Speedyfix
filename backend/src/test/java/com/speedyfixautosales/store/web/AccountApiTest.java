@@ -143,4 +143,15 @@ class AccountApiTest {
         mvc.perform(delete("/api/account/session").header(HttpHeaders.AUTHORIZATION, carol)).andExpect(status().isNoContent());
         mvc.perform(get("/api/account").header(HttpHeaders.AUTHORIZATION, carol)).andExpect(status().isUnauthorized());
     }
+
+    @Test
+    void emailSignInStaysOffUntilItsSwitchedOn() throws Exception {
+        mvc.perform(get("/api/site")).andExpect(jsonPath("$.emailSignIn").value(false));
+        mvc.perform(post("/api/account/email/sign-up").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Gil\",\"email\":\"gil@example.com\",\"password\":\"long-enough-3\"}"))
+                .andExpect(status().isServiceUnavailable());
+        mvc.perform(post("/api/account/email/sign-in").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"gil@example.com\",\"password\":\"long-enough-3\"}"))
+                .andExpect(status().isServiceUnavailable());
+    }
 }

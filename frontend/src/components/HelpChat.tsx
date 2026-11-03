@@ -90,7 +90,8 @@ function Streamed({ text, onDone }: { text: string; onDone: () => void }) {
   );
 }
 
-export function HelpChat({ site, ai }: { site: Site; ai: boolean }) {
+/** fedex: parcel delivery is priced by FedEx at checkout rather than the flat £9.95. */
+export function HelpChat({ site, ai, fedex }: { site: Site; ai: boolean; fedex: boolean }) {
   const { vehicle, setVehicle } = useStore();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -181,7 +182,7 @@ export function HelpChat({ site, ai }: { site: Site; ai: boolean }) {
         say('bot', 'I can check that for you. What’s your order number? It starts with **SF-** and it’s on your order confirmation.');
         break;
       case 'delivery':
-        say('bot', `Most UK orders arrive within **7 working days**. We ship with ${site.couriers}. Parcels are **£9.95**, or free on orders over £100, and engines and gearboxes travel by pallet for **£79**. We can ship abroad too, at extra cost.`,
+        say('bot', `Most UK orders arrive within **7 working days**. We ship with ${site.couriers}. ${fedex ? 'Parcels go by **FedEx**: enter your postcode at checkout to see the price and date for each service. The cheapest is free on orders over £100. Engines' : 'Parcels are **£9.95**, or free on orders over £100, and engines'} and gearboxes travel by pallet for **£79**. We can ship abroad too, at extra cost.`,
           <Link to="/delivery" onClick={close}>Read delivery and returns</Link>);
         break;
       case 'returns':

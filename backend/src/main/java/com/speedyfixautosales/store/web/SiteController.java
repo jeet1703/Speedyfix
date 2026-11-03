@@ -1,11 +1,14 @@
 package com.speedyfixautosales.store.web;
 
+import com.speedyfixautosales.store.account.EmailSignInService;
 import com.speedyfixautosales.store.catalog.CatalogRepository;
 import com.speedyfixautosales.store.chat.ChatService;
 import com.speedyfixautosales.store.catalog.MenuGroup;
 import com.speedyfixautosales.store.config.SiteProperties;
+import com.speedyfixautosales.store.mail.OrderEmails;
 import com.speedyfixautosales.store.order.OrderPaymentService;
 import com.speedyfixautosales.store.order.PayPalClient;
+import com.speedyfixautosales.store.shipping.DeliveryQuotes;
 import com.speedyfixautosales.store.vehicle.VehicleService;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,10 +26,16 @@ public class SiteController {
     private final PayPalClient paypal;
     private final OrderPaymentService payments;
     private final ChatService chat;
+    private final DeliveryQuotes quotes;
+    private final EmailSignInService emailSignIn;
+    private final OrderEmails orderEmails;
+    private final boolean requireSignIn;
 
     public SiteController(SiteProperties site, CatalogRepository repository,
                           @Value("${account.google-client-id:}") String googleClientId, VehicleService vehicles,
-                          PayPalClient paypal, OrderPaymentService payments, ChatService chat) {
+                          PayPalClient paypal, OrderPaymentService payments, ChatService chat, DeliveryQuotes quotes,
+                          EmailSignInService emailSignIn, OrderEmails orderEmails,
+                          @Value("${orders.require-sign-in:false}") boolean requireSignIn) {
         this.site = site;
         this.repository = repository;
         this.googleClientId = googleClientId.trim();
@@ -34,6 +43,10 @@ public class SiteController {
         this.paypal = paypal;
         this.payments = payments;
         this.chat = chat;
+        this.quotes = quotes;
+        this.emailSignIn = emailSignIn;
+        this.orderEmails = orderEmails;
+        this.requireSignIn = requireSignIn;
     }
 
     /**
@@ -41,14 +54,20 @@ public class SiteController {
      * demoPlates is true until DVSA is connected, while only the sample plates resolve.
      * paypalClientId is public too (PayPal's buttons load with it); empty until PayPal is set up. unpaidHoldMinutes
      * is how long an unpaid order keeps its parts (0: no limit). chatAi is true when the help chat can answer with AI.
+     * emailSignIn is true when shoppers can also sign up with an email address and password (off until email is set up).
+     * orderEmails is true when paid orders email the buyer their invoice. signInToBuy is true when only signed-in
+     * shoppers can check out.
      */
     public record SiteResponse(HomeResponse.Site site, List<MenuGroup> menu, String googleClientId, boolean demoPlates,
-                               String paypalClientId, long unpaidHoldMinutes, boolean chatAi) {
+                               String paypalClientId, long unpaidHoldMinutes, boolean chatAi,
+                               boolean deliveryQuotes, boolean emailSignIn, boolean orderEmails,
+                               boolean signInToBuy) {
     }
 
     @GetMapping("/api/site")
     public SiteResponse site() {
         return new SiteResponse(HomeResponse.Site.from(site), repository.menu(), googleClientId, vehicles.demoPlates(),
-                paypal.publicClientId(), payments.unpaidExpiry() == null ? 0 : payments.unpaidExpiry().toMinutes(), chat.enabled());
+                paypal.publicClientId(), payments.unpaidExpiry() == null ? 0 : payments.unpaidExpiry().toMinutes(), chat.enabled(),
+                quotes.live(), emailSignIn.enabled(), orderEmails.enabled(), requireSignIn);
     }
 }
