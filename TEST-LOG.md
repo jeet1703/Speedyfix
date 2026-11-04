@@ -1,6 +1,43 @@
 # Sanity test: whole website, shopper and admin
 
-**4 November 2026**, on the development computer: the local backend (local database, FedEx production keys, PayPal sandbox, email sign-in on, emails off so test codes went to the server log) and the local frontend in Chrome. All test data is in the local database only.
+## Second run: 5 November 2026
+
+On the development computer (local backend and database, FedEx production keys, PayPal sandbox, sign-in to buy on, emails on), plus read-only checks of the live site. Test orders, accounts and baskets are in the local database only.
+
+| Area | What was checked | Result |
+| --- | --- | --- |
+| API touchpoints (63 checks) | Shop pages, search, part page, unknown part; reg lookup; basket add, change, over-stock, unknown basket; delivery to the UK, India, USA and Ireland; half postcodes and sanctioned countries refused; guest checkout blocked; order lookup; invoice PDF (not cached); help chat; account and password reset; part request; every admin page; bad staff token; CORS | ✅ 63 of 63 |
+| Card payment, India | Indian sandbox card at checkout: paid, no UK VAT, invoice "VAT 0% (export)" | ✅ |
+| Card payment, UK | UK sandbox card: paid, "Order confirmed", invoice numbered | ✅ |
+| Unpaid order | Banner says it isn't confirmed; the card form on the order page pays it | ✅ |
+| Admin orders | Cancel puts stock back; a cancelled order can't be paid; dispatch needs a courier and saves the tracking number | ✅ |
+| Emails | Order confirmed (with invoice) and cancelled emails sent to real addresses; refused for example.com test addresses, as Resend should | ✅ |
+| Phone width (390 px) | Home, category, part, basket, checkout, order, account, request, about, contact, delivery, terms, privacy, wishlist, 404, admin sign-in: nothing scrolls sideways | ✅ |
+| Live site | Server up after each deploy; FedEx prices; worldwide wording in the help chat; card form and PayPal at checkout | ✅ |
+
+### Problems found and fixed
+
+| Problem | Fix |
+| --- | --- |
+| FedEx arrival dates assumed the parcel left right now, so a 9:37 pm order showed next-day arrival | The site tells FedEx the real dispatch day (today before 12:00 UK on a weekday, else the next weekday; `FEDEX_DISPATCH_CUTOFF`) |
+| An engine and a small part in one basket got no FedEx price (FedEx won't mix freight and parcels) | The small parts go on the engine's pallet |
+| A refused card at checkout left an unpaid order without telling the shopper | The message says the order is saved and reserved, so trying again won't order twice |
+
+### Still open
+
+| Gap | Why it matters | What fixes it |
+| --- | --- | --- |
+| Every page except the home page answers "404" on GitHub Pages (people still see it) | Google won't index part pages | Move to speedyfixautosales.com on a host with proper page routing (Cloudflare Pages, Netlify) |
+| Render: email sign-in and sign-in to buy are off; `MAIL_STAFF_ORDERS` not confirmed | Staff don't get new-order emails; anyone can check out as a guest | Set `ACCOUNT_EMAIL_SIGN_IN`, `ORDERS_REQUIRE_SIGN_IN`, `MAIL_STAFF_ORDERS` |
+| eBay compatibility import needs the seller's token | Parts show "Likely fits" rather than "Fits" | `EBAY_DEV_ID` and `EBAY_USER_TOKEN` in Render, then press the import button |
+| Live PayPal | Real payments | Switch on Advanced Credit and Debit Card Payments for the live PayPal app, then live keys |
+| FedEx shipments are booked by hand | Staff time; export paperwork | FedEx Ship API (labels, commercial invoice) |
+| No invoices list, VAT export or credit notes in the admin | VAT returns and refunds | Build the Invoices page and credit notes |
+| Home page's main heading is a slide title ("Turbochargers") | Search engines read it as the page's subject | One heading with the shop's name |
+
+## First run: 4 November 2026
+
+On the development computer: the local backend (local database, FedEx production keys, PayPal sandbox, email sign-in on, emails off so test codes went to the server log) and the local frontend in Chrome. All test data is in the local database only.
 
 ## Results
 
