@@ -197,7 +197,8 @@ public class DeliveryQuotes {
 
     private List<FedExClient.Rate> rates(FedExClient.Destination to, List<FedExClient.Parcel> parcels,
                                          List<FedExClient.Commodity> goods) throws IOException {
-        String key = to + "|" + parcels + "|" + goods;
+        // The ship date is in the key: the dates FedEx gives move on with it.
+        String key = to + "|" + parcels + "|" + goods + "|" + fedex.shipDate(java.time.ZonedDateTime.now());
         Cached hit = cache.get(key);
         if (hit != null && hit.at().plus(CACHE_FOR).isAfter(Instant.now())) {
             return hit.rates();

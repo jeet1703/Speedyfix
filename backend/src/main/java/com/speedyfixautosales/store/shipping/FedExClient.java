@@ -12,8 +12,13 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.DayOfWeek;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
@@ -57,6 +62,7 @@ public class FedExClient {
     private final String fromCountry;
     private final String api;
     private final boolean live;
+    private final LocalTime dispatchCutoff;
     private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
     private final ObjectMapper json = new ObjectMapper();
     private String token;
@@ -66,7 +72,9 @@ public class FedExClient {
                        @Value("${fedex.account-number:}") String accountNumber,
                        @Value("${fedex.environment:sandbox}") String environment,
                        @Value("${fedex.ship-from-postcode:UB8 2JP}") String fromPostcode,
-                       @Value("${fedex.ship-from-country:GB}") String fromCountry) {
+                       @Value("${fedex.ship-from-country:GB}") String fromCountry,
+                       @Value("${fedex.dispatch-cutoff:12:00}") String dispatchCutoff) {
+        this.dispatchCutoff = LocalTime.parse(dispatchCutoff.trim());
         this.apiKey = apiKey.trim();
         this.secretKey = secretKey.trim();
         this.accountNumber = accountNumber.trim();
@@ -82,6 +90,25 @@ public class FedExClient {
 
     public boolean live() {
         return live;
+    }
+
+    private static final ZoneId UK = ZoneId.of("Europe/London");
+
+    /** The day an order placed now can go out: today on a UK weekday before the cut-off, else the next weekday. */
+    public LocalDate shipDate(ZonedDateTime now) {
+        ZonedDateTime uk = now.withZoneSameInstant(UK);
+        LocalDate day = uk.toLocalDate();
+        if (uk.toLocalTime().isAfter(dispatchCutoff) || isWeekend(day)) {
+            day = day.plusDays(1);
+            while (isWeekend(day)) {
+                day = day.plusDays(1);
+            }
+        }
+        return day;
+    }
+
+    private static boolean isWeekend(LocalDate d) {
+        return d.getDayOfWeek() == DayOfWeek.SATURDAY || d.getDayOfWeek() == DayOfWeek.SUNDAY;
     }
 
     /**
@@ -107,6 +134,8 @@ public class FedExClient {
         }
         to.put("countryCode", dest.country().toUpperCase());
         to.put("residential", true);
+        // Without a ship date FedEx assumes the parcel leaves right now, so an order at 9pm "arrives tomorrow".
+        shipment.put("shipDateStamp", shipDate(ZonedDateTime.now(UK)).toString());
         shipment.put("pickupType", "DROPOFF_AT_FEDEX_LOCATION");
         shipment.put("preferredCurrency", "GBP");
         shipment.putArray("rateRequestType").add("ACCOUNT").add("LIST");

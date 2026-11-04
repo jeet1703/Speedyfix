@@ -2,7 +2,7 @@ import { ApiError, BASE, request } from '../api/client';
 import type { Vehicle } from '../api/types';
 import type {
   AdminSession, StaffSession, CategoryOption, CustomerRow, Dashboard, Fitment, Order, OrderStatus, PartRequest, PartRequestStatus, PlateCheck,
-  ProductDetail, ProductFormData, ProductRow, SettingsValues, SettingsView, EbaySyncStatus, InvoiceStatus
+  ProductDetail, ProductFormData, ProductRow, SettingsValues, SettingsView, EbaySyncStatus, InvoiceStatus, CompatibilityImport
 } from './types';
 
 const KEY = 'sf_admin_token';
@@ -110,6 +110,8 @@ export const adminApi = {
   settings: () => authed<SettingsView>('/api/admin/settings'),
   ebaySync: () => authed<EbaySyncStatus>('/api/admin/ebay-sync'),
   startEbaySync: () => authed<EbaySyncStatus>('/api/admin/ebay-sync', { method: 'POST' }),
+  compatibilityImport: () => authed<CompatibilityImport>('/api/admin/ebay-sync/compatibility'),
+  startCompatibilityImport: () => authed<CompatibilityImport>('/api/admin/ebay-sync/compatibility', { method: 'POST' }),
   saveSettings: (values: SettingsValues) => authed<SettingsView>('/api/admin/settings', json('PUT', values))
 };
 

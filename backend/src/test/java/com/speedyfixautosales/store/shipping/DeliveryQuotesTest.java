@@ -47,7 +47,7 @@ class DeliveryQuotesTest {
         boolean down;
 
         FakeFedEx(boolean keys) {
-            super(keys ? "key" : "", keys ? "secret" : "", keys ? "123456789" : "", "sandbox", "UB8 2JP", "GB");
+            super(keys ? "key" : "", keys ? "secret" : "", keys ? "123456789" : "", "sandbox", "UB8 2JP", "GB", "12:00");
         }
 
         @Override

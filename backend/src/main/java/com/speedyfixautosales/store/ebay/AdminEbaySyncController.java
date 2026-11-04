@@ -17,9 +17,31 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminEbaySyncController {
 
     private final EbaySyncService sync;
+    private final EbayCompatibilityImport compatibility;
 
-    public AdminEbaySyncController(EbaySyncService sync) {
+    public AdminEbaySyncController(EbaySyncService sync, EbayCompatibilityImport compatibility) {
         this.sync = sync;
+        this.compatibility = compatibility;
+    }
+
+    public record CompatibilityStatus(boolean available, EbayCompatibilityImport.Status status) {
+    }
+
+    @GetMapping("/compatibility")
+    public CompatibilityStatus compatibility() {
+        return new CompatibilityStatus(compatibility.available(), compatibility.status());
+    }
+
+    /** Starts copying every listing's eBay compatibility table onto its part (202); poll GET for progress. */
+    @PostMapping("/compatibility")
+    public ResponseEntity<CompatibilityStatus> importCompatibility() {
+        if (!compatibility.available()) {
+            throw new UnavailableException("Importing compatibility needs EBAY_DEV_ID and EBAY_USER_TOKEN (the seller’s eBay sign-in) as well as the eBay keys.");
+        }
+        if (!compatibility.start()) {
+            throw new ConflictException("The compatibility import is already running.");
+        }
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(compatibility());
     }
 
     @GetMapping

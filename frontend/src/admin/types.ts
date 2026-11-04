@@ -224,3 +224,19 @@ export interface EbaySyncStatus {
   } | null;
   lastError: string | null;
 }
+
+/** Copying each eBay listing's compatibility table onto its part (Listings page). */
+export interface CompatibilityImport {
+  available: boolean;
+  status: {
+    running: boolean;
+    checked: number;
+    total: number;
+    updated: number;
+    rows: number;
+    noTable: number;
+    finishedAt: string | null;
+    error: string | null;
+    problems: string[];
+  };
+}
