@@ -4,6 +4,7 @@ import com.speedyfixautosales.store.common.BadRequestException;
 import com.speedyfixautosales.store.common.ConflictException;
 import com.speedyfixautosales.store.common.NotFoundException;
 import com.speedyfixautosales.store.common.PaymentFailedException;
+import com.speedyfixautosales.store.order.OrderPaymentService;
 import com.speedyfixautosales.store.common.TooManyRequestsException;
 import com.speedyfixautosales.store.common.UnauthorizedException;
 import com.speedyfixautosales.store.common.UnavailableException;
@@ -37,7 +38,11 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(PaymentFailedException.class)
     public ProblemDetail paymentFailed(PaymentFailedException e) {
-        return problem(HttpStatus.PAYMENT_REQUIRED, "Payment not taken", e.getMessage());
+        ProblemDetail p = problem(HttpStatus.PAYMENT_REQUIRED, "Payment not taken", e.getMessage());
+        if (e instanceof OrderPaymentService.PaymentDeclinedException) {
+            p.setProperty("code", "DECLINED");
+        }
+        return p;
     }
 
     @ExceptionHandler(UnauthorizedException.class)

@@ -112,6 +112,28 @@ public class BasketService {
         return totals(basket, delivery);
     }
 
+    /**
+     * The basket for an export (an address outside the UK VAT area): every price without the 20% VAT, the delivery as
+     * given (export prices have no VAT), and no VAT in the total.
+     */
+    public static BasketView forExport(BasketView basket, BasketView.Delivery delivery) {
+        List<BasketView.Line> lines = new ArrayList<>();
+        BigDecimal subtotal = BigDecimal.ZERO;
+        for (BasketView.Line l : basket.lines()) {
+            BigDecimal unit = exVat(l.unitPrice());
+            BigDecimal lineTotal = money(unit.multiply(BigDecimal.valueOf(l.quantity())));
+            lines.add(new BasketView.Line(l.productId(), l.name(), l.reference(), l.imageUrl(), unit, l.quantity(), lineTotal, l.stock()));
+            subtotal = subtotal.add(lineTotal);
+        }
+        BigDecimal total = money(subtotal.add(delivery.price()));
+        return new BasketView(basket.id(), List.copyOf(lines), basket.itemCount(), money(subtotal), delivery, total, money(BigDecimal.ZERO));
+    }
+
+    /** A VAT-inclusive price without its 20% VAT, to the penny. */
+    public static BigDecimal exVat(BigDecimal withVat) {
+        return withVat.divide(new BigDecimal("1.20"), 2, RoundingMode.HALF_UP);
+    }
+
     private static BasketView totals(BasketView b, BasketView.Delivery delivery) {
         BigDecimal total = b.subtotal().add(delivery.price());
         BigDecimal vat = total.divide(BigDecimal.valueOf(6), 2, RoundingMode.HALF_UP);

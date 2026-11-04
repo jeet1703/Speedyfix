@@ -213,9 +213,15 @@ function BuyBox({ detail }: { detail: ProductDetail }) {
         <span aria-live="polite">{qty}</span>
         <button type="button" aria-label="Increase quantity" disabled={qty >= available} onClick={() => setQty(qty + 1)}><Icon name="plus" size={16} /></button>
       </div>
-      <button type="button" className="btn btn--primary buy__add" onClick={add} disabled={adding || available === 0}>
-        {!p.inStock ? 'Out of stock' : available === 0 ? 'All stock is in your basket' : adding ? 'Adding…' : 'Add to basket'}
-      </button>
+      {p.inStock && available === 0 ? (
+        <button type="button" className="btn btn--outline buy__add" onClick={() => setBasketOpen(true)}>
+          <Icon name="check" size={18} />In your basket
+        </button>
+      ) : (
+        <button type="button" className="btn btn--primary buy__add" onClick={add} disabled={adding || !p.inStock}>
+          {!p.inStock ? 'Out of stock' : adding ? 'Adding…' : inBasket > 0 ? 'Add another' : 'Add to basket'}
+        </button>
+      )}
       <button type="button" className={'buy__wish' + (saved ? ' is-saved' : '')} aria-pressed={saved}
         aria-label={saved ? 'Remove from wishlist' : 'Save to wishlist'} onClick={() => toggleWishlist(p.id)}>
         <Icon name="heart" size={20} />

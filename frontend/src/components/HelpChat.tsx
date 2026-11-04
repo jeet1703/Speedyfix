@@ -189,7 +189,7 @@ export function HelpChat({ site, ai, fedex }: { site: Site; ai: boolean; fedex: 
         say('bot', `Here’s how returns work: ${site.returns}`, <Link to="/delivery" onClick={close}>Full returns policy</Link>);
         break;
       case 'warranty':
-        say('bot', `Every part comes with a **${site.warranty} warranty** from the day it’s delivered. It covers the part itself, though not labour or fitting costs.`);
+        say('bot', 'Aftermarket and refurbished parts come with a **3 months replacement warranty**. It covers the part only, not labour, towing or rentals. There’s no warranty on new genuine parts or electrical parts.', <Link to="/delivery" onClick={close}>Full returns and warranty policy</Link>);
         break;
       case 'contact':
         say('bot', `Of course. The quickest way to reach the team is WhatsApp, or you can call or email ${site.email}.`, person);

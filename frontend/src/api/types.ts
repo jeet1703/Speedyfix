@@ -163,6 +163,8 @@ export interface OrderForm {
   line2: string;
   town: string;
   postcode: string;
+  /** ISO country code, like GB or IN. */
+  country: string;
   notes: string;
 }
 
@@ -171,7 +173,8 @@ export interface Order {
   placedAt: string;
   status: OrderStatus;
   customer: { name: string; email: string; phone: string };
-  address: { line1: string; line2: string | null; town: string; postcode: string };
+  /** postcode can be null abroad; country is an ISO code (GB for the UK). */
+  address: { line1: string; line2: string | null; town: string; postcode: string | null; country: string };
   notes: string | null;
   lines: BasketLine[];
   delivery: Basket['delivery'];

@@ -45,11 +45,11 @@ public class JdbcOrderStore implements OrderStore {
         Order.Address a = o.address();
         jdbc.update("""
                 INSERT INTO orders (reference, placed_at, status, customer_id, customer_name, customer_email, customer_phone,
-                    address_line1, address_line2, address_town, address_postcode, notes, delivery_method, delivery_label,
+                    address_line1, address_line2, address_town, address_postcode, address_country, notes, delivery_method, delivery_label,
                     delivery_price, subtotal, total, vat_included, dispatch_courier, dispatch_tracking, dispatched_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 o.reference(), Timestamp.from(o.placedAt()), o.status().name(), o.customerId(), c.name(), c.email(), c.phone(),
-                a.line1(), a.line2(), a.town(), a.postcode(), o.notes(), o.delivery().method(), o.delivery().label(),
+                a.line1(), a.line2(), a.town(), a.postcode(), a.country(), o.notes(), o.delivery().method(), o.delivery().label(),
                 o.delivery().price(), o.subtotal(), o.total(), o.vatIncluded(), d == null ? null : d.courier(),
                 d == null ? null : d.trackingNumber(), d == null ? null : Timestamp.from(d.dispatchedAt()));
         int position = 0;
@@ -103,7 +103,7 @@ public class JdbcOrderStore implements OrderStore {
                 Order.Status.valueOf(rs.getString("status")),
                 new Order.Customer(rs.getString("customer_name"), rs.getString("customer_email"), rs.getString("customer_phone")),
                 new Order.Address(rs.getString("address_line1"), rs.getString("address_line2"), rs.getString("address_town"),
-                        rs.getString("address_postcode")),
+                        rs.getString("address_postcode"), rs.getString("address_country")),
                 rs.getString("notes"), List.copyOf(lines),
                 new BasketView.Delivery(rs.getString("delivery_method"), rs.getString("delivery_label"), rs.getBigDecimal("delivery_price")),
                 rs.getBigDecimal("subtotal"), rs.getBigDecimal("total"), rs.getBigDecimal("vat_included"),

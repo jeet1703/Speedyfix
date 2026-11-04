@@ -35,7 +35,22 @@ public record Order(
     public record Customer(String name, String email, String phone) {
     }
 
-    public record Address(String line1, String line2, String town, String postcode) {
+    /** country is an ISO code ("GB", "IN"); postcode may be blank where the country has none. */
+    public record Address(String line1, String line2, String town, String postcode, String country) {
+
+        public Address {
+            country = Countries.normalise(country);
+        }
+
+        /** A UK address. */
+        public Address(String line1, String line2, String town, String postcode) {
+            this(line1, line2, town, postcode, Countries.UK);
+        }
+
+        /** True when the order is a zero-rated export: no UK VAT. */
+        public boolean export() {
+            return !Countries.ukVat(country);
+        }
     }
 
     /** How and when the order left. Null until it's dispatched. */

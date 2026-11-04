@@ -225,6 +225,10 @@ select.input { appearance: none; padding-right: 36px; background: var(--surface)
 .received__banner h2 { font-family: var(--font-display); font-size: 26px; line-height: 1.15; margin-bottom: 6px; }
 .received__banner p { color: var(--ink-2); }
 .received__icon { flex: none; width: 48px; height: 48px; border-radius: 50%; background: var(--ok); color: #fff; display: inline-flex; align-items: center; justify-content: center; }
+.received__banner--unpaid { background: #fff7e6; border-color: #ecc77a; }
+.received__banner--unpaid .received__icon { background: var(--warn); }
+.received__banner--cancelled { background: var(--surface-2, #f3f4f6); border-color: var(--line-2); }
+.received__banner--cancelled .received__icon { background: var(--ink-2); }
 .received__facts { margin: 0; width: 100%; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px dashed var(--line-2); border-radius: var(--radius); }
 .received__facts div { padding: 14px 16px; }
 .received__facts div + div { border-left: 1px dashed var(--line-2); }
@@ -312,6 +316,17 @@ select.input { appearance: none; padding-right: 36px; background: var(--surface)
 /* Paying for an order on the order page. */
 .received__pay { border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 480px; }
 .paypal__buttons { min-height: 48px; }
+.card-pay { display: grid; gap: 4px; margin-bottom: 12px; padding: 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.card-pay[hidden] { display: none; }
+.card-pay__title { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.card-pay__title svg { color: var(--ok); }
+.card-pay__secure { font-size: 13px; color: var(--ink-2); margin-bottom: 8px; }
+.card-pay__submit { display: inline-flex; align-items: center; justify-content: center; gap: 8px; margin-top: 4px; }
+.card-pay__field { min-height: 56px; }
+.card-pay__row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.card-pay__note { font-size: 13px; color: var(--ink-2); margin-top: 6px; }
+.card-pay__or { display: flex; align-items: center; gap: 12px; color: var(--ink-2); font-size: 13px; margin-top: 8px; }
+.card-pay__or::before, .card-pay__or::after { content: ''; flex: 1; border-top: 1px solid var(--line-2); }
 
 /* About, Delivery and FAQ pages. */
 .info { max-width: 760px; display: flex; flex-direction: column; gap: 12px; }

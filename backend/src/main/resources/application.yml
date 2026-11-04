@@ -39,7 +39,9 @@ site:
   warranty: "28-day"
   ships-from: "Uxbridge, UK"
   couriers: "FedEx, UPS, Royal Mail, DHL and DPD"
-  returns: "Returns accepted within 30 days of delivery (your legal right to cancel is 14 days). Parts must come back in the condition we supplied them; if a part has been fitted, used or tested beyond what's needed to inspect it, the refund may be reduced by up to 30%."
+  # A summary of the returns policy on the Delivery and returns page (ReturnPolicyBody in legal.tsx), which is the
+  # source of truth: keep the two in step.
+  returns: "30-day returns, with authorisation before returning. Items bought by mistake must be unopened in the original packaging, and the buyer pays shipping both ways. A non-refundable 20% restocking fee applies. No returns on opened packages, installed parts or electrical parts."
   cors-allowed-origins:
     - http://localhost:5173
     # A second local dev server takes 5174 when 5173 is busy.
@@ -143,6 +145,9 @@ orders:
   require-sign-in: ${ORDERS_REQUIRE_SIGN_IN:false}
   # With PayPal set up, an order left unpaid this long is cancelled and its parts go back on sale. PT0S: never.
   unpaid-expiry: ${ORDERS_UNPAID_EXPIRY:PT2H}
+  # The most parts one shopper (account or email) can hold in unpaid orders at once, so nobody can reserve the shop's
+  # stock without paying. 0: no limit.
+  max-held-parts: ${ORDERS_MAX_HELD_PARTS:10}
 
 dvsa:
   # DVSA MOT History API (free) for real plate lookups. All four come from DVSA's registration email; until they're

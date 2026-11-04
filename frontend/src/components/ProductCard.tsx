@@ -16,8 +16,11 @@ function fitLine(fit: FitStatus, vehicle: Vehicle | null): { icon: string; text:
 }
 
 export function ProductCard({ product }: { product: Product }) {
-  const { vehicle, addToBasket, wishlist, toggleWishlist } = useStore();
+  const { vehicle, addToBasket, basket, setBasketOpen, wishlist, toggleWishlist } = useStore();
   const [adding, setAdding] = useState(false);
+  // A used part is often the only one: once all of it is in the basket, the button opens the basket instead.
+  const inBasket = basket?.lines.find((l) => l.productId === product.id)?.quantity ?? 0;
+  const allInBasket = product.inStock && inBasket >= product.stock;
   const saved = wishlist.includes(product.id);
   const fit = fitLine(product.fit, vehicle);
 
@@ -49,9 +52,15 @@ export function ProductCard({ product }: { product: Product }) {
         {product.reference && <p className="card__ref">{product.reference}</p>}
         <p className={`card__fit card__fit--${fit.tone}`}><Icon name={fit.icon} size={16} />{fit.text}</p>
         <p className="card__price"><Price product={product} /> <span className="card__vat">inc. VAT</span></p>
-        <button type="button" className="btn btn--primary btn--block" onClick={add} disabled={adding || !product.inStock}>
-          {!product.inStock ? 'Out of stock' : adding ? 'Adding…' : 'Add to basket'}
-        </button>
+        {allInBasket ? (
+          <button type="button" className="btn btn--outline btn--block" onClick={() => setBasketOpen(true)}>
+            <Icon name="check" size={16} />In your basket
+          </button>
+        ) : (
+          <button type="button" className="btn btn--primary btn--block" onClick={add} disabled={adding || !product.inStock}>
+            {!product.inStock ? 'Out of stock' : adding ? 'Adding…' : inBasket > 0 ? 'Add another' : 'Add to basket'}
+          </button>
+        )}
       </div>
     </article>
   );

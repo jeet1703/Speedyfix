@@ -5,6 +5,7 @@ import com.speedyfixautosales.store.basket.BasketView;
 import com.speedyfixautosales.store.catalog.CatalogService;
 import com.speedyfixautosales.store.catalog.Product;
 import com.speedyfixautosales.store.common.ConflictException;
+import com.speedyfixautosales.store.order.Countries;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -100,86 +101,117 @@ public class DeliveryQuotes {
         return BasketService.withDelivery(basket, new BasketView.Delivery(AT_CHECKOUT, "Delivery, worked out at checkout", BigDecimal.ZERO.setScale(2)));
     }
 
-    /** The choices for the basket to the postcode, the cheapest first, then manual delivery for parcels. */
+    /** The choices for the basket to a UK postcode. */
     public List<Option> options(BasketView basket, String postcode) {
+        return options(basket, FedExClient.Destination.uk(postcode));
+    }
+
+    /**
+     * The choices for the basket to the destination, the cheapest first, then manual delivery. Abroad, prices have no
+     * UK VAT (a zero-rated export) and nothing is free; without FedEx, delivery abroad is quoted by hand.
+     */
+    public List<Option> options(BasketView basket, FedExClient.Destination to) {
         if (basket.lines().isEmpty()) {
             return List.of();
         }
+        boolean export = !Countries.ukVat(to.country());
         BasketView.Delivery flat = basket.delivery();
-        Option fallback = new Option(flat.method(), flat.method(), flat.label(), flat.price(), null);
         if (!live()) {
-            return List.of(fallback);
+            return export ? List.of(MANUAL_OPTION) : List.of(new Option(flat.method(), flat.method(), flat.label(), flat.price(), null));
         }
-        List<Option> options = new ArrayList<>(fedexOptions(basket, postcode, "PALLET".equals(flat.method())));
+        List<Option> options = new ArrayList<>(fedexOptions(basket, to, "PALLET".equals(flat.method()), export));
         options.add(MANUAL_OPTION);
         return List.copyOf(options);
     }
 
     /** FedEx's services for the basket, cheapest first; empty when FedEx can't price it. heavy: engines or gearboxes. */
-    private List<Option> fedexOptions(BasketView basket, String postcode, boolean heavy) {
+    private List<Option> fedexOptions(BasketView basket, FedExClient.Destination to, boolean heavy, boolean export) {
         List<FedExClient.Parcel> parcels = new ArrayList<>();
+        List<FedExClient.Commodity> goods = new ArrayList<>();
         for (BasketView.Line line : basket.lines()) {
             Product p = catalog.findAny(line.productId());
+            FedExClient.Parcel box = sizes.parcel(p);
             for (int i = 0; i < line.quantity(); i++) {
-                parcels.add(sizes.parcel(p));
+                parcels.add(box);
             }
+            // Customs value: what the buyer pays for the part, before VAT.
+            goods.add(new FedExClient.Commodity("Used car part: " + line.name(), line.quantity(),
+                    box.weightKg().multiply(BigDecimal.valueOf(line.quantity())), BasketService.exVat(line.lineTotal())));
         }
         if (parcels.size() > MAX_PARCELS) {
             return List.of();
         }
+        FedExClient.Destination dest = new FedExClient.Destination(
+                Countries.UK.equals(Countries.normalise(to.country())) ? normalise(to.postcode()) : tidy(to.postcode()),
+                tidy(to.city()), Countries.normalise(to.country()));
         List<FedExClient.Rate> rates;
         try {
-            rates = rates(normalise(postcode), parcels);
+            rates = rates(dest, parcels, goods);
         } catch (IOException | RuntimeException e) {
-            log.warn("FedEx didn't quote delivery to {}: {}", outward(postcode), e.getMessage());
+            log.warn("FedEx didn't quote delivery to {} {}: {}", dest.country(), outward(dest.postcode()), e.getMessage());
             return List.of();
         }
-        // Free delivery is for parcels: an engine's FedEx Freight costs the shop about £170 before VAT.
-        boolean free = !heavy && basket.subtotal().compareTo(BasketService.FREE_DELIVERY_FROM) >= 0;
+        // Free delivery is for UK parcels: an engine's FedEx Freight costs the shop about £170 before VAT.
+        boolean free = !export && !heavy && basket.subtotal().compareTo(BasketService.FREE_DELIVERY_FROM) >= 0;
         List<Option> options = new ArrayList<>();
         for (FedExClient.Rate r : rates) {
-            BigDecimal price = free && options.isEmpty() ? BigDecimal.ZERO.setScale(2) : price(r.chargeExVat());
+            BigDecimal price = free && options.isEmpty() ? BigDecimal.ZERO.setScale(2) : price(r.chargeExVat(), !export);
             options.add(new Option(r.serviceType(), FEDEX, label(r.serviceName()), price,
                     r.arrives() == null || r.arrives().length() < 10 ? null : r.arrives().substring(0, 10)));
         }
         return List.copyOf(options);
     }
 
-    /** The delivery the order is charged: the chosen option, priced again here so the browser can't set it. */
+    /** The delivery the order is charged to a UK postcode. */
     public BasketView.Delivery choose(BasketView basket, String postcode, String optionId) {
-        List<Option> options = options(basket, postcode);
+        return choose(basket, FedExClient.Destination.uk(postcode), optionId);
+    }
+
+    /** The delivery the order is charged: the chosen option, priced again here so the browser can't set it. */
+    public BasketView.Delivery choose(BasketView basket, FedExClient.Destination to, String optionId) {
+        List<Option> options = options(basket, to);
         if (options.isEmpty()) {
             return basket.delivery();
         }
         // The shopper chose a FedEx service, but FedEx can't price the order now: don't switch them to manual delivery.
-        boolean fedexChosen = optionId != null && optionId.startsWith("FEDEX");
+        boolean fedexChosen = optionId != null && !optionId.equals(MANUAL) && live();
         if (fedexChosen && options.stream().noneMatch(o -> FEDEX.equals(o.method()))) {
             throw new ConflictException("We couldn’t confirm the FedEx delivery price just now. Try again in a moment, or choose manual delivery.");
         }
         return options.stream().filter(o -> o.id().equals(optionId)).findFirst().orElse(options.get(0)).delivery();
     }
 
-    /** What the shopper pays: FedEx's charge, the markup and handling fee, and VAT. */
+    /** What a UK shopper pays: FedEx's charge, the markup and handling fee, and VAT. */
     BigDecimal price(BigDecimal chargeExVat) {
+        return price(chargeExVat, true);
+    }
+
+    /** withVat is false for exports, which have no UK VAT. */
+    BigDecimal price(BigDecimal chargeExVat, boolean withVat) {
         BigDecimal p = chargeExVat.multiply(BigDecimal.ONE.add(markupPercent.movePointLeft(2))).add(handlingFee);
-        if (addVat) {
+        if (addVat && withVat) {
             p = p.multiply(new BigDecimal("1.20"));
         }
         return p.setScale(2, RoundingMode.HALF_UP);
     }
 
-    private List<FedExClient.Rate> rates(String postcode, List<FedExClient.Parcel> parcels) throws IOException {
-        String key = postcode + "|" + parcels;
+    private List<FedExClient.Rate> rates(FedExClient.Destination to, List<FedExClient.Parcel> parcels,
+                                         List<FedExClient.Commodity> goods) throws IOException {
+        String key = to + "|" + parcels + "|" + goods;
         Cached hit = cache.get(key);
         if (hit != null && hit.at().plus(CACHE_FOR).isAfter(Instant.now())) {
             return hit.rates();
         }
-        List<FedExClient.Rate> rates = fedex.rates(postcode, "GB", parcels);
+        List<FedExClient.Rate> rates = fedex.rates(to, parcels, goods);
         if (cache.size() > MAX_CACHED) {
             cache.clear();
         }
         cache.put(key, new Cached(rates, Instant.now()));
         return rates;
+    }
+
+    private static String tidy(String s) {
+        return s == null ? "" : s.trim().replaceAll(" {2,}", " ");
     }
 
     static String label(String serviceName) {

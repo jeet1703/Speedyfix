@@ -6,6 +6,7 @@ import com.speedyfixautosales.store.common.UnavailableException;
 import com.speedyfixautosales.store.config.SiteProperties;
 import com.speedyfixautosales.store.invoice.Invoice;
 import com.speedyfixautosales.store.invoice.InvoiceService;
+import com.speedyfixautosales.store.order.Countries;
 import com.speedyfixautosales.store.order.Order;
 import com.speedyfixautosales.store.order.OrderCancelled;
 import com.speedyfixautosales.store.order.OrderPaid;
@@ -307,7 +308,7 @@ public class OrderEmails {
         }
         t.append(row("Delivery" + (order.delivery().label() == null ? "" : " (" + esc(order.delivery().label()) + ")"),
                 deliveryPrice(order), false));
-        t.append(row("Total paid (includes " + money(order.vatIncluded()) + " VAT)", money(order.total()), true));
+        t.append(row("Total paid " + vatNote(order), money(order.total()), true));
         return t.append("</table>").toString();
     }
 
@@ -323,7 +324,7 @@ public class OrderEmails {
             t.append(l.quantity()).append(" x ").append(l.name()).append(": ").append(money(l.lineTotal())).append('\n');
         }
         t.append("Delivery: ").append(deliveryPrice(order)).append('\n');
-        return t.append("Total paid: ").append(money(order.total())).append(" (includes ").append(money(order.vatIncluded())).append(" VAT)\n").toString();
+        return t.append("Total paid: ").append(money(order.total())).append(" ").append(vatNote(order)).append("\n").toString();
     }
 
     private static String deliveryPrice(Order order) {
@@ -339,7 +340,16 @@ public class OrderEmails {
 
     private static String addressText(Order order) {
         Order.Address a = order.address();
-        return a.line1() + (a.line2() == null || a.line2().isBlank() ? "" : ", " + a.line2()) + ", " + a.town() + ", " + a.postcode();
+        return a.line1() + (a.line2() == null || a.line2().isBlank() ? "" : ", " + a.line2()) + ", " + a.town()
+                + (a.postcode() == null ? "" : ", " + a.postcode())
+                + (Countries.UK.equals(a.country()) ? "" : ", " + Countries.name(a.country()));
+    }
+
+    /** "(includes £9.18 VAT)", or for an export "(no UK VAT: export; any import duty is paid on arrival)". */
+    private static String vatNote(Order order) {
+        return order.address().export()
+                ? "(no UK VAT: export; any import duty is paid on arrival)"
+                : "(includes " + money(order.vatIncluded()) + " VAT)";
     }
 
     private static String money(BigDecimal amount) {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api, hasInvoice, invoiceUrl, money } from '../api/client';
+import { countryName, ukVat } from '../api/countries';
 import type { Order } from '../api/types';
 import { Icon } from '../components/Icons';
 import { Layout } from '../components/Layout';
@@ -24,10 +25,12 @@ export function OrderReceivedPage() {
   }, [reference]);
 
   const payOnline = !!data?.paypalClientId;
+  const pageTitle = !order ? 'Your order' : order.status === 'AWAITING_PAYMENT' ? (payOnline ? 'Finish paying' : 'Order placed')
+    : order.status === 'CANCELLED' ? 'Order cancelled' : 'Order confirmed';
 
   return (
-    <Layout title="Order received">
-      <PageTitle title="Order received" crumbs={[{ label: 'Checkout', to: '/checkout' }, { label: 'Order received' }]} />
+    <Layout title={pageTitle}>
+      <PageTitle title={pageTitle} crumbs={[{ label: 'Checkout', to: '/checkout' }, { label: pageTitle }]} />
       <div className="container">
         {error && (
           <div className="empty empty--page">
@@ -44,13 +47,13 @@ export function OrderReceivedPage() {
         {order && (
           <div className="two-col">
             <div className="received">
-              <div className="received__banner" role="status">
-                <span className="received__icon"><Icon name="check" size={28} /></span>
+              <div className={'received__banner' + (order.status === 'AWAITING_PAYMENT' ? ' received__banner--unpaid' : order.status === 'CANCELLED' ? ' received__banner--cancelled' : '')} role="status">
+                <span className="received__icon"><Icon name={order.status === 'AWAITING_PAYMENT' ? 'basket' : order.status === 'CANCELLED' ? 'x' : 'check'} size={28} /></span>
                 <div>
                   {order.status === 'AWAITING_PAYMENT' ? (
                     <>
-                      <h2>Thank you, {order.customer.name.split(' ')[0]}. One last step: payment.</h2>
-                      <p>We’ve reserved these parts for you{payOnline && data?.unpaidHoldMinutes ? ` for ${holdText(data.unpaidHoldMinutes)}` : ''}. {payOnline ? 'Pay below to confirm your order.' : 'We’ll call you to take payment.'}</p>
+                      <h2>{payOnline ? 'Not paid yet: your order isn’t confirmed.' : `Thank you, ${order.customer.name.split(' ')[0]}. We’ll call you to take payment.`}</h2>
+                      <p>We’ve reserved these parts for you{payOnline && data?.unpaidHoldMinutes ? ` for ${holdText(data.unpaidHoldMinutes)}` : ''}. {payOnline ? 'Pay below to confirm your order. If you don’t, the parts go back on sale.' : 'Your order is confirmed once you’ve paid.'}</p>
                     </>
                   ) : order.status === 'CANCELLED' ? (
                     <>
@@ -126,7 +129,8 @@ export function OrderReceivedPage() {
                     {order.address.line1}<br />
                     {order.address.line2 && <>{order.address.line2}<br /></>}
                     {order.address.town}<br />
-                    {order.address.postcode}
+                    {order.address.postcode && <>{order.address.postcode}<br /></>}
+                    {order.address.country !== 'GB' && countryName(order.address.country)}
                   </address>
                   {order.notes && <p className="received__notes">Notes: {order.notes}</p>}
                 </section>
@@ -143,7 +147,7 @@ export function OrderReceivedPage() {
             <aside className="panel" aria-labelledby="received-summary-title">
               <h2 id="received-summary-title" className="panel__title">Order summary</h2>
               <LineList lines={order.lines} />
-              <Totals totals={order} />
+              <Totals totals={order} export={!ukVat(order.address.country)} />
             </aside>
           </div>
         )}

@@ -38,7 +38,7 @@ public class InMemoryOrderStore implements OrderStore {
     @Override
     public List<Order> forCustomer(String customerId, String email) {
         return all().stream()
-                .filter(o -> customerId.equals(o.customerId()) || (email != null && email.equalsIgnoreCase(o.customer().email())))
+                .filter(o -> (customerId != null && customerId.equals(o.customerId())) || (email != null && email.equalsIgnoreCase(o.customer().email())))
                 .toList();
     }
 }

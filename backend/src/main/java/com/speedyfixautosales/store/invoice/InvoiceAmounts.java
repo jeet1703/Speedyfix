@@ -20,6 +20,9 @@ public record InvoiceAmounts(List<Line> lines, BigDecimal subtotal, BigDecimal d
     }
 
     public static InvoiceAmounts of(Order order) {
+        if (order.address().export()) {
+            return export(order);
+        }
         BigDecimal subtotal = BigDecimal.ZERO;
         List<Line> lines = new java.util.ArrayList<>();
         for (BasketView.Line l : order.lines()) {
@@ -31,6 +34,15 @@ public record InvoiceAmounts(List<Line> lines, BigDecimal subtotal, BigDecimal d
         BigDecimal delivery = exVat(order.delivery().price());
         BigDecimal total = order.total().setScale(2, RoundingMode.HALF_UP);
         return new InvoiceAmounts(List.copyOf(lines), subtotal, delivery, total.subtract(subtotal).subtract(delivery), total);
+    }
+
+    /** A zero-rated export: the order's prices are already without VAT, and the VAT is nothing. */
+    private static InvoiceAmounts export(Order order) {
+        List<Line> lines = order.lines().stream()
+                .map(l -> new Line(l.name(), l.reference(), l.quantity(), l.unitPrice(), l.lineTotal())).toList();
+        BigDecimal subtotal = lines.stream().map(Line::total).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal delivery = order.delivery().price().setScale(2, RoundingMode.HALF_UP);
+        return new InvoiceAmounts(lines, subtotal, delivery, BigDecimal.ZERO.setScale(2), order.total().setScale(2, RoundingMode.HALF_UP));
     }
 
     static BigDecimal exVat(BigDecimal withVat) {

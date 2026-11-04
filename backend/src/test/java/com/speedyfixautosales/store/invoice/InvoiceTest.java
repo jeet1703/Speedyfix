@@ -101,4 +101,19 @@ public class InvoiceTest {
         }
         assertThat(text(pdf)).contains("Zoë Lukasz ? <b>", "Part 30 for", "(continued)", "375.00");
     }
+
+    @Test
+    void anExportInvoiceShowsNoVatAndTheCountry() throws IOException {
+        Order uk = paidOrder("Ravi Kumar", "79.18", line("coil", "Ignition coil", "16.66", 1));
+        Order export = new Order(uk.reference(), uk.placedAt(), uk.status(), uk.customer(),
+                new Order.Address("12 MG Road", null, "New Delhi", "110001", "IN"), null, uk.lines(), uk.delivery(),
+                uk.subtotal(), uk.total(), BigDecimal.ZERO.setScale(2), null, uk.payment(), null);
+        InvoiceAmounts a = InvoiceAmounts.of(export);
+        assertThat(a.vat()).isEqualByComparingTo("0");
+        assertThat(a.subtotal()).isEqualByComparingTo("16.66");
+        assertThat(a.delivery()).isEqualByComparingTo("79.18");
+        assertThat(a.total()).isEqualByComparingTo("95.84");
+        String text = text(new InvoicePdf(SITE).render(export, new Invoice(1003, export.reference(), Instant.now())));
+        assertThat(text).contains("VAT 0% (export)", "New Delhi, 110001, India", "Zero-rated export");
+    }
 }

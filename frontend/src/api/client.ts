@@ -17,7 +17,8 @@ export function hasInvoice(order: Order) {
 
 /** Error carrying the shopper-facing message from the API's problem details. */
 export class ApiError extends Error {
-  constructor(public status: number, message: string) {
+  /** The server's reason code, where it sends one (like DECLINED for a declined payment). */
+  constructor(public status: number, message: string, public code?: string) {
     super(message);
   }
 }
@@ -50,13 +51,15 @@ async function send<T>(path: string, init?: RequestInit): Promise<T> {
   }
   if (!res.ok) {
     let detail = 'Something went wrong. Try again.';
+    let code: string | undefined;
     try {
       const body = await res.json();
       if (body && typeof body.detail === 'string') detail = body.detail;
+      if (body && typeof body.code === 'string') code = body.code;
     } catch {
       /* keep the default message */
     }
-    throw new ApiError(res.status, detail);
+    throw new ApiError(res.status, detail, code);
   }
   if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
@@ -92,9 +95,13 @@ export const api = {
   removeFromBasket: (id: string, productId: string) =>
     request<Basket>(`/api/baskets/${id}/items/${productId}`, { method: 'DELETE' }),
 
-  /** The delivery choices to a postcode, cheapest first. Quiet: checkout shows its own "working out delivery". */
-  deliveryOptions: (basketId: string, postcode: string) =>
-    request<{ options: DeliveryOption[] }>(`/api/baskets/${basketId}/delivery-options`, { method: 'POST', body: JSON.stringify({ postcode }) }, true),
+  /**
+   * The delivery choices for the address, cheapest first. export: outside the UK VAT area, where basket has the parts'
+   * prices without UK VAT. Quiet: checkout shows its own "working out delivery".
+   */
+  deliveryOptions: (basketId: string, postcode: string, town: string, country: string) =>
+    request<{ options: DeliveryOption[]; export: boolean; basket: Basket }>(`/api/baskets/${basketId}/delivery-options`,
+      { method: 'POST', body: JSON.stringify({ postcode, town, country }) }, true),
 
   /**
    * token links the order to the signed-in shopper's account; leave it out for a guest checkout. deliveryOption is
@@ -111,8 +118,9 @@ export const api = {
   /** An order by its number and the email it was placed with (the help chat's "Where's my order?"). */
   lookupOrder: (reference: string, email: string) =>
     request<Order>('/api/orders/lookup', { method: 'POST', body: JSON.stringify({ reference, email }) }, true),
-  startPayPal: (reference: string) =>
-    request<{ paypalOrderId: string }>(`/api/orders/${encodeURIComponent(reference)}/paypal`, { method: 'POST' }),
+  /** card: for the card form on the page rather than PayPal's buttons. */
+  startPayPal: (reference: string, card = false) =>
+    request<{ paypalOrderId: string }>(`/api/orders/${encodeURIComponent(reference)}/paypal${card ? '?card=true' : ''}`, { method: 'POST' }),
   capturePayPal: (reference: string, paypalOrderId: string) =>
     request<Order>(`/api/orders/${encodeURIComponent(reference)}/paypal/capture`, { method: 'POST', body: JSON.stringify({ paypalOrderId }) }),
 

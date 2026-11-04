@@ -2,12 +2,14 @@ package com.speedyfixautosales.store.web;
 
 import com.speedyfixautosales.store.basket.BasketService;
 import com.speedyfixautosales.store.basket.BasketView;
+import com.speedyfixautosales.store.order.Order;
+import com.speedyfixautosales.store.order.OrderService;
 import com.speedyfixautosales.store.shipping.DeliveryQuotes;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -32,12 +34,15 @@ public class BasketController {
         this.quotes = quotes;
     }
 
-    public record DeliveryRequest(
-            @NotBlank(message = "Enter your postcode.") @Pattern(regexp = OrderController.POSTCODE, message = "Enter a full UK postcode, like SW1A 1AA.") String postcode) {
+    /** country is an ISO code (blank: the UK); the UK needs a full postcode, other countries a postcode or ZIP. */
+    public record DeliveryRequest(@Size(max = 16) String postcode, @Size(max = 80) String town, @Size(max = 2) String country) {
     }
 
-    /** The delivery choices to a postcode, cheapest first; checkout shows them and sends back the chosen id. */
-    public record DeliveryChoices(List<DeliveryQuotes.Option> options) {
+    /**
+     * The delivery choices for the address, cheapest first; checkout shows them and sends back the chosen id. export is
+     * true outside the UK VAT area, where basket has the parts' prices without UK VAT.
+     */
+    public record DeliveryChoices(List<DeliveryQuotes.Option> options, boolean export, BasketView basket) {
     }
 
     public record AddItemRequest(@NotBlank String productId, @Min(1) @Max(20) int quantity) {
@@ -58,7 +63,15 @@ public class BasketController {
 
     @PostMapping("/{basketId}/delivery-options")
     public DeliveryChoices deliveryOptions(@PathVariable String basketId, @Valid @RequestBody DeliveryRequest request) {
-        return new DeliveryChoices(quotes.options(baskets.get(basketId), request.postcode()));
+        Order.Address address = OrderController.address("-", null, request.town() == null || request.town().isBlank() ? "-" : request.town(),
+                request.postcode(), request.country());
+        BasketView basket = baskets.get(basketId);
+        List<DeliveryQuotes.Option> options = quotes.options(basket, OrderService.destination(address));
+        // Abroad, delivery is always chosen at checkout: the UK's flat prices don't apply.
+        BasketView shown = address.export()
+                ? BasketService.forExport(basket, new BasketView.Delivery(DeliveryQuotes.AT_CHECKOUT, "Delivery, worked out at checkout", java.math.BigDecimal.ZERO.setScale(2)))
+                : quotes.beforeCheckout(basket);
+        return new DeliveryChoices(options, address.export(), shown);
     }
 
     @PostMapping("/{basketId}/items")

@@ -7,7 +7,7 @@ import type { Site } from '../api/types';
  * review them before launch (see PENDING.md). Facts still to confirm are marked [to confirm: …].
  */
 
-const UPDATED = '1 November 2026';
+const UPDATED = '5 November 2026';
 
 /** fedex: parcels are priced by FedEx at checkout rather than the flat £9.95. */
 export function TermsBody(site: Site, fedex = false) {
@@ -20,7 +20,7 @@ export function TermsBody(site: Site, fedex = false) {
         This website is run by {site.companyName}, a company registered in England and Wales (company no. {site.companyNumber},
         VAT no. {site.vatNumber}), of {site.address}. You can contact us on {site.phone} or at {site.email}.
       </p>
-      <p>These terms apply when you buy from this website. Please read them before you order. If you buy as a business, section 12 applies too.</p>
+      <p>These terms apply when you buy from this website. Please read them before you order. If you buy as a business, section 11 applies too.</p>
 
       <h2 className="info__heading">2. Your order</h2>
       <ul className="info__list">
@@ -40,73 +40,121 @@ export function TermsBody(site: Site, fedex = false) {
         or VIN before you buy and we’ll confirm compatibility. A part that doesn’t fit because the wrong part was ordered is
         covered by section 6, not by the warranty.
       </p>
+      <p>
+        We strongly recommend having parts fitted by a professional. Some parts don’t come with fitting instructions. If
+        you tell us a part doesn’t fit your vehicle, we’ll ask for evidence from the garage or fitter who checked it.
+      </p>
 
       <h2 className="info__heading">5. Delivery</h2>
       <ul className="info__list">
         <li>UK delivery is usually within 7 working days (estimated) with {site.couriers}. Delivery times can vary with courier delays.</li>
         <li>{fedex ? 'Parcel delivery is priced by FedEx at checkout from your postcode, and the cheapest service is free on orders of £100 or more.' : 'Parcels cost £9.95, or are free on orders of £100 or more.'} {fedex ? 'Engines, gearboxes and other heavy parts go by FedEx Freight, priced at checkout; free delivery over £100 doesn’t apply to them. You can also choose manual delivery and pay a separate delivery quote.' : 'Engines, gearboxes and other heavy parts go by pallet at £79 per order.'} Someone needs to be available to receive a heavy delivery.</li>
-        <li>We ship abroad by UK Pallets or FedEx at extra cost; allow 3 to 10 working days after dispatch. You are responsible for customs clearance and any import VAT or duties.</li>
-        <li>The parts are your responsibility once they’re delivered. Please check them when they arrive and tell us within 48 hours if anything is damaged or missing. [to confirm: 48 hours]</li>
+        <li>We deliver worldwide. Orders delivered outside the UK are exports and are charged without UK VAT. You are responsible for customs clearance and any import VAT, duty or taxes in your country. Allow 3 to 10 working days after dispatch.</li>
+        <li>The parts are your responsibility once they’re delivered. Please check them when they arrive and tell us within 24 hours if anything is damaged, missing or not what you ordered, with photos (see section 6).</li>
       </ul>
 
-      <h2 className="info__heading">6. Changing your mind (your right to cancel)</h2>
-      <p>
-        If you’re buying as a consumer, you can cancel your order for any reason within <strong>14 days</strong> of the day
-        you receive it, under the Consumer Contracts Regulations. As a goodwill extension, we accept returns within
-        <strong> 30 days</strong> of delivery.
-      </p>
-      <ul className="info__list">
-        <li>Tell us you want to cancel (by phone, WhatsApp or email, quoting your order number), then send the part back within 14 days of telling us.</li>
-        <li>Unless the part is faulty or we sent the wrong one, you pay the cost of returning it, and the original delivery charge is deducted from your refund where it was a premium option. [to confirm]</li>
-        <li>Parts must come back in the condition we supplied them. If a part has been fitted, used or tested beyond what’s needed to inspect it, we may reduce the refund to reflect its lower value, by up to 30%.</li>
-        <li>We refund within 14 days of receiving the part back, to the way you paid.</li>
-      </ul>
+      <h2 className="info__heading">6. Returns, warranty, refunds and cancellation</h2>
+      {ReturnPolicyBody(site)}
 
-      <h2 className="info__heading">7. Faulty parts and our warranty</h2>
-      <p>
-        Your legal rights come first: under the Consumer Rights Act 2015, parts must be as described, fit for purpose and of
-        satisfactory quality. Used parts will show wear consistent with their age and mileage. If a part is faulty, you can
-        reject it for a full refund within 30 days of delivery, and after that you’re entitled to a repair or replacement,
-        or in some cases a refund.
-      </p>
-      <p>
-        On top of those rights, every part comes with our <strong>{site.warranty} warranty</strong> from the date of
-        delivery. The warranty covers the part itself and doesn’t cover labour, fitting or other costs, or faults caused
-        by incorrect fitting, accident or misuse. To claim, contact us with your order number before returning the part.
-      </p>
-
-      <h2 className="info__heading">8. Your account</h2>
+      <h2 className="info__heading">7. Your account</h2>
       <p>You can shop without an account. If you sign in with Google, keep access to your Google account secure; you can ask us to delete your account at any time.</p>
 
-      <h2 className="info__heading">9. Help chat</h2>
+      <h2 className="info__heading">8. Help chat</h2>
       <p>
         Our help chat answers from our stock and policies, and may use AI to word its replies. It can make mistakes, so
         please check the part’s page, or ask us, before you buy. These terms and the listing take priority over anything the chat says.
       </p>
 
-      <h2 className="info__heading">10. Our responsibility to you</h2>
+      <h2 className="info__heading">9. Our responsibility to you</h2>
       <p>
         If we break these terms, we’re responsible for loss you suffer that is a foreseeable result. We don’t exclude
         liability where it would be unlawful to, such as for death or personal injury caused by our negligence, or for
         fraud. We aren’t responsible for losses that weren’t foreseeable, or for business losses where you buy as a consumer.
       </p>
 
-      <h2 className="info__heading">11. Events outside our control</h2>
+      <h2 className="info__heading">10. Events outside our control</h2>
       <p>We aren’t responsible for delays caused by events outside our reasonable control, such as courier failures or severe weather. We’ll tell you, and you can cancel and get a refund for anything not yet delivered.</p>
 
-      <h2 className="info__heading">12. Business customers</h2>
+      <h2 className="info__heading">11. Business customers</h2>
       <p>
-        If you buy for a business (for example a garage), section 6 (the right to cancel) doesn’t apply, though our 30-day
-        returns goodwill does. Our total liability to a business is limited to the price of the parts concerned, and we
-        aren’t liable for loss of profit, business or downtime. [to confirm]
+        If you buy for a business (for example a garage), the returns policy in section 6 applies. Our total liability to a
+        business is limited to the price of the parts concerned, and we aren’t liable for loss of profit, business or
+        downtime. [to confirm]
       </p>
 
-      <h2 className="info__heading">13. Other things</h2>
+      <h2 className="info__heading">12. Other things</h2>
       <p>
         These terms are governed by the law of England and Wales, and you can bring proceedings in the courts of England
         and Wales (or Scotland or Northern Ireland if you live there). We may update these terms; the version on this
         page when you order is the one that applies. See how we use your information in our <Link to="/privacy">privacy policy</Link>.
       </p>
+    </>
+  );
+}
+
+/**
+ * The business's own returns, warranty, refund and cancellation policy, word for word as supplied (5 November 2026):
+ * the final source of truth. Shown in the terms (section 6) and on the Delivery and returns page. Only the returns
+ * email is the shop's own address.
+ */
+export function ReturnPolicyBody(site: Site) {
+  return (
+    <>
+      <h3 className="info__heading">Return Policy</h3>
+      <p>WE HAVE A 30 DAYS RETURN POLICY AND ACCEPT THE RETURNS ONLY IN SUCH FOLLOWING CONDITIONS.</p>
+      <ul className="info__list">
+        <li>If you have received the item different than the ordered part number or not matching with the pictures given on the listing.</li>
+        <li>If you receive the items have quality problems or damaged, please provide us the photos immediately and contact us within 24 hours after receiving item.</li>
+        <li>If buyer purchased “item by mistake” and the item is still in a good condition(unopened with original packaging) for reselling, in this case the buyer is responsible for all related shipping costs.</li>
+        <li>A non-refundable restocking fee of 20% will be charged for each returned order/item.</li>
+        <li>All presumed defective or wrong items must obtain an authorization before returning. Any returned package without authorization will be refused.</li>
+        <li>No returns or guarantees, unless item is non-functional in relation to the description.</li>
+        <li>No returns or exchanges offered on opened packages or installed parts.</li>
+        <li>We highly recommend professional installation for all products, installation instructions are not included in some products. Professional proof is required, if item is not fits to your vehicle.</li>
+      </ul>
+
+      <h3 className="info__heading">Warranty</h3>
+      <ul className="info__list">
+        <li>No Returns or Warranty for New Genuine parts.</li>
+        <li>There is a 3 Months replacement warranty on Aftermarket &amp; Refurbished parts. For more information refer to our item description.</li>
+        <li>Warranty will applicable on parts only, we will not refund any labor costs, towing &amp; rentals in incurred by you or the installer of products at this website.</li>
+      </ul>
+
+      <h3 className="info__heading">NO WARRANTY &amp; NO RETURNS ON ELECTRICAL PARTS</h3>
+      <ul className="info__list">
+        <li>Electrical parts do not have any warranty and are also not returnable under any circumstances.</li>
+        <li>Please ensure you provide accurate vehicle information at the time of purchase and are sure the electrical item you are replacing is the cause of your issue.</li>
+        <li>Electrical/electronic parts are easily damaged by improper installation or testing. Because electronics are very sensitive to voltage overloads, it does not take much of a voltage spike to ruin a component.</li>
+        <li>
+          The parts list mentioned below provides a high-level list of merchandise that is classified as non-returnable as
+          per our Return Policy. “Switches (all types), Sensors (all types), Regulators, Amplifiers, Temperature Sensors,
+          Motor Resistors, EGR Sensors and Valves, Ignition Modules, Computers, Cruise Control Relays, Distributor Parts,
+          Door Lock Actuators, Lighting Connectors, Solenoids, Relays &amp; Power Window Switches”.
+        </li>
+      </ul>
+
+      <h3 className="info__heading">Refunds</h3>
+      <p>
+        Refunds for returns or cores normally process and credit within 10 days from the date we receive your return at the
+        warehouse. Once the item has been returned, a refund will be made to the buyer minus original shipping fee and the
+        restocking fee, buyers are also responsible for return shipping charges. The refund will be credited to the credit
+        card you used to buy the merchandise. You will receive a “credit approved” e-mail the day you are credited. Please
+        be aware that your bank may take 4-7 business days to post the credit to your account or credit card. If you do not
+        receive a credit after 30 days, please e-mail our returns department at {site.email} and we will respond to you
+        immediately.
+      </p>
+
+      <h3 className="info__heading">Final Reminders for Returns</h3>
+      <p>You may return products within 30 business days of shipment for a refund or replacement.</p>
+
+      <h3 className="info__heading">Cancellation</h3>
+      <p>
+        All orders are electronically processed and forwarded to the warehouse immediately upon confirmation of the order.
+        Therefore, there is a very short time for order cancellations. If you wish to cancel an order, you must do so BEFORE
+        you receive the “Invoice – Payment” e-mail. No orders can be canceled after the payment has been confirmed, as the
+        order will be immediately processed for shipment.
+      </p>
+      <p>An order is considered confirmed once payment is done. Due to the strict policy, one cannot able to cancel already confirmed orders.</p>
     </>
   );
 }

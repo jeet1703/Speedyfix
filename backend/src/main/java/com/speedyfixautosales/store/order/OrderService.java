@@ -8,11 +8,13 @@ import com.speedyfixautosales.store.common.BadRequestException;
 import com.speedyfixautosales.store.common.ConflictException;
 import com.speedyfixautosales.store.common.NotFoundException;
 import com.speedyfixautosales.store.shipping.DeliveryQuotes;
+import com.speedyfixautosales.store.shipping.FedExClient;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
@@ -32,14 +34,16 @@ public class OrderService {
     private final CatalogRepository catalog;
     private final DeliveryQuotes quotes;
     private final ApplicationEventPublisher events;
+    private final int maxHeldParts;
 
     public OrderService(OrderStore orders, BasketService baskets, CatalogRepository catalog, DeliveryQuotes quotes,
-                        ApplicationEventPublisher events) {
+                        ApplicationEventPublisher events, @Value("${orders.max-held-parts:10}") int maxHeldParts) {
         this.orders = orders;
         this.baskets = baskets;
         this.catalog = catalog;
         this.quotes = quotes;
         this.events = events;
+        this.maxHeldParts = maxHeldParts;
     }
 
     /** With the cheapest delivery. */
@@ -54,7 +58,9 @@ public class OrderService {
     public Order place(String basketId, Order.Customer customer, Order.Address address, String notes, String customerId,
                        String deliveryOption) {
         BasketView raw = baskets.get(basketId);
-        BasketView basket = BasketService.withDelivery(raw, quotes.choose(raw, address.postcode(), deliveryOption));
+        BasketView.Delivery delivery = quotes.choose(raw, destination(address), deliveryOption);
+        // Abroad, a zero-rated export: the parts without UK VAT (the delivery price is already without it).
+        BasketView basket = address.export() ? BasketService.forExport(raw, delivery) : BasketService.withDelivery(raw, delivery);
         if (basket.lines().isEmpty()) {
             throw new BadRequestException("Your basket is empty.");
         }
@@ -63,6 +69,7 @@ public class OrderService {
                 throw new ConflictException("Sorry, " + line.name() + " is no longer for sale. Remove it from your basket and try again.");
             }
         }
+        checkHoldLimit(basket.lines(), customer.email(), customerId);
         reserveStock(basket.lines());
         Order order = new Order(newReference(), Instant.now(), Order.Status.AWAITING_PAYMENT, customer, address,
                 notes == null || notes.isBlank() ? null : notes.trim(), basket.lines(), basket.delivery(),
@@ -75,6 +82,11 @@ public class OrderService {
         }
         baskets.clear(basketId);
         return order;
+    }
+
+    /** Where FedEx delivers the order: postcode, town and country. */
+    public static FedExClient.Destination destination(Order.Address address) {
+        return new FedExClient.Destination(address.postcode(), address.town(), address.country());
     }
 
     /** Newest first, for the admin. */
@@ -132,6 +144,26 @@ public class OrderService {
             events.publishEvent(new OrderCancelled(updated));
         }
         return updated;
+    }
+
+    /**
+     * An unpaid order holds its parts off sale, so one shopper (by account or email) can only hold so many at once:
+     * enough for any real order, not enough to empty the shop.
+     */
+    private void checkHoldLimit(List<BasketView.Line> lines, String email, String customerId) {
+        if (maxHeldParts <= 0) {
+            return;
+        }
+        int held = orders.forCustomer(customerId, email).stream()
+                .filter(o -> o.status() == Order.Status.AWAITING_PAYMENT)
+                .mapToInt(o -> o.lines().stream().mapToInt(BasketView.Line::quantity).sum()).sum();
+        int wanted = lines.stream().mapToInt(BasketView.Line::quantity).sum();
+        if (held + wanted > maxHeldParts) {
+            throw new ConflictException(held == 0
+                    ? "You can order up to " + maxHeldParts + " parts at a time. Remove some from your basket, or call us for a bigger order."
+                    : "You already have " + held + (held == 1 ? " part" : " parts") + " reserved in unpaid orders, and you can hold up to "
+                    + maxHeldParts + " at a time. Pay for those orders first (the link is in your account), or call us.");
+        }
     }
 
     /** All or nothing: if any line is short, puts back what was already taken. */

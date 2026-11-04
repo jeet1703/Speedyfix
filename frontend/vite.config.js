@@ -7,7 +7,9 @@ export default defineConfig({
   base: process.env.GITHUB_ACTIONS === 'true' ? '/Speedyfix/' : '/',
   plugins: [react()],
   server: {
+    // Always 5173 (it's the origin registered for Google sign-in and CORS): fail rather than move to another port.
     port: 5173,
+    strictPort: true,
     proxy: { '/api': process.env.API_PROXY_TARGET || 'http://localhost:8080' }
   }
 });

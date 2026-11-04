@@ -42,6 +42,8 @@ class DeliveryQuotesTest {
     /** FedEx with keys, answering with the reply above (or failing), and remembering what it was asked. */
     private static class FakeFedEx extends FedExClient {
         final List<List<Parcel>> asked = new ArrayList<>();
+        final List<Destination> to = new ArrayList<>();
+        final List<List<Commodity>> goods = new ArrayList<>();
         boolean down;
 
         FakeFedEx(boolean keys) {
@@ -49,8 +51,10 @@ class DeliveryQuotesTest {
         }
 
         @Override
-        public List<Rate> rates(String toPostcode, String toCountry, List<Parcel> parcels) throws IOException {
+        public List<Rate> rates(Destination dest, List<Parcel> parcels, List<Commodity> commodities) throws IOException {
             asked.add(parcels);
+            to.add(dest);
+            goods.add(commodities);
             if (down) {
                 throw new IOException("FedEx is down");
             }
@@ -155,5 +159,38 @@ class DeliveryQuotesTest {
         BasketView.Delivery manual = q.choose(basket, "SW1A 1AA", DeliveryQuotes.MANUAL);
         assertThat(DeliveryQuotes.manual(manual)).isTrue();
         assertThat(manual.price()).isEqualByComparingTo("0");
+    }
+
+    @Test
+    void abroadThePricesHaveNoUkVatNothingIsFreeAndCustomsGetTheGoods() {
+        FakeFedEx fedex = new FakeFedEx(true);
+        DeliveryQuotes q = quotes(fedex, "0", "0");
+        BasketView basket = basket("gm-sensor", "astra-loom");
+        assertThat(basket.subtotal()).isGreaterThan(new BigDecimal("100"));
+        List<DeliveryQuotes.Option> options = q.options(basket, new FedExClient.Destination(" 110001 ", "New Delhi", "in"));
+        // FedEx's charge as it is: no VAT added, and not free though the parts are over £100.
+        assertThat(options.get(0).price()).isEqualByComparingTo("8.50");
+        assertThat(options.get(1).price()).isEqualByComparingTo("15.00");
+        assertThat(fedex.to.get(0)).isEqualTo(new FedExClient.Destination("110001", "New Delhi", "IN"));
+        assertThat(fedex.goods.get(0)).hasSize(2).allSatisfy(c -> assertThat(c.description()).startsWith("Used car part"));
+        // Customs value: the parts' price without VAT.
+        BigDecimal value = fedex.goods.get(0).stream().map(FedExClient.Commodity::valueGbp).reduce(BigDecimal.ZERO, BigDecimal::add);
+        assertThat(value).isEqualByComparingTo(BasketService.forExport(basket, basket.delivery()).subtotal());
+    }
+
+    @Test
+    void anExportBasketDropsTheVatFromEveryPrice() {
+        BasketView basket = basket("gm-sensor");
+        BasketView export = BasketService.forExport(basket, new BasketView.Delivery("FEDEX", "FedEx International Economy", new BigDecimal("79.18")));
+        BasketView.Line line = export.lines().get(0);
+        assertThat(line.unitPrice()).isEqualByComparingTo(BasketService.exVat(basket.lines().get(0).unitPrice()));
+        assertThat(export.vatIncluded()).isEqualByComparingTo("0");
+        assertThat(export.total()).isEqualByComparingTo(export.subtotal().add(new BigDecimal("79.18")));
+    }
+
+    @Test
+    void withoutFedExDeliveryAbroadIsQuotedByHand() {
+        assertThat(quotes(new FakeFedEx(false), "0", "0").options(basket("gm-sensor"), new FedExClient.Destination("", "Dubai", "AE")))
+                .extracting(DeliveryQuotes.Option::id).containsExactly(DeliveryQuotes.MANUAL);
     }
 }

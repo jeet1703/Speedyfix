@@ -1,6 +1,7 @@
 package com.speedyfixautosales.store.invoice;
 
 import com.speedyfixautosales.store.config.SiteProperties;
+import com.speedyfixautosales.store.order.Countries;
 import com.speedyfixautosales.store.order.Order;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -187,7 +188,8 @@ public class InvoicePdf {
             field("FULL NAME / COMPANY", order.customer().name(), LEFT, RIGHT - LEFT);
             top += 34;
             Order.Address a = order.address();
-            String address = String.join(", ", nonBlank(a.line1(), a.line2(), a.town(), a.postcode()));
+            String address = String.join(", ", nonBlank(a.line1(), a.line2(), a.town(), a.postcode(),
+                    a.export() || !Countries.UK.equals(a.country()) ? Countries.name(a.country()) : null));
             field("DELIVERY ADDRESS", address, LEFT, RIGHT - LEFT);
             top += 34;
             float half = (RIGHT - LEFT - 12) / 2;
@@ -226,7 +228,9 @@ public class InvoicePdf {
             }
             String delivery = order.delivery().label() == null || order.delivery().label().isBlank() ? "Delivery" : order.delivery().label();
             top += 13;
-            text(regular, 7.5f, GREY, LEFT, top, "Delivery: " + delivery + ". Prices on this invoice are before VAT; VAT at 20% is added in the totals.");
+            text(regular, 7.5f, GREY, LEFT, top, order.address().export()
+                    ? "Delivery: " + delivery + ". Zero-rated export: no UK VAT. Any import duty and taxes are paid by the buyer."
+                    : "Delivery: " + delivery + ". Prices on this invoice are before VAT; VAT at 20% is added in the totals.");
             top += 16;
         }
 
@@ -284,7 +288,7 @@ public class InvoicePdf {
             float y = top;
             amount(rightX, colW, y, "Subtotal (before VAT)", money(amounts.subtotal()), false);
             amount(rightX, colW, y += 22, "Delivery / Shipping", money(amounts.delivery()), false);
-            amount(rightX, colW, y += 22, "VAT 20% (16.67% of price)", money(amounts.vat()), false);
+            amount(rightX, colW, y += 22, order.address().export() ? "VAT 0% (export)" : "VAT 20% (16.67% of price)", money(amounts.vat()), false);
             amount(rightX, colW, y += 22, "Total", money(amounts.total()), true);
             amount(rightX, colW, y += 22, "Amount Paid", money(amounts.total()), false);
             y += 26;

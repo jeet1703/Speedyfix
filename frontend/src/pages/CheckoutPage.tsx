@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api, ApiError, money } from '../api/client';
+import { COUNTRIES, ukVat } from '../api/countries';
 import type { Basket, DeliveryOption, Order, OrderForm } from '../api/types';
 import { Layout } from '../components/Layout';
 import { LineList, Totals } from '../components/OrderSummary';
@@ -10,7 +11,7 @@ import { useAccount } from '../state/AccountContext';
 import { useSite } from '../state/SiteContext';
 import { useStore } from '../state/StoreContext';
 
-const EMPTY: OrderForm = { name: '', email: '', phone: '', line1: '', line2: '', town: '', postcode: '', notes: '' };
+const EMPTY: OrderForm = { name: '', email: '', phone: '', line1: '', line2: '', town: '', postcode: '', country: 'GB', notes: '' };
 
 /** A full UK postcode, as the server checks it. */
 const POSTCODE = /^\s*[A-Za-z]{1,2}[0-9][A-Za-z0-9]?\s*[0-9][A-Za-z]{2}\s*$/;
@@ -24,11 +25,12 @@ function arrivesText(date: string | null) {
   return Number.isNaN(d.getTime()) ? null : `Arrives by ${ARRIVES.format(d)}`;
 }
 
-/** The basket's totals with the chosen delivery in place of its own. */
-function withDelivery(basket: Basket, option: DeliveryOption | undefined) {
+/** The basket's totals with the chosen delivery in place of its own. For an export (no UK VAT) there's no VAT in it. */
+function withDelivery(basket: Basket, option: DeliveryOption | undefined, exported = false) {
   if (!option) return basket;
   const total = Math.round((basket.subtotal + option.price) * 100) / 100;
-  return { ...basket, delivery: { method: option.method, label: option.label, price: option.price }, total, vatIncluded: Math.round(total / 6 * 100) / 100 };
+  return { ...basket, delivery: { method: option.method, label: option.label, price: option.price }, total,
+    vatIncluded: exported ? 0 : Math.round(total / 6 * 100) / 100 };
 }
 
 const REQUIRED: { key: keyof OrderForm; message: string }[] = [
@@ -36,8 +38,7 @@ const REQUIRED: { key: keyof OrderForm; message: string }[] = [
   { key: 'email', message: 'Enter your email address.' },
   { key: 'phone', message: 'Enter a phone number so the courier can reach you.' },
   { key: 'line1', message: 'Enter the first line of your address.' },
-  { key: 'town', message: 'Enter your town or city.' },
-  { key: 'postcode', message: 'Enter your postcode.' }
+  { key: 'town', message: 'Enter your town or city.' }
 ];
 
 export function CheckoutPage() {
@@ -57,35 +58,49 @@ export function CheckoutPage() {
   const summary = useRef<HTMLDivElement>(null);
   const lines = basket?.lines ?? [];
 
-  // FedEx prices delivery from the postcode (heavy parts by FedEx Freight). The shopper asks for the options with
-  // "Show delivery options" and picks one; payment opens only once they have.
-  const quoting = !!data?.deliveryQuotes && !!basket && basket.lines.length > 0;
+  // FedEx prices delivery to the address (heavy parts by FedEx Freight), in the UK or abroad. The shopper asks for the
+  // options with "Calculate delivery" and picks one; payment opens only once they have. Abroad (an export), prices
+  // have no UK VAT; without FedEx, delivery abroad is quoted by hand.
+  const uk = form.country === 'GB';
+  const exported = !ukVat(form.country);
+  const quoting = (!!data?.deliveryQuotes || exported) && !!basket && basket.lines.length > 0;
+  const [exportBasket, setExportBasket] = useState<Basket | null>(null);
   const [options, setOptions] = useState<DeliveryOption[] | null>(null);
   const [choice, setChoice] = useState<string | null>(null);
   const [quoteState, setQuoteState] = useState<'idle' | 'loading' | 'error'>('idle');
   const [deliveryError, setDeliveryError] = useState('');
-  const postcodeOk = POSTCODE.test(form.postcode);
+  // Every address needs a postcode or ZIP: a full one in the UK; abroad, it goes to FedEx as written.
+  const postcodeOk = uk ? POSTCODE.test(form.postcode) : !!form.postcode.trim();
+  const postcodeMessage = !form.postcode.trim() ? (uk ? 'Enter your postcode.' : 'Enter your postcode or ZIP.')
+    : 'Enter a full UK postcode, like SW1A 1AA.';
+  const addressOk = postcodeOk && (uk || !!form.town.trim());
   const quotedFor = useRef('');
-  // A new postcode or a changed basket needs new prices: the old options (and the choice) no longer apply.
+  // A new address or a changed basket needs new prices: the old options (and the choice) no longer apply.
   useEffect(() => {
     setOptions(null);
     setChoice(null);
+    setExportBasket(null);
     setQuoteState('idle');
-  }, [form.postcode, basket?.id, basket?.subtotal, basket?.itemCount]);
+  }, [form.postcode, form.country, uk ? '' : form.town, basket?.id, basket?.subtotal, basket?.itemCount]);
+  // What the shopper sees: abroad, the parts without UK VAT (from the server, once delivery's been calculated).
+  const shown = exported && exportBasket ? exportBasket : basket;
   const chosen = options?.find((o) => o.id === choice);
 
   function loadOptions() {
-    if (!basket || !postcodeOk) {
-      setErrors((e) => ({ ...e, postcode: 'Enter a full UK postcode, like SW1A 1AA.' }));
+    if (!basket || !addressOk) {
+      setErrors(({ postcode: _p, town: _t, ...e }) => (!postcodeOk ? { ...e, postcode: postcodeMessage } : { ...e, town: 'Enter your town or city.' }));
       return;
     }
+    setErrors(({ postcode: _p, town: _t, ...e }) => e);
     setDeliveryError('');
     setQuoteState('loading');
-    quotedFor.current = form.postcode;
-    api.deliveryOptions(basket.id, form.postcode)
+    const asked = [form.postcode, form.town, form.country].join('|');
+    quotedFor.current = asked;
+    api.deliveryOptions(basket.id, form.postcode, form.town, form.country)
       .then((r) => {
-        if (quotedFor.current !== form.postcode) return;
+        if (quotedFor.current !== asked) return;
         setOptions(r.options);
+        setExportBasket(r.export ? r.basket : null);
         setChoice(null);
         setQuoteState('idle');
       })
@@ -107,9 +122,9 @@ export function CheckoutPage() {
   function check(): boolean {
     const found: typeof errors = {};
     for (const r of REQUIRED) if (!form[r.key].trim()) found[r.key] = r.message;
-    if (!found.postcode && quoting && !postcodeOk) found.postcode = 'Enter a full UK postcode, like SW1A 1AA.';
-    const delivery = quoting && postcodeOk && !chosen
-      ? (options ? 'Choose a delivery option.' : 'Press “Show delivery options” and choose how you’d like it delivered.')
+    if (!postcodeOk) found.postcode = postcodeMessage;
+    const delivery = quoting && addressOk && !chosen
+      ? (options ? 'Choose a delivery option.' : 'Press “Calculate delivery” and choose how you’d like it delivered.')
       : '';
     setErrors(found);
     setDeliveryError(delivery);
@@ -237,11 +252,28 @@ export function CheckoutPage() {
 
             <fieldset className="checkout__group">
               <legend className="panel__title">Delivery address</legend>
+              <div className="field">
+                <label htmlFor="co-country">Country</label>
+                <select id="co-country" className="input" value={form.country} autoComplete="country"
+                  onChange={(e) => {
+                    setForm((f) => ({ ...f, country: e.target.value }));
+                    // The UK's postcode rule (and its message) doesn't carry over to another country.
+                    setErrors(({ postcode: _p, town: _t, ...errs }) => errs);
+                  }}>
+                  {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
+                </select>
+              </div>
+              {exported && (
+                <p className="notice">
+                  We deliver worldwide with FedEx. Orders outside the UK are exports, so <strong>prices don’t include UK VAT</strong>.
+                  Your country may charge import duty and taxes when the parcel arrives; you pay these to the courier.
+                </p>
+              )}
               {field('line1', 'Address line 1', { autoComplete: 'address-line1' })}
               {field('line2', 'Address line 2', { autoComplete: 'address-line2', optional: true })}
               <div className="field-row">
                 {field('town', 'Town or city', { autoComplete: 'address-level2' })}
-                {field('postcode', 'Postcode', { autoComplete: 'postal-code' })}
+                {field('postcode', uk ? 'Postcode' : 'Postcode or ZIP', { autoComplete: 'postal-code' })}
               </div>
               <div className="field">
                 <label htmlFor="co-notes">Delivery notes<span className="field__optional"> (optional)</span></label>
@@ -257,7 +289,7 @@ export function CheckoutPage() {
                 <p id="co-delivery-note" className="panel__note">
                   {quoteState === 'loading' ? 'Working out delivery to your postcode…'
                     : quoteState === 'error' ? 'We couldn’t work out delivery just now. Try again, or choose manual delivery and we’ll quote you.'
-                    : !options ? 'We deliver to UK addresses. Enter your postcode above, then calculate delivery to see the prices and dates.'
+                    : !options ? 'We deliver worldwide. Enter your address above, then calculate delivery to see the prices and dates.'
                     : 'Choose how you’d like it delivered.'}
                 </p>
                 <div>
@@ -308,7 +340,7 @@ export function CheckoutPage() {
                 : (
                   <div className="checkout__paypal">
                     <p className="panel__note">
-                      To pay: <strong>{money(withDelivery(basket!, chosen).total)}</strong>
+                      To pay: <strong>{money(withDelivery(shown!, chosen, exported).total)}</strong>
                       {chosen && <> including {chosen.method === 'MANUAL' ? 'parts only (delivery quoted separately)' : `${chosen.label}${chosen.price ? '' : ' (free)'}`}</>}.
                     </p>
                     <PayPalButtons clientId={data.paypalClientId} reference={placeForPayPal} canPay={check}
@@ -320,8 +352,8 @@ export function CheckoutPage() {
 
           <aside className="panel" aria-labelledby="co-summary-title">
             <h2 id="co-summary-title" className="panel__title">Your order</h2>
-            <LineList lines={lines} />
-            <Totals totals={withDelivery(basket!, chosen)} />
+            <LineList lines={shown?.lines ?? lines} />
+            <Totals totals={withDelivery(shown!, chosen, exported)} export={exported} />
             {data?.paypalClientId
               ? <p className="panel__note"><strong>Pay with PayPal or a card in the Payment section{busy ? ' (placing your order…)' : ''}.</strong></p>
               : <button type="submit" className="btn btn--primary btn--block" disabled={busy}>{busy ? 'Placing order…' : 'Place order'}</button>}

@@ -218,10 +218,14 @@ public class ChatService {
                             ? " Engines and gearboxes go by FedEx Freight, also priced at checkout; free delivery doesn't apply to them."
                                 + " Manual delivery is also offered at checkout: pay for the parts, then get a quote from another courier."
                             : " Engines and gearboxes go by pallet, £79 per order.")
-                        + " International shipping by UK Pallets or FedEx at extra cost, 3 to 10 working days after dispatch;"
-                        + " the buyer pays any import VAT or duties.");
+                        + " Worldwide delivery: the buyer picks their country at checkout; "
+                        + (quotes.live() ? "FedEx prices it there" : "delivery abroad is quoted after they pay for the parts")
+                        + ". Orders outside the UK are exports, charged without UK VAT; the buyer pays any import duty and taxes"
+                        + " on arrival. Usually 3 to 10 working days after dispatch.");
                 out.put("returns", site.returns());
-                out.put("warranty", site.warranty() + " warranty from delivery, covering the part only (not labour or fitting).");
+                out.put("warranty", "3 months replacement warranty on aftermarket and refurbished parts, covering the part only "
+                        + "(no labour, towing or rentals). No returns or warranty on new genuine parts. No warranty and no returns "
+                        + "on electrical parts (switches, sensors, regulators, ignition modules, computers, relays, solenoids and the like).");
                 out.put("payment", "PayPal, or debit or credit card through PayPal. Prices include VAT.");
                 out.put("contact", "WhatsApp or phone " + site.phone() + ", email " + site.email() + ". Address: " + site.address() + ".");
                 out.put("company", site.companyName() + ", company no. " + site.companyNumber() + ", VAT " + site.vatNumber() + ".");

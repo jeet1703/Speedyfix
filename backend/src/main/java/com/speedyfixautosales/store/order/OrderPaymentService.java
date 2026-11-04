@@ -51,14 +51,19 @@ public class OrderPaymentService {
     }
 
     /** Creates the PayPal payment for an unpaid order and returns PayPal's order id for the buttons. */
-    public synchronized String startPayPal(String reference) {
+    public String startPayPal(String reference) {
+        return startPayPal(reference, false);
+    }
+
+    /** @param card true for the card form on the checkout page, false for PayPal's buttons */
+    public synchronized String startPayPal(String reference, boolean card) {
         if (!paypal.enabled()) {
             throw new UnavailableException("Online payment isn’t set up yet. Call us to pay by card over the phone.");
         }
         Order order = orderService.get(reference);
         requireUnpaid(order);
         try {
-            String paypalOrderId = paypal.createOrder(order, brandName);
+            String paypalOrderId = card ? paypal.createOrder(order, brandName, true) : paypal.createOrder(order, brandName);
             orders.save(order.withPayment(new Order.Payment(paypalOrderId, null, null)));
             return paypalOrderId;
         } catch (IOException e) {
@@ -82,9 +87,16 @@ public class OrderPaymentService {
             c = paypal.capture(paypalOrderId);
         } catch (IOException e) {
             log.warn("PayPal capture for {} failed: {}", order.reference(), e.getMessage());
-            throw new PaymentFailedException(e.getMessage().startsWith("INSTRUMENT_DECLINED")
-                    ? "Your payment was declined. Try another card or payment method."
-                    : "The payment didn’t go through, and you haven’t been charged. Try again.");
+            if (e.getMessage().startsWith("INSTRUMENT_DECLINED")) {
+                // The shopper can pick another card or funding source for the same PayPal order.
+                throw new PaymentDeclinedException("Your payment was declined. Try another card or payment method.");
+            }
+            throw new PaymentFailedException("The payment didn’t go through, and you haven’t been charged. Try again.");
+        }
+        if ("DECLINED".equals(c.status()) || "FAILED".equals(c.status())) {
+            // A card the bank turned down (card form): no money moved, so the shopper just tries again.
+            log.info("PayPal capture for {} was {}", order.reference(), c.status());
+            throw new PaymentDeclinedException("Your bank declined the payment. Check the card details, or try another card or PayPal.");
         }
         boolean matches = "COMPLETED".equals(c.status()) && "GBP".equals(c.currency()) && c.amount() != null
                 && c.amount().compareTo(order.total()) == 0 && order.reference().equals(c.reference());
@@ -134,6 +146,15 @@ public class OrderPaymentService {
             } catch (RuntimeException e) {
                 log.warn("Couldn’t cancel unpaid order {}: {}", o.reference(), e.getMessage());
             }
+        }
+    }
+
+    /** The card or PayPal balance was declined: PayPal's window reopens so the shopper can choose another. */
+    public static class PaymentDeclinedException extends PaymentFailedException {
+        private static final long serialVersionUID = 1L;
+
+        PaymentDeclinedException(String message) {
+            super(message);
         }
     }
 

@@ -31,6 +31,21 @@ public class FedExClient {
     public record Parcel(BigDecimal weightKg, int lengthCm, int widthCm, int heightCm) {
     }
 
+    /** Where it's going: postcode (may be blank abroad), town and ISO country code. */
+    public record Destination(String postcode, String city, String country) {
+        public static Destination uk(String postcode) {
+            return new Destination(postcode, null, "GB");
+        }
+
+        boolean international() {
+            return !"GB".equalsIgnoreCase(country);
+        }
+    }
+
+    /** One kind of goods in an international shipment, for customs: value in pounds before VAT. */
+    public record Commodity(String description, int quantity, BigDecimal weightKg, BigDecimal valueGbp) {
+    }
+
     /** One FedEx service for the shipment: what FedEx charges the shop, before VAT, and when it should arrive. */
     public record Rate(String serviceType, String serviceName, BigDecimal chargeExVat, String currency, String arrives) {
     }
@@ -69,19 +84,28 @@ public class FedExClient {
         return live;
     }
 
-    /** Every service FedEx offers for the parcels to the postcode, cheapest first. */
-    public List<Rate> rates(String toPostcode, String toCountry, List<Parcel> parcels) throws IOException {
-        JsonNode res = send("/rate/v1/rates/quotes", request(toPostcode, toCountry, parcels).toString());
+    /**
+     * Every service FedEx offers for the parcels to the destination, cheapest first. Abroad, FedEx needs the goods for
+     * customs (what they are and their value).
+     */
+    public List<Rate> rates(Destination to, List<Parcel> parcels, List<Commodity> goods) throws IOException {
+        JsonNode res = send("/rate/v1/rates/quotes", request(to, parcels, goods).toString());
         return parse(res);
     }
 
-    ObjectNode request(String toPostcode, String toCountry, List<Parcel> parcels) {
+    ObjectNode request(Destination dest, List<Parcel> parcels, List<Commodity> goods) {
         ObjectNode body = json.createObjectNode();
         body.putObject("accountNumber").put("value", accountNumber);
         body.putObject("rateRequestControlParameters").put("returnTransitTimes", true);
         ObjectNode shipment = body.putObject("requestedShipment");
         shipment.putObject("shipper").putObject("address").put("postalCode", fromPostcode).put("countryCode", fromCountry);
-        ObjectNode to = shipment.putObject("recipient").putObject("address").put("postalCode", toPostcode).put("countryCode", toCountry);
+        ObjectNode to = shipment.putObject("recipient").putObject("address");
+        // FedEx wants the field even where the country has no postcodes (empty then).
+        to.put("postalCode", dest.postcode() == null ? "" : dest.postcode());
+        if (dest.city() != null && !dest.city().isBlank()) {
+            to.put("city", dest.city());
+        }
+        to.put("countryCode", dest.country().toUpperCase());
         to.put("residential", true);
         shipment.put("pickupType", "DROPOFF_AT_FEDEX_LOCATION");
         shipment.put("preferredCurrency", "GBP");
@@ -92,6 +116,19 @@ public class FedExClient {
             ObjectNode item = items.addObject();
             item.putObject("weight").put("units", "KG").put("value", p.weightKg());
             item.putObject("dimensions").put("length", p.lengthCm()).put("width", p.widthCm()).put("height", p.heightCm()).put("units", "CM");
+        }
+        if (dest.international()) {
+            // The quote is for the shop's account; who pays import duty is set when the parcel is booked (the buyer).
+            ObjectNode customs = shipment.putObject("customsClearanceDetail");
+            customs.putObject("dutiesPayment").put("paymentType", "SENDER");
+            ArrayNode commodities = customs.putArray("commodities");
+            for (Commodity c : goods) {
+                ObjectNode item = commodities.addObject();
+                item.put("description", c.description().length() > 100 ? c.description().substring(0, 100) : c.description());
+                item.put("quantity", c.quantity()).put("quantityUnits", "PCS");
+                item.putObject("weight").put("units", "KG").put("value", c.weightKg());
+                item.putObject("customsValue").put("amount", c.valueGbp()).put("currency", "GBP");
+            }
         }
         return body;
     }
@@ -144,7 +181,7 @@ public class FedExClient {
     }
 
     private JsonNode send(String path, String body) throws IOException {
-        HttpResponse<String> res = sendRaw(HttpRequest.newBuilder(URI.create(api + path))
+        Reply res = sendRaw(HttpRequest.newBuilder(URI.create(api + path))
                 .timeout(Duration.ofSeconds(20))
                 .header("Authorization", "Bearer " + token())
                 .header("Content-Type", "application/json")
@@ -169,7 +206,7 @@ public class FedExClient {
         }
         String form = "grant_type=client_credentials&client_id=" + URLEncoder.encode(apiKey, StandardCharsets.UTF_8)
                 + "&client_secret=" + URLEncoder.encode(secretKey, StandardCharsets.UTF_8);
-        HttpResponse<String> res = sendRaw(HttpRequest.newBuilder(URI.create(api + "/oauth/token"))
+        Reply res = sendRaw(HttpRequest.newBuilder(URI.create(api + "/oauth/token"))
                 .timeout(Duration.ofSeconds(20))
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .POST(HttpRequest.BodyPublishers.ofString(form))
@@ -187,9 +224,20 @@ public class FedExClient {
         return body == null || body.isBlank() ? json.createObjectNode() : json.readTree(body);
     }
 
-    private HttpResponse<String> sendRaw(HttpRequest request) throws IOException {
+    /** FedEx's answer: its status, and its body as text (FedEx sometimes gzips it, errors included). */
+    private record Reply(int statusCode, String body) {
+    }
+
+    private Reply sendRaw(HttpRequest request) throws IOException {
         try {
-            return http.send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<byte[]> res = http.send(request, HttpResponse.BodyHandlers.ofByteArray());
+            byte[] body = res.body() == null ? new byte[0] : res.body();
+            if (body.length > 2 && (body[0] & 0xff) == 0x1f && (body[1] & 0xff) == 0x8b) {
+                try (java.util.zip.GZIPInputStream in = new java.util.zip.GZIPInputStream(new java.io.ByteArrayInputStream(body))) {
+                    body = in.readAllBytes();
+                }
+            }
+            return new Reply(res.statusCode(), new String(body, StandardCharsets.UTF_8));
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IOException("Interrupted while talking to FedEx", e);

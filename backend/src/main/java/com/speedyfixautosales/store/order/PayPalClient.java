@@ -59,6 +59,15 @@ public class PayPalClient {
 
     /** Starts a PayPal payment for the order's total. Returns PayPal's order id for the buttons. */
     public String createOrder(Order order, String brandName) throws IOException {
+        return createOrder(order, brandName, false);
+    }
+
+    /**
+     * @param card true for the card form on the shop's own checkout (PayPal's card fields): the card is charged through
+     *             the shop's PayPal account without the shopper going through PayPal's own checkout (which refuses some
+     *             countries' cards, like India's), with the bank's security check (3D Secure) where the card needs it.
+     */
+    public String createOrder(Order order, String brandName, boolean card) throws IOException {
         ObjectNode body = json.createObjectNode();
         body.put("intent", "CAPTURE");
         ObjectNode unit = body.putArray("purchase_units").addObject();
@@ -67,11 +76,16 @@ public class PayPalClient {
         unit.put("invoice_id", order.reference());
         unit.put("description", brandName + " order " + order.reference());
         unit.putObject("amount").put("currency_code", "GBP").put("value", order.total().setScale(2).toPlainString());
-        // We already have the delivery address from checkout, so PayPal doesn't ask for one.
-        body.putObject("payment_source").putObject("paypal").putObject("experience_context")
-                .put("brand_name", brandName)
-                .put("shipping_preference", "NO_SHIPPING")
-                .put("user_action", "PAY_NOW");
+        if (card) {
+            body.putObject("payment_source").putObject("card").putObject("attributes").putObject("verification")
+                    .put("method", "SCA_WHEN_REQUIRED");
+        } else {
+            // We already have the delivery address from checkout, so PayPal doesn't ask for one.
+            body.putObject("payment_source").putObject("paypal").putObject("experience_context")
+                    .put("brand_name", brandName)
+                    .put("shipping_preference", "NO_SHIPPING")
+                    .put("user_action", "PAY_NOW");
+        }
         // No request id: a shopper who comes back later gets a fresh PayPal order (an unpaid one expires after a few hours).
         JsonNode res = send("POST", "/v2/checkout/orders", body.toString(), null);
         String id = res.path("id").asText("");

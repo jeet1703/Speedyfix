@@ -2,9 +2,11 @@ package com.speedyfixautosales.store.web;
 
 import com.speedyfixautosales.store.account.CustomerAuthService;
 import com.speedyfixautosales.store.admin.AdminAuthInterceptor;
+import com.speedyfixautosales.store.common.BadRequestException;
 import com.speedyfixautosales.store.common.NotFoundException;
 import com.speedyfixautosales.store.common.UnauthorizedException;
 import com.speedyfixautosales.store.invoice.InvoiceService;
+import com.speedyfixautosales.store.order.Countries;
 import com.speedyfixautosales.store.order.Order;
 import com.speedyfixautosales.store.order.OrderPaymentService;
 import com.speedyfixautosales.store.order.OrderService;
@@ -78,10 +80,13 @@ public class OrderController {
     public record PayPalApproved(@NotBlank(message = "PayPal didn’t send the payment. Try again.") @Size(max = 40) String paypalOrderId) {
     }
 
-    /** Starts paying an unpaid order with PayPal; the browser hands PayPal's order id to PayPal's buttons. */
+    /**
+     * Starts paying an unpaid order with PayPal; the browser hands PayPal's order id to PayPal's buttons, or (card=true)
+     * to the card form on the checkout page.
+     */
     @PostMapping("/{reference}/paypal")
-    public PayPalStarted startPayPal(@PathVariable String reference) {
-        return new PayPalStarted(payments.startPayPal(reference));
+    public PayPalStarted startPayPal(@PathVariable String reference, @RequestParam(defaultValue = "false") boolean card) {
+        return new PayPalStarted(payments.startPayPal(reference, card));
     }
 
     /** After the shopper approves in PayPal: takes the payment and returns the order, now paid. */
@@ -94,11 +99,14 @@ public class OrderController {
             @NotBlank(message = "Your basket has expired. Add the parts again.") String basketId,
             @NotBlank(message = "Enter your full name.") @Size(max = 100) String name,
             @NotBlank(message = "Enter your email address.") @Email(message = "Enter an email address like name@example.com.") @Size(max = 200) String email,
-            @NotBlank(message = "Enter a phone number so the courier can reach you.") @Pattern(regexp = "^[+0-9 ()-]{10,20}$", message = "Enter a UK phone number, like 07700 900123.") String phone,
+            @NotBlank(message = "Enter a phone number so the courier can reach you.") @Pattern(regexp = "^[+0-9 ()-]{7,20}$", message = "Enter a phone number, like 07700 900123 or +91 98765 43210.") String phone,
             @NotBlank(message = "Enter the first line of your address.") @Size(max = 120) String line1,
             @Size(max = 120) String line2,
             @NotBlank(message = "Enter your town or city.") @Size(max = 80) String town,
-            @NotBlank(message = "Enter your postcode.") @Pattern(regexp = POSTCODE, message = "Enter a full UK postcode, like SW1A 1AA.") String postcode,
+            /** Required and checked for the UK; abroad, as the country writes it (blank where there's none). */
+            @Size(max = 16, message = "Enter your postcode.") @Pattern(regexp = "^[A-Za-z0-9 -]*$", message = "Enter your postcode using letters, numbers, spaces and dashes.") String postcode,
+            /** ISO country code, like GB or IN; blank is the UK. */
+            @Size(max = 2) String country,
             @Size(max = 500, message = "Keep delivery notes under 500 characters.") String notes,
             /** The delivery option chosen at checkout (an id from the basket's delivery options); null for the cheapest. */
             @Size(max = 60) String deliveryOption) {
@@ -116,8 +124,7 @@ public class OrderController {
         }
         Order order = orders.place(r.basketId(),
                 new Order.Customer(r.name().trim(), r.email().trim(), r.phone().trim()),
-                new Order.Address(r.line1().trim(), r.line2() == null ? null : r.line2().trim(), r.town().trim(),
-                        formatPostcode(r.postcode())),
+                address(r.line1(), r.line2(), r.town(), r.postcode(), r.country()),
                 r.notes(), customerId, r.deliveryOption());
         return ResponseEntity.status(HttpStatus.CREATED).body(order);
     }
@@ -141,6 +148,27 @@ public class OrderController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
                 .header(HttpHeaders.CACHE_CONTROL, "private, no-store")
                 .body(doc.pdf());
+    }
+
+    /** A checked delivery address: a full postcode in the UK; abroad, any country we deliver to, with its postcode or ZIP. */
+    static Order.Address address(String line1, String line2, String town, String postcode, String country) {
+        String c = Countries.normalise(country);
+        if (!Countries.delivered(c)) {
+            throw new BadRequestException("Sorry, we can’t deliver to that country. Call us and we’ll see what we can do.");
+        }
+        String p = postcode == null ? "" : postcode.trim();
+        if (Countries.UK.equals(c)) {
+            if (!p.matches(POSTCODE)) {
+                throw new BadRequestException("Enter a full UK postcode, like SW1A 1AA.");
+            }
+            p = formatPostcode(p);
+        } else {
+            if (p.isEmpty()) {
+                throw new BadRequestException("Enter your postcode or ZIP.");
+            }
+            p = p.replaceAll(" {2,}", " ").toUpperCase(java.util.Locale.ROOT);
+        }
+        return new Order.Address(line1.trim(), line2 == null || line2.isBlank() ? null : line2.trim(), town.trim(), p, c);
     }
 
     /** "sw1a1aa" becomes "SW1A 1AA". */

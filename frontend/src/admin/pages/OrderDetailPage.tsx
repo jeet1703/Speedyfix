@@ -5,6 +5,7 @@ import { AdminLayout } from '../AdminLayout';
 import { gbpOrDash, OrderPill, when } from '../components';
 import type { InvoiceStatus, Order, OrderStatus } from '../types';
 import { invoiceUrl } from '../../api/client';
+import { countryName, ukVat } from '../../api/countries';
 import { CardsSkeleton } from '../../components/Skeleton';
 
 const EMAIL_KINDS: Record<InvoiceStatus['emails'][number]['kind'], string> = {
@@ -109,7 +110,7 @@ export function OrderDetailPage() {
                   </li>
                 ))}
                 <li><span>Delivery{order.delivery.label ? ` (${order.delivery.label})` : ''}</span><span>{gbpOrDash(order.delivery.price)}</span></li>
-                <li><strong>Total (inc. {gbpOrDash(order.vatIncluded)} VAT)</strong><strong>{gbpOrDash(order.total)}</strong></li>
+                <li><strong>Total {ukVat(order.address.country) ? `(inc. ${gbpOrDash(order.vatIncluded)} VAT)` : '(no UK VAT: export)'}</strong><strong>{gbpOrDash(order.total)}</strong></li>
               </ul>
               {order.delivery.method === 'MANUAL' && (
                 <p><strong>Manual delivery:</strong> the buyer didn’t want FedEx and hasn’t paid for delivery. They’ll contact you for a quote from another courier; agree it and take payment before sending.</p>
@@ -177,8 +178,10 @@ export function OrderDetailPage() {
                 <span>{order.address.line1}</span>
                 {order.address.line2 && <span>{order.address.line2}</span>}
                 <span>{order.address.town}</span>
-                <span className="mono">{order.address.postcode}</span>
+                {order.address.postcode && <span className="mono">{order.address.postcode}</span>}
+                {order.address.country !== 'GB' && <span><strong>{countryName(order.address.country)}</strong></span>}
               </address>
+              {!ukVat(order.address.country) && <p className="admin-muted">Export: no UK VAT charged. Keep proof of export (the FedEx tracking) for HMRC, and book it with a commercial invoice for customs.</p>}
               <p className="admin-muted">Placed {when(order.placedAt)}</p>
             </section>
 

@@ -1,3 +1,4 @@
+import { countryName } from '../../api/countries';
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { adminApi, errorMessage } from '../adminApi';
@@ -75,7 +76,7 @@ export function OrdersPage() {
                 {shown.map((o) => (
                   <tr key={o.reference}>
                     <td className="mono">{o.reference}<span className="table__sub">{when(o.placedAt)}</span></td>
-                    <td>{o.customer.name}<span className="table__sub">{o.address.town}, {o.address.postcode}</span></td>
+                    <td>{o.customer.name}<span className="table__sub">{o.address.town}{o.address.postcode ? `, ${o.address.postcode}` : ''}{o.address.country !== 'GB' ? `, ${countryName(o.address.country)}` : ''}</span></td>
                     <td>
                       {o.lines[0]?.name}
                       {o.lines.length > 1 && <span className="table__sub">and {o.lines.length - 1} more</span>}
