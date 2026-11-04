@@ -11,6 +11,7 @@ interface CardFieldsApi {
   NumberField: (o?: object) => PayPalField;
   ExpiryField: (o?: object) => PayPalField;
   CVVField: (o?: object) => PayPalField;
+  getState: () => Promise<{ isFormValid: boolean }>;
   submit: () => Promise<void>;
 }
 
@@ -194,12 +195,24 @@ export function PayPalButtons({ clientId, reference, onPaid, canPay, onCancel }:
     setError('');
     setPaying(true);
     try {
+      // Check the card fields first: at checkout, submitting places the order, which mustn't happen for a mistyped card.
+      const state = await card.getState().catch(() => null);
+      if (state && !state.isFormValid) {
+        setPaying(false);
+        setError('Check the card details: the name, number, expiry date and security code.');
+        return;
+      }
       // Checks the fields, then creates the payment, runs the bank's check where the card needs it, and calls onApprove.
       await card.submit();
     } catch (e) {
       setPaying(false);
       if (e instanceof CheckoutStopped) return;
-      setError(e instanceof ApiError ? e.message : 'Check the card details: the name, number, expiry date and security code.');
+      // PayPal's reason, for staff looking at the browser console; the shopper sees a plain message.
+      console.warn('Card payment not submitted', e);
+      // At checkout the order may already be placed: say so, so the shopper knows trying again won't order twice.
+      const saved = typeof props.current.reference !== 'string' && placed.current
+        ? ` Your order ${placed.current} is saved and its parts are reserved: try again here, or pay later from your account.` : '';
+      setError((e instanceof ApiError ? e.message : 'The card wasn’t accepted. Check the card number, expiry date and security code.') + saved);
     }
   }
 

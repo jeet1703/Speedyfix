@@ -4,6 +4,7 @@ import com.speedyfixautosales.store.basket.BasketService;
 import com.speedyfixautosales.store.basket.BasketView;
 import com.speedyfixautosales.store.catalog.CatalogService;
 import com.speedyfixautosales.store.catalog.Product;
+import com.speedyfixautosales.store.catalog.Shipping;
 import com.speedyfixautosales.store.common.ConflictException;
 import com.speedyfixautosales.store.order.Countries;
 import java.io.IOException;
@@ -124,6 +125,32 @@ public class DeliveryQuotes {
         return List.copyOf(options);
     }
 
+    /**
+     * FedEx won't quote freight and parcels in one shipment, so with an engine or gearbox in the basket the small parts
+     * travel on its pallet: their weight goes onto the first pallet, and they aren't sent as boxes of their own.
+     */
+    private List<FedExClient.Parcel> onThePallet(BasketView basket, List<FedExClient.Parcel> all) {
+        List<FedExClient.Parcel> pallets = new ArrayList<>();
+        BigDecimal loose = BigDecimal.ZERO;
+        int i = 0;
+        for (BasketView.Line line : basket.lines()) {
+            boolean pallet = catalog.findAny(line.productId()).shipping() == Shipping.PALLET;
+            for (int q = 0; q < line.quantity(); q++, i++) {
+                if (pallet) {
+                    pallets.add(all.get(i));
+                } else {
+                    loose = loose.add(all.get(i).weightKg());
+                }
+            }
+        }
+        if (pallets.isEmpty() || loose.signum() == 0) {
+            return all;
+        }
+        FedExClient.Parcel first = pallets.get(0);
+        pallets.set(0, new FedExClient.Parcel(first.weightKg().add(loose), first.lengthCm(), first.widthCm(), first.heightCm()));
+        return pallets;
+    }
+
     /** FedEx's services for the basket, cheapest first; empty when FedEx can't price it. heavy: engines or gearboxes. */
     private List<Option> fedexOptions(BasketView basket, FedExClient.Destination to, boolean heavy, boolean export) {
         List<FedExClient.Parcel> parcels = new ArrayList<>();
@@ -137,6 +164,9 @@ public class DeliveryQuotes {
             // Customs value: what the buyer pays for the part, before VAT.
             goods.add(new FedExClient.Commodity("Used car part: " + line.name(), line.quantity(),
                     box.weightKg().multiply(BigDecimal.valueOf(line.quantity())), BasketService.exVat(line.lineTotal())));
+        }
+        if (heavy) {
+            parcels = onThePallet(basket, parcels);
         }
         if (parcels.size() > MAX_PARCELS) {
             return List.of();

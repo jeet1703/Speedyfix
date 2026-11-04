@@ -127,6 +127,20 @@ class DeliveryQuotesTest {
     }
 
     @Test
+    void smallPartsWithAnEngineGoOnItsPallet() {
+        FakeFedEx fedex = new FakeFedEx(true);
+        DeliveryQuotes q = quotes(fedex, "0", "0");
+        BasketView engineOnly = basket("yd25-engine");
+        q.options(engineOnly, "SW1A 1AA");
+        BigDecimal palletWeight = fedex.asked.get(0).get(0).weightKg();
+        // FedEx won't quote freight and parcels together, so the sensor rides on the engine's pallet.
+        q.options(basket("yd25-engine", "gm-sensor"), "SW1A 1AA");
+        List<FedExClient.Parcel> sent = fedex.asked.get(1);
+        assertThat(sent).hasSize(1);
+        assertThat(sent.get(0).weightKg()).isGreaterThan(palletWeight);
+    }
+
+    @Test
     void whenFedExCantPriceTheOrderOnlyManualDeliveryIsOffered() {
         FakeFedEx down = new FakeFedEx(true);
         down.down = true;
