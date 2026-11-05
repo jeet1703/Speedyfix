@@ -236,7 +236,7 @@ function Perks({ shipping }: { shipping: 'PARCEL' | 'PALLET' }) {
     <ul className="perks">
       <li><Icon name="shield" size={20} />{data?.site.warranty} warranty.</li>
       <li><Icon name="truck" size={20} />{data?.deliveryQuotes
-        ? shipping === 'PALLET' ? 'Tracked FedEx Freight delivery, priced at checkout.' : 'Tracked FedEx delivery, priced at checkout. Free from £100.'
+        ? shipping === 'PALLET' ? 'Tracked FedEx Freight delivery, priced at checkout, never more than £100 in the UK.' : 'Tracked FedEx delivery, priced at checkout. Free in the UK up to 5 kg.'
         : shipping === 'PALLET' ? 'Pallet delivery across the UK, £79.' : 'Tracked parcel delivery, £9.95 or free from £100.'}</li>
     </ul>
   );
@@ -352,7 +352,7 @@ function DeliveryTab({ shipping }: { shipping: 'PARCEL' | 'PALLET' }) {
         {data?.deliveryQuotes
           ? <div><dt>Heavy parts</dt><dd>Engines and gearboxes go by FedEx Freight, priced at checkout from your postcode</dd></div>
           : <div><dt>Pallet delivery</dt><dd>£79 per order, for engines and gearboxes</dd></div>}
-        <div><dt>Parcel delivery</dt><dd>{data?.deliveryQuotes ? 'FedEx, priced at checkout from your postcode; the cheapest service is free on orders of £100 or more' : '£9.95, free on orders of £100 or more'}</dd></div>
+        <div><dt>Parcel delivery</dt><dd>{data?.deliveryQuotes ? 'FedEx, priced at checkout from your postcode; in the UK the cheapest service is free up to 5 kg, and delivery is never more than £100' : '£9.95, free on orders of £100 or more'}</dd></div>
         <div><dt>Ships from</dt><dd>{data?.site.shipsFrom}</dd></div>
         <div><dt>Warranty</dt><dd>{data?.site.warranty}</dd></div>
         <div><dt>Returns</dt><dd>{data?.site.returns}</dd></div>

@@ -75,7 +75,7 @@ export function BasketPage() {
                 {basket!.delivery.method === 'PALLET'
                   ? 'Engines and gearboxes travel by pallet, so this order has pallet delivery.'
                   : basket!.delivery.method === 'QUOTE'
-                    ? 'We work out FedEx delivery from your postcode at checkout. The cheapest service is free on orders of £100 or more.'
+                    ? 'We work out FedEx delivery from your postcode at checkout. In the UK the cheapest service is free for orders up to 5 kg, and delivery is never more than £100.'
                     : 'Tracked parcel delivery is free on orders of £100 or more.'}
               </p>
             </aside>

@@ -25,8 +25,9 @@ import org.springframework.stereotype.Service;
 /**
  * The delivery choices for a basket going to a postcode. With FedEx set up (FedExClient), everything is priced by
  * FedEx, heavy parts (engines, gearboxes) included: FedEx quotes those as FedEx Freight. The price is FedEx's charge to
- * the shop plus any markup (fedex.markup-percent, fedex.handling-fee) and VAT, with the cheapest service free on
- * orders over the free-delivery amount, except for heavy parts. Manual delivery (a quote by hand after payment) is
+ * the shop plus any markup (fedex.markup-percent, fedex.handling-fee) and VAT. In the UK the cheapest service is free
+ * when the order weighs up to delivery.free-up-to-kg (5 kg), and no service costs more than delivery.uk-max-price
+ * (£100) for heavier orders; abroad, FedEx's price applies. Manual delivery (a quote by hand after payment) is
  * always offered too, and is the only choice when FedEx can't price the order, so checkout never stops. Without
  * FedEx set up, the flat prices apply (BasketService).
  */
@@ -70,18 +71,24 @@ public class DeliveryQuotes {
     private final BigDecimal markupPercent;
     private final BigDecimal handlingFee;
     private final boolean addVat;
+    private final BigDecimal freeUpToKg;
+    private final BigDecimal ukMaxPrice;
     private final Map<String, Cached> cache = new ConcurrentHashMap<>();
 
     public DeliveryQuotes(FedExClient fedex, ParcelSizes sizes, CatalogService catalog,
                           @Value("${fedex.markup-percent:0}") BigDecimal markupPercent,
                           @Value("${fedex.handling-fee:0}") BigDecimal handlingFee,
-                          @Value("${fedex.add-vat:true}") boolean addVat) {
+                          @Value("${fedex.add-vat:true}") boolean addVat,
+                          @Value("${delivery.free-up-to-kg:5}") BigDecimal freeUpToKg,
+                          @Value("${delivery.uk-max-price:100}") BigDecimal ukMaxPrice) {
         this.fedex = fedex;
         this.sizes = sizes;
         this.catalog = catalog;
         this.markupPercent = markupPercent;
         this.handlingFee = handlingFee;
         this.addVat = addVat;
+        this.freeUpToKg = freeUpToKg;
+        this.ukMaxPrice = ukMaxPrice.setScale(2, RoundingMode.HALF_UP);
     }
 
     /** True when parcels are priced by FedEx from the postcode at checkout. */
@@ -91,12 +98,12 @@ public class DeliveryQuotes {
 
     /**
      * The basket as the shop shows it before checkout: with FedEx on, parcel delivery is shown as worked out at
-     * checkout (unless it's free anyway), rather than a price that would change.
+     * checkout (free or not depends on the weight and where it's going), rather than a price that would change.
      */
     public BasketView beforeCheckout(BasketView basket) {
         String method = basket.delivery().method();
         boolean flatPriced = "STANDARD".equals(method) || "PALLET".equals(method);
-        if (!live() || !flatPriced || ("STANDARD".equals(method) && basket.delivery().price().signum() == 0)) {
+        if (!live() || !flatPriced) {
             return basket;
         }
         return BasketService.withDelivery(basket, new BasketView.Delivery(AT_CHECKOUT, "Delivery, worked out at checkout", BigDecimal.ZERO.setScale(2)));
@@ -181,11 +188,19 @@ public class DeliveryQuotes {
             log.warn("FedEx didn't quote delivery to {} {}: {}", dest.country(), outward(dest.postcode()), e.getMessage());
             return List.of();
         }
-        // Free delivery is for UK parcels: an engine's FedEx Freight costs the shop about £170 before VAT.
-        boolean free = !export && !heavy && basket.subtotal().compareTo(BasketService.FREE_DELIVERY_FROM) >= 0;
+        // In the UK: the cheapest service free for a light order, and a ceiling on the rest (the shop pays the difference).
+        BigDecimal kg = parcels.stream().map(FedExClient.Parcel::weightKg).reduce(BigDecimal.ZERO, BigDecimal::add);
+        boolean free = !export && kg.compareTo(freeUpToKg) <= 0;
         List<Option> options = new ArrayList<>();
         for (FedExClient.Rate r : rates) {
             BigDecimal price = free && options.isEmpty() ? BigDecimal.ZERO.setScale(2) : price(r.chargeExVat(), !export);
+            if (!export && price.compareTo(ukMaxPrice) >= 0) {
+                // At the ceiling every faster service would cost the shopper the same: only the cheapest is offered.
+                if (options.stream().anyMatch(o -> o.price().compareTo(ukMaxPrice) == 0)) {
+                    continue;
+                }
+                price = ukMaxPrice;
+            }
             options.add(new Option(r.serviceType(), FEDEX, label(r.serviceName()), price,
                     r.arrives() == null || r.arrives().length() < 10 ? null : r.arrives().substring(0, 10)));
         }

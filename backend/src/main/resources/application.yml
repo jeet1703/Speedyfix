@@ -124,6 +124,12 @@ fedex:
   # FedEx quotes before VAT; the shop's prices include it.
   add-vat: true
 
+delivery:
+  # UK delivery with FedEx: the cheapest service is free for orders up to this weight (kg, all boxes together), and
+  # no service costs the shopper more than the price below (GBP, VAT included). Abroad, FedEx's price applies.
+  free-up-to-kg: ${DELIVERY_FREE_UP_TO_KG:5}
+  uk-max-price: ${DELIVERY_UK_MAX_PRICE:100}
+
 gemini:
   # The help chat's AI answers (Google Gemini). Without a key the chat still works, answering by itself.
   # Secret: set it in the environment, never in this file. GEMINI_MODELS are tried in order when one is busy.

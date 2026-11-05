@@ -17,10 +17,10 @@ const PAGES: Record<string, { title: string; body: (site: Site, fedex: boolean) 
         <h2 className="info__heading">UK delivery</h2>
         <ul className="info__list">
           {fedex
-            ? <li>Parcels go by FedEx. Enter your postcode at checkout to see the price and delivery date for each service. The cheapest service is free on orders of £100 or more.</li>
+            ? <li>Parcels go by FedEx. Enter your postcode at checkout to see the price and delivery date for each service. In the UK the cheapest service is free for orders up to 5 kg.</li>
             : <li>Tracked parcel delivery is £9.95, and free on orders of £100 or more.</li>}
           {fedex
-            ? <li>Engines, gearboxes and other heavy parts go by FedEx Freight, priced the same way at checkout. Free delivery over £100 is for parcels only.</li>
+            ? <li>Engines, gearboxes and other heavy parts go by FedEx Freight, priced the same way at checkout. UK delivery never costs more than £100.</li>
             : <li>Engines, gearboxes and other heavy parts go by pallet: £79 per order.</li>}
           {fedex && <li>Prefer another courier? Choose manual delivery at checkout: pay for the parts, then we’ll quote you delivery separately.</li>}
           <li>UK delivery is usually within 7 working days (estimated). Courier delays can happen.</li>

@@ -212,10 +212,10 @@ public class ChatService {
             case "shopInfo" -> {
                 out.put("delivery", "UK delivery usually within 7 working days with " + site.couriers()
                         + (quotes.live()
-                            ? ". Parcels go by FedEx, priced from the postcode at checkout (the price and delivery date of each service show there); the cheapest service is free on orders of £100 or more."
+                            ? ". Parcels go by FedEx, priced from the postcode at checkout (the price and delivery date of each service show there). In the UK the cheapest service is free for orders up to 5 kg, and UK delivery never costs more than £100, however heavy."
                             : ". Parcels £9.95, free on orders of £100 or more.")
                         + (quotes.live()
-                            ? " Engines and gearboxes go by FedEx Freight, also priced at checkout; free delivery doesn't apply to them."
+                            ? " Engines and gearboxes go by FedEx Freight, also priced at checkout, and capped at £100 in the UK."
                                 + " Manual delivery is also offered at checkout: pay for the parts, then get a quote from another courier."
                             : " Engines and gearboxes go by pallet, £79 per order.")
                         + " Worldwide delivery: the buyer picks their country at checkout; "

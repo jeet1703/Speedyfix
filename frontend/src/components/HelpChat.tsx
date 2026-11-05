@@ -182,7 +182,7 @@ export function HelpChat({ site, ai, fedex }: { site: Site; ai: boolean; fedex: 
         say('bot', 'I can check that for you. What’s your order number? It starts with **SF-** and it’s on your order confirmation.');
         break;
       case 'delivery':
-        say('bot', `Most UK orders arrive within **7 working days**. We ship with ${site.couriers}. ${fedex ? 'Parcels go by **FedEx**: enter your postcode at checkout to see the price and date for each service. The cheapest is free on orders over £100. Engines' : 'Parcels are **£9.95**, or free on orders over £100, and engines'} and gearboxes travel by pallet for **£79**. We can ship abroad too, at extra cost.`,
+        say('bot', `Most UK orders arrive within **7 working days**. We ship with ${site.couriers}. ${fedex ? 'Parcels go by **FedEx**: enter your postcode at checkout to see the price and date for each service. In the UK the cheapest is **free up to 5 kg**, and delivery is **never more than £100**. Abroad, FedEx prices it at checkout.' : 'Parcels are **£9.95**, or free on orders over £100, and engines and gearboxes travel by pallet for **£79**.'} We can ship abroad too, at extra cost.`,
           <Link to="/delivery" onClick={close}>Read delivery and returns</Link>);
         break;
       case 'returns':

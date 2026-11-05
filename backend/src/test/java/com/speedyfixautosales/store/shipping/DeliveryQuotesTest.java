@@ -62,8 +62,14 @@ class DeliveryQuotesTest {
         }
     }
 
+    /** FedEx's price as it is: nothing free, no ceiling. */
     private DeliveryQuotes quotes(FedExClient fedex, String markupPercent, String handlingFee) {
-        return new DeliveryQuotes(fedex, sizes, catalog, new BigDecimal(markupPercent), new BigDecimal(handlingFee), true);
+        return quotes(fedex, markupPercent, handlingFee, "0", "100000");
+    }
+
+    private DeliveryQuotes quotes(FedExClient fedex, String markupPercent, String handlingFee, String freeUpToKg, String ukMaxPrice) {
+        return new DeliveryQuotes(fedex, sizes, catalog, new BigDecimal(markupPercent), new BigDecimal(handlingFee), true,
+                new BigDecimal(freeUpToKg), new BigDecimal(ukMaxPrice));
     }
 
     private BasketView basket(String... productIds) {
@@ -96,10 +102,34 @@ class DeliveryQuotesTest {
     }
 
     @Test
-    void theCheapestServiceIsFreeOverOneHundredPounds() {
-        List<DeliveryQuotes.Option> options = quotes(new FakeFedEx(true), "0", "0").options(basket("gm-sensor", "astra-loom"), "SW1A 1AA");
+    void inTheUkTheCheapestServiceIsFreeUpToFiveKilos() {
+        DeliveryQuotes q = quotes(new FakeFedEx(true), "0", "0", "5", "100");
+        BasketView light = basket("gm-sensor");
+        sizes.setWeight("gm-sensor", new BigDecimal("5"));
+        List<DeliveryQuotes.Option> options = q.options(light, "SW1A 1AA");
         assertThat(options.get(0).price()).isEqualByComparingTo("0");
         assertThat(options.get(1).price()).isEqualByComparingTo("18.00");
+        // Over 5 kg: FedEx's price.
+        sizes.setWeight("gm-sensor", new BigDecimal("5.1"));
+        assertThat(q.options(light, "SW1A 1AA").get(0).price()).isEqualByComparingTo("10.20");
+        // Abroad: never free.
+        sizes.setWeight("gm-sensor", new BigDecimal("1"));
+        assertThat(q.options(light, new FedExClient.Destination("75001", "Paris", "FR")).get(0).price()).isEqualByComparingTo("8.50");
+        sizes.setWeight("gm-sensor", null);
+    }
+
+    @Test
+    void inTheUkNoServiceCostsMoreThanOneHundredPounds() {
+        // A 1,000% markup: Economy (8.50 x 11) + VAT = 112.20 and Priority 198.00, both over £100.
+        DeliveryQuotes q = quotes(new FakeFedEx(true), "1000", "0", "5", "100");
+        List<DeliveryQuotes.Option> uk = q.options(basket("yd25-engine"), "SW1A 1AA");
+        // Only the cheapest service at the ceiling: a faster one would cost the shopper the same.
+        assertThat(uk).extracting(DeliveryQuotes.Option::id).containsExactly("FEDEX_ECONOMY", DeliveryQuotes.MANUAL);
+        assertThat(uk.get(0).price()).isEqualByComparingTo("100.00");
+        // Abroad: FedEx's price (no VAT), with no ceiling.
+        List<DeliveryQuotes.Option> abroad = q.options(basket("yd25-engine"), new FedExClient.Destination("75001", "Paris", "FR"));
+        assertThat(abroad.get(0).price()).isEqualByComparingTo("93.50");
+        assertThat(abroad.get(1).price()).isEqualByComparingTo("165.00");
     }
 
     @Test
