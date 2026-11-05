@@ -60,6 +60,9 @@ class EbayImportServiceTest {
     /** What the fake eBay search lists for the seller; tests set it. */
     static final List<EbayItemSource.Listing> SELLER_LISTINGS = new CopyOnWriteArrayList<>();
 
+    /** Listings still on eBay that its search left out (eBay's search does that); tests set it. */
+    static final List<String> MISSED_BY_SEARCH = new CopyOnWriteArrayList<>();
+
     /** eBay returns details for the ECU only: two photos and some item specifics. */
     @TestConfiguration
     static class FakeEbay {
@@ -88,6 +91,12 @@ class EbayImportServiceTest {
                 @Override
                 public Optional<String> sellerOf(String itemNumber) {
                     return Optional.of("speedyfixenginecomponents");
+                }
+
+                @Override
+                public boolean listed(String itemNumber) {
+                    return MISSED_BY_SEARCH.contains(itemNumber)
+                            || SELLER_LISTINGS.stream().anyMatch(l -> l.itemNumber().equals(itemNumber));
                 }
 
                 @Override
@@ -147,12 +156,21 @@ class EbayImportServiceTest {
                     ('sync-repriced', 'Repriced part', 'engines', 'USED', 100, 1, 'LIVE', '900000000001'),
                     ('sync-sold-on-ebay', 'Sold on eBay', 'engines', 'USED', 50, 1, 'LIVE', '900000000002'),
                     ('sync-sold-here', 'Sold on the website', 'engines', 'USED', 70, 0, 'ENDED', '900000000003'),
-                    ('sync-staff-only', 'Added by staff', 'engines', 'USED', 30, 1, 'LIVE', NULL)""");
+                    ('sync-staff-only', 'Added by staff', 'engines', 'USED', 30, 1, 'LIVE', NULL),
+                    ('sync-missed', 'Left out of the search', 'engines', 'USED', 60, 1, 'LIVE', '900000000005')""");
+        // Ended by an earlier sync (both times set together) although eBay still lists it.
+        jdbc.update("""
+                INSERT INTO products (id, name, category_id, condition, price, stock, status, ebay_item_id, ebay_synced_at, updated_at)
+                VALUES ('sync-wrongly-ended', 'Wrongly ended', 'engines', 'USED', 80, 1, 'ENDED', '900000000006',
+                        '2026-11-01T10:00:00Z', '2026-11-01T10:00:00Z')""");
+        MISSED_BY_SEARCH.clear();
+        MISSED_BY_SEARCH.add("900000000005");
         LocalDate listed = LocalDate.of(2026, 10, 30);
         SELLER_LISTINGS.clear();
         SELLER_LISTINGS.addAll(List.of(
                 new EbayItemSource.Listing("900000000001", "Repriced part", new BigDecimal("89.50"), "Used", "33615", "Engines", listed),
                 new EbayItemSource.Listing("900000000003", "Sold on the website", new BigDecimal("70.00"), "Used", "33615", "Engines", listed),
+                new EbayItemSource.Listing("900000000006", "Wrongly ended", new BigDecimal("80.00"), "Used", "33615", "Engines", listed),
                 new EbayItemSource.Listing("900000000004", "Ford Focus MK3 1.0 EcoBoost Turbocharger 2012-2018", new BigDecimal("149.99"),
                         "Used", "33615", "Engines", listed)));
 
@@ -161,17 +179,22 @@ class EbayImportServiceTest {
         assertThat(r.added()).isEqualTo(1);
         assertThat(r.repriced()).isEqualTo(1);
         assertThat(r.endingSkipped()).isFalse();
+        assertThat(r.ended()).isEqualTo(1);
+        assertThat(r.relisted()).isEqualTo(1);
         assertThat(jdbc.queryForObject("SELECT price FROM products WHERE id = 'sync-repriced'", BigDecimal.class)).isEqualByComparingTo("89.50");
         assertThat(jdbc.queryForObject("SELECT status FROM products WHERE id = 'sync-sold-on-ebay'", String.class)).isEqualTo("ENDED");
         // Ended in the shop stays ended, even though eBay still lists it; staff's own parts are never touched.
         assertThat(jdbc.queryForObject("SELECT status FROM products WHERE id = 'sync-sold-here'", String.class)).isEqualTo("ENDED");
         assertThat(jdbc.queryForObject("SELECT status FROM products WHERE id = 'sync-staff-only'", String.class)).isEqualTo("LIVE");
+        // Missing from the search but still on eBay: stays live. Wrongly ended by an earlier sync: back on sale.
+        assertThat(jdbc.queryForObject("SELECT status FROM products WHERE id = 'sync-missed'", String.class)).isEqualTo("LIVE");
+        assertThat(jdbc.queryForObject("SELECT status FROM products WHERE id = 'sync-wrongly-ended'", String.class)).isEqualTo("LIVE");
         assertThat(jdbc.queryForObject("SELECT status || ' ' || stock || ' ' || price FROM products WHERE ebay_item_id = '900000000004'", String.class))
                 .isEqualTo("LIVE 1 149.99");
 
         // Running again changes nothing.
         EbaySyncService.Result again = sync.sync();
-        assertThat(again.added() + again.repriced() + again.ended()).isZero();
+        assertThat(again.added() + again.repriced() + again.ended() + again.relisted()).isZero();
 
         // A live part whose photos failed earlier gets them on the next sync; its price stays the shop's.
         jdbc.update("INSERT INTO products (id, name, category_id, condition, price, stock, status, ebay_item_id) VALUES ('sync-no-photos', 'Nissan ECU', 'ecus-electronics', 'USED', 150, 1, 'LIVE', '365887388733')");
@@ -181,6 +204,7 @@ class EbayImportServiceTest {
         assertThat(jdbc.queryForObject("SELECT price FROM products WHERE id = 'sync-no-photos'", BigDecimal.class)).isEqualByComparingTo("150.00");
 
         SELLER_LISTINGS.clear();
+        MISSED_BY_SEARCH.clear();
         jdbc.update("DELETE FROM products WHERE id LIKE 'sync-%' OR ebay_item_id LIKE '90000000000%'");
     }
 

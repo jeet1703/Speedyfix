@@ -36,6 +36,11 @@ public interface EbayItemSource {
     /** Details for up to 20 item numbers. Listings eBay can't return (ended, hidden while out of stock) are left out. */
     Map<String, ItemDetails> fetch(List<String> itemNumbers);
 
+    /** False only when eBay says the listing is gone (sold or ended); throws when eBay can't be asked. */
+    default boolean listed(String itemNumber) throws IOException {
+        return true;
+    }
+
     /** The eBay user who sells this listing, if eBay returns it. */
     default Optional<String> sellerOf(String itemNumber) throws IOException {
         return Optional.empty();

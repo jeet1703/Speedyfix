@@ -68,6 +68,7 @@ export function EbaySyncButton({ onDone }: { onDone: () => void }) {
             ? `Last sync failed: ${status.lastError}`
             : last
               ? `Last sync ${time.format(new Date(last.at))}: ${last.added} added, ${last.repriced} repriced, ${last.ended} ended` +
+                (last.relisted ? `, ${last.relisted} back on sale` : '') +
                 (last.endingSkipped ? ' (ending skipped: too many missing at once, check eBay)' : '') +
                 (last.problems.length ? `, ${last.problems.length} to check` : '') + '.'
               : 'Syncs by itself every 30 minutes.'}

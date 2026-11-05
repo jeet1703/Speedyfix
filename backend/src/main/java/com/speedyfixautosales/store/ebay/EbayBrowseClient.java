@@ -96,11 +96,13 @@ public class EbayBrowseClient implements EbayItemSource {
     @Override
     public List<Listing> sellerListings(String seller) throws IOException {
         String filter = URLEncoder.encode("sellers:{" + seller + "},buyingOptions:{FIXED_PRICE}", StandardCharsets.UTF_8);
-        List<Listing> listings = new ArrayList<>();
+        // Newest first: eBay's default "best match" order reshuffles between pages, so some listings come twice and
+        // others never, and those would look ended.
+        Map<String, Listing> listings = new LinkedHashMap<>();
         int total = Integer.MAX_VALUE;
         for (int offset = 0; offset < Math.min(total, 10_000); offset += SEARCH_PAGE) {
             JsonNode page = get("/buy/browse/v1/item_summary/search?category_ids=" + VEHICLE_PARTS + "&filter=" + filter
-                    + "&limit=" + SEARCH_PAGE + "&offset=" + offset);
+                    + "&sort=newlyListed&limit=" + SEARCH_PAGE + "&offset=" + offset);
             total = page.path("total").asInt(0);
             for (JsonNode s : page.path("itemSummaries")) {
                 String number = s.hasNonNull("legacyItemId") ? s.path("legacyItemId").asText()
@@ -110,7 +112,7 @@ public class EbayBrowseClient implements EbayItemSource {
                 // During an eBay sale, price is the discounted one; the shop keeps the listing's own price.
                 JsonNode price = s.path("marketingPrice").path("originalPrice").hasNonNull("value")
                         ? s.path("marketingPrice").path("originalPrice") : s.path("price");
-                listings.add(new Listing(number, text(s, "title"),
+                listings.put(number, new Listing(number, text(s, "title"),
                         price.hasNonNull("value") ? new BigDecimal(price.path("value").asText()) : null,
                         text(s, "condition"), text(category, "categoryId"), text(category, "categoryName"),
                         created == null ? null : LocalDate.parse(created.substring(0, 10))));
@@ -122,7 +124,20 @@ public class EbayBrowseClient implements EbayItemSource {
         if (listings.size() < Math.min(total, 10_000)) {
             throw new IOException("eBay listed " + listings.size() + " of " + total + " listings");
         }
-        return listings;
+        return List.copyOf(listings.values());
+    }
+
+    @Override
+    public boolean listed(String itemNumber) throws IOException {
+        try {
+            get("/buy/browse/v1/item/get_item_by_legacy_id?legacy_item_id=" + URLEncoder.encode(itemNumber, StandardCharsets.UTF_8));
+            return true;
+        } catch (IOException e) {
+            if (e.getMessage() != null && e.getMessage().startsWith("HTTP 404")) {
+                return false;
+            }
+            throw e;
+        }
     }
 
     /** eBay UK's category tree is 3; 33615 (Engines) carries the full car compatibility catalogue. */

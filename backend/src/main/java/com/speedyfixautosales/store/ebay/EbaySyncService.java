@@ -25,7 +25,9 @@ import org.springframework.stereotype.Service;
  * <ul>
  *   <li>new eBay listings are added, with their photos and item specifics (through EbayImportService);</li>
  *   <li>a listing's price follows eBay's;</li>
- *   <li>a live part whose listing is no longer on eBay (sold or ended) is ended in the shop.</li>
+ *   <li>a live part whose listing is no longer on eBay (sold or ended) is ended in the shop, once eBay confirms
+ *       the listing itself is gone (its search sometimes leaves listings out);</li>
+ *   <li>a part the sync ended whose listing is still on eBay, with stock and untouched by staff since, is live again.</li>
  * </ul>
  * Titles, stock and anything staff changed are left alone, and a part ended in the shop is never brought back, so a
  * part sold on the website can't reappear while its eBay listing is still up. If more than a quarter of the live
@@ -39,8 +41,8 @@ public class EbaySyncService {
     static final double MAX_ENDED_SHARE = 0.25;
     static final int PHOTO_RETRIES_PER_RUN = 20;
 
-    public record Result(Instant at, int listingsOnEbay, int added, int repriced, int ended, boolean endingSkipped,
-                         List<String> problems) {
+    public record Result(Instant at, int listingsOnEbay, int added, int repriced, int ended, int relisted,
+                         boolean endingSkipped, List<String> problems) {
     }
 
     private final JdbcTemplate jdbc;
@@ -105,8 +107,8 @@ public class EbaySyncService {
         }
         try {
             Result r = sync();
-            log.info("eBay sync: {} listings on eBay, {} added, {} repriced, {} ended{}", r.listingsOnEbay(), r.added(),
-                    r.repriced(), r.ended(), r.endingSkipped() ? " (ending skipped: too many missing at once)" : "");
+            log.info("eBay sync: {} listings on eBay, {} added, {} repriced, {} ended, {} relisted{}", r.listingsOnEbay(), r.added(),
+                    r.repriced(), r.ended(), r.relisted(), r.endingSkipped() ? " (ending skipped: too many missing at once)" : "");
         } catch (IOException | RuntimeException e) {
             log.warn("eBay sync failed: {}", e.getMessage());
         }
@@ -148,7 +150,7 @@ public class EbaySyncService {
                 });
 
         int repriced = 0;
-        List<String> gone = new ArrayList<>();
+        Map<String, String> gone = new LinkedHashMap<>();
         long live = 0;
         for (Map.Entry<String, Known> e : known.entrySet()) {
             Known k = e.getValue();
@@ -158,7 +160,7 @@ public class EbaySyncService {
             EbayItemSource.Listing l = onEbay.get(e.getKey());
             if (l == null) {
                 if ("LIVE".equals(k.status())) {
-                    gone.add(k.id());
+                    gone.put(e.getKey(), k.id());
                 }
             } else if (l.price() != null && l.price().signum() > 0 && (k.price() == null || l.price().compareTo(k.price()) != 0)) {
                 jdbc.update("UPDATE products SET price = ?, ebay_synced_at = now(), updated_at = now() WHERE id = ?", l.price(), k.id());
@@ -166,9 +168,30 @@ public class EbaySyncService {
             }
         }
         boolean endingSkipped = !gone.isEmpty() && gone.size() > Math.max(5, live * MAX_ENDED_SHARE);
+        List<String> problems = new ArrayList<>();
+        int ended = 0;
         if (!endingSkipped) {
-            for (String id : gone) {
-                jdbc.update("UPDATE products SET status = 'ENDED', ebay_synced_at = now(), updated_at = now() WHERE id = ? AND status = 'LIVE'", id);
+            for (Map.Entry<String, String> g : gone.entrySet()) {
+                try {
+                    if (ebay.listed(g.getKey())) {
+                        continue;
+                    }
+                } catch (IOException e) {
+                    problems.add("Couldn’t check eBay listing " + g.getKey() + ": " + e.getMessage());
+                    continue;
+                }
+                ended += jdbc.update("UPDATE products SET status = 'ENDED', ebay_synced_at = now(), updated_at = now() WHERE id = ? AND status = 'LIVE'", g.getValue());
+            }
+        }
+
+        // Parts an earlier sync ended (ebay_synced_at and updated_at set together, nothing changed since) whose listing
+        // is on eBay after all, and which still have stock: a part sold on the website has none, so it stays ended.
+        int relisted = 0;
+        for (Map.Entry<String, Known> e : known.entrySet()) {
+            if ("ENDED".equals(e.getValue().status()) && onEbay.containsKey(e.getKey())) {
+                relisted += jdbc.update("""
+                        UPDATE products SET status = 'LIVE', ebay_synced_at = now(), updated_at = now()
+                        WHERE id = ? AND status = 'ENDED' AND stock > 0 AND ebay_synced_at = updated_at""", e.getValue().id());
             }
         }
 
@@ -183,7 +206,6 @@ public class EbaySyncService {
                         l.condition() == null ? "" : l.condition()));
             }
         }
-        List<String> problems = new ArrayList<>();
         int added = 0;
         if (!fresh.isEmpty()) {
             // Few threads: the live server has little memory, and a sync only meets a handful of new listings.
@@ -214,7 +236,7 @@ public class EbaySyncService {
         if (catalog instanceof JdbcCatalogRepository db) {
             db.invalidate();
         }
-        Result r = new Result(Instant.now(), listings.size(), added, repriced, endingSkipped ? 0 : gone.size(), endingSkipped,
+        Result r = new Result(Instant.now(), listings.size(), added, repriced, ended, relisted, endingSkipped,
                 List.copyOf(problems.size() > 50 ? problems.subList(0, 50) : problems));
         last = r;
         return r;

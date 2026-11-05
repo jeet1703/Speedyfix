@@ -219,6 +219,7 @@ export interface EbaySyncStatus {
     added: number;
     repriced: number;
     ended: number;
+    relisted: number;
     endingSkipped: boolean;
     problems: string[];
   } | null;
