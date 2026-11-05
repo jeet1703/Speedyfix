@@ -17,7 +17,7 @@ const PAGES: Record<string, { title: string; body: (site: Site, fedex: boolean) 
         <h2 className="info__heading">UK delivery</h2>
         <ul className="info__list">
           {fedex
-            ? <li>Parcels go by FedEx. Enter your postcode at checkout to see the price and delivery date for each service. In the UK the cheapest service is free for orders up to 5 kg.</li>
+            ? <li>Parcels go by FedEx. Enter your postcode at checkout to see the price and delivery date for each service. In the UK the cheapest service is free when each part weighs 5 kg or less.</li>
             : <li>Tracked parcel delivery is £9.95, and free on orders of £100 or more.</li>}
           {fedex
             ? <li>Engines, gearboxes and other heavy parts go by FedEx Freight, priced the same way at checkout. UK delivery never costs more than £100.</li>

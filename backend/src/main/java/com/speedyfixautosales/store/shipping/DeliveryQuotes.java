@@ -26,8 +26,8 @@ import org.springframework.stereotype.Service;
  * The delivery choices for a basket going to a postcode. With FedEx set up (FedExClient), everything is priced by
  * FedEx, heavy parts (engines, gearboxes) included: FedEx quotes those as FedEx Freight. The price is FedEx's charge to
  * the shop plus any markup (fedex.markup-percent, fedex.handling-fee) and VAT. In the UK the cheapest service is free
- * when the order weighs up to delivery.free-up-to-kg (5 kg), and no service costs more than delivery.uk-max-price
- * (£100) for heavier orders; abroad, FedEx's price applies. Manual delivery (a quote by hand after payment) is
+ * when every part weighs up to delivery.free-up-to-kg (5 kg), however many there are, and no service costs more than
+ * delivery.uk-max-price (£100) when one is heavier; abroad, FedEx's price applies. Manual delivery (a quote by hand after payment) is
  * always offered too, and is the only choice when FedEx can't price the order, so checkout never stops. Without
  * FedEx set up, the flat prices apply (BasketService).
  */
@@ -172,6 +172,8 @@ public class DeliveryQuotes {
             goods.add(new FedExClient.Commodity("Used car part: " + line.name(), line.quantity(),
                     box.weightKg().multiply(BigDecimal.valueOf(line.quantity())), BasketService.exVat(line.lineTotal())));
         }
+        // Free in the UK when every part is light, however much they weigh together.
+        boolean allLight = parcels.stream().allMatch(p -> p.weightKg().compareTo(freeUpToKg) <= 0);
         if (heavy) {
             parcels = onThePallet(basket, parcels);
         }
@@ -188,9 +190,8 @@ public class DeliveryQuotes {
             log.warn("FedEx didn't quote delivery to {} {}: {}", dest.country(), outward(dest.postcode()), e.getMessage());
             return List.of();
         }
-        // In the UK: the cheapest service free for a light order, and a ceiling on the rest (the shop pays the difference).
-        BigDecimal kg = parcels.stream().map(FedExClient.Parcel::weightKg).reduce(BigDecimal.ZERO, BigDecimal::add);
-        boolean free = !export && kg.compareTo(freeUpToKg) <= 0;
+        // In the UK: the cheapest service free for light parts, and a ceiling on the rest (the shop pays the difference).
+        boolean free = !export && allLight;
         List<Option> options = new ArrayList<>();
         for (FedExClient.Rate r : rates) {
             BigDecimal price = free && options.isEmpty() ? BigDecimal.ZERO.setScale(2) : price(r.chargeExVat(), !export);

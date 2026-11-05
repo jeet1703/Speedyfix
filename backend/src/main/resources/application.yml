@@ -125,8 +125,9 @@ fedex:
   add-vat: true
 
 delivery:
-  # UK delivery with FedEx: the cheapest service is free for orders up to this weight (kg, all boxes together), and
-  # no service costs the shopper more than the price below (GBP, VAT included). Abroad, FedEx's price applies.
+  # UK delivery with FedEx: the cheapest service is free when every part weighs up to this (kg, each part on its own,
+  # however many), and no service costs the shopper more than the price below (GBP, VAT included). Abroad, FedEx's
+  # price applies.
   free-up-to-kg: ${DELIVERY_FREE_UP_TO_KG:5}
   uk-max-price: ${DELIVERY_UK_MAX_PRICE:100}
 

@@ -102,14 +102,19 @@ class DeliveryQuotesTest {
     }
 
     @Test
-    void inTheUkTheCheapestServiceIsFreeUpToFiveKilos() {
+    void inTheUkTheCheapestServiceIsFreeWhenEveryPartIsUpToFiveKilos() {
         DeliveryQuotes q = quotes(new FakeFedEx(true), "0", "0", "5", "100");
         BasketView light = basket("gm-sensor");
         sizes.setWeight("gm-sensor", new BigDecimal("5"));
         List<DeliveryQuotes.Option> options = q.options(light, "SW1A 1AA");
         assertThat(options.get(0).price()).isEqualByComparingTo("0");
         assertThat(options.get(1).price()).isEqualByComparingTo("18.00");
-        // Over 5 kg: FedEx's price.
+        // Two 3 kg parts (6 kg together): still free, as each is light.
+        sizes.setWeight("gm-sensor", new BigDecimal("3"));
+        sizes.setWeight("astra-loom", new BigDecimal("3"));
+        assertThat(q.options(basket("gm-sensor", "astra-loom"), "SW1A 1AA").get(0).price()).isEqualByComparingTo("0");
+        sizes.setWeight("astra-loom", null);
+        // One part over 5 kg: FedEx's price.
         sizes.setWeight("gm-sensor", new BigDecimal("5.1"));
         assertThat(q.options(light, "SW1A 1AA").get(0).price()).isEqualByComparingTo("10.20");
         // Abroad: never free.
