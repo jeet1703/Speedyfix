@@ -12,10 +12,10 @@ export function ContactPage() {
       <PageTitle title="Contact us" crumbs={[{ label: 'Contact' }]} />
       <div className="container two-col two-col--wide page-body">
         <section className="panel" aria-labelledby="contact-title">
-          <h2 id="contact-title" className="panel__title">Get in touch</h2>
+          <h2 id="contact-title" className="panel__title">Get in Touch</h2>
           <dl className="specs">
             <div><dt>Phone</dt><dd>{site && <a href={telHref(site.phone)}>{site.phone}</a>}</dd></div>
-            <div><dt>WhatsApp</dt><dd>{site && <a href={whatsAppHref(site.whatsapp)} target="_blank" rel="noopener noreferrer">Message us on WhatsApp</a>}</dd></div>
+            <div><dt>WhatsApp</dt><dd>{site && <a href={whatsAppHref(site.whatsapp)} target="_blank" rel="noopener noreferrer">Message Us on WhatsApp</a>}</dd></div>
             <div><dt>Email</dt><dd>{site && <a href={`mailto:${site.email}`}>{site.email}</a>}</dd></div>
             <div><dt>Address</dt><dd>{site?.address}</dd></div>
             <div><dt>Company</dt><dd>{site?.companyName}, company no. {site?.companyNumber}</dd></div>
@@ -23,7 +23,7 @@ export function ContactPage() {
           </dl>
         </section>
         <aside className="panel panel--dark" aria-labelledby="contact-part-title">
-          <h2 id="contact-part-title" className="panel__title">Looking for a part?</h2>
+          <h2 id="contact-part-title" className="panel__title">Looking for a Part?</h2>
           <p>Send your reg and the part you need, and we’ll reply with a price and lead time.</p>
           <Link className="btn btn--primary" to="/request-a-part">Request a Part</Link>
         </aside>

@@ -11,7 +11,7 @@ import { SearchPanel } from './SearchPanel';
 const NAV = [
   { label: 'Home', href: '/' },
   { label: 'Request a Part', href: '/request-a-part' },
-  { label: 'About us', href: '/about' },
+  { label: 'About Us', href: '/about' },
   { label: 'Contact', href: '/contact' }
 ];
 

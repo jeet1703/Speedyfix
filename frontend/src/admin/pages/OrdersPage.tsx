@@ -11,8 +11,8 @@ type Filter = 'all' | 'awaiting-payment' | 'awaiting-dispatch' | 'dispatched' | 
 
 const FILTERS: { value: Filter; label: string; status?: OrderStatus }[] = [
   { value: 'all', label: 'All' },
-  { value: 'awaiting-payment', label: 'Awaiting payment', status: 'AWAITING_PAYMENT' },
-  { value: 'awaiting-dispatch', label: 'Awaiting dispatch', status: 'AWAITING_DISPATCH' },
+  { value: 'awaiting-payment', label: 'Awaiting Payment', status: 'AWAITING_PAYMENT' },
+  { value: 'awaiting-dispatch', label: 'Awaiting Dispatch', status: 'AWAITING_DISPATCH' },
   { value: 'dispatched', label: 'Dispatched', status: 'DISPATCHED' },
   { value: 'cancelled', label: 'Cancelled', status: 'CANCELLED' }
 ];

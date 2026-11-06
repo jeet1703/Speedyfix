@@ -15,7 +15,7 @@ export function Footer({ site }: { site: Site }) {
         <div className="footer__about">
           <Logo inverted />
           <p>{site.name} supplies used, remanufactured and genuine OEM engine parts to garages and drivers across the UK.</p>
-          <Link to="/about" className="footer__more">Read more</Link>
+          <Link to="/about" className="footer__more">Read More</Link>
         </div>
         {COLUMNS.map((c) => (
           <nav key={c.title} aria-label={c.title} className="footer__col">
@@ -24,7 +24,7 @@ export function Footer({ site }: { site: Site }) {
           </nav>
         ))}
         <div className="footer__col">
-          <h2>Contact us</h2>
+          <h2>Contact Us</h2>
           <ul>
             <li>{site.companyName}</li>
             <li>{site.address}</li>

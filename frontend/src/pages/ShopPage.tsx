@@ -12,10 +12,10 @@ import { useAccount } from '../state/AccountContext';
 import { useStore } from '../state/StoreContext';
 
 const SORTS: { value: ShopSort; label: string }[] = [
-  { value: 'best-selling', label: 'Best sellers first' },
-  { value: 'newest', label: 'Newest first' },
-  { value: 'price-low', label: 'Price: low to high' },
-  { value: 'price-high', label: 'Price: high to low' }
+  { value: 'best-selling', label: 'Best Sellers First' },
+  { value: 'newest', label: 'Newest First' },
+  { value: 'price-low', label: 'Price: Low to High' },
+  { value: 'price-high', label: 'Price: High to Low' }
 ];
 
 const CONDITIONS = [
@@ -29,9 +29,9 @@ const priceInput = (value: string) => value.replace(/[^\d.]/g, '').replace(/(\..
 
 /** The eBay-style filters: each takes several values, repeated in the URL (?brand=Nissan&brand=Toyota). */
 const FACETS = [
-  { param: 'refinement', title: 'Featured refinements', key: 'refinements' },
+  { param: 'refinement', title: 'Featured Refinements', key: 'refinements' },
   { param: 'brand', title: 'Brand', key: 'brands' },
-  { param: 'subType', title: 'Sub type', key: 'subTypes' }
+  { param: 'subType', title: 'Sub Type', key: 'subTypes' }
 ] as const;
 const FACET_PREVIEW = 6;
 
@@ -130,14 +130,14 @@ export function ShopPage() {
       <div className="container shop">
         <button type="button" className="btn btn--outline shop__filters-btn" aria-expanded={filtersOpen}
           aria-controls="shop-filters" onClick={() => setFiltersOpen((o) => !o)}>
-          {filtersOpen ? 'Hide filters' : 'Show filters'}
+          {filtersOpen ? 'Hide Filters' : 'Show Filters'}
         </button>
         <aside id="shop-filters" className={'shop__sidebar' + (filtersOpen ? ' is-open' : '')} aria-label="Filters">
           <section className="widget">
-            <h2 className="widget__title">Product categories</h2>
+            <h2 className="widget__title">Product Categories</h2>
             <ul className="widget__cats">
               <li>
-                <Link to="/products" aria-current={!category && !q ? 'page' : undefined}>All parts</Link>
+                <Link to="/products" aria-current={!category && !q ? 'page' : undefined}>All Parts</Link>
               </li>
               {!result && Array.from({ length: 8 }, (_, i) => <li key={i}><Skeleton height={18} width={`${85 - (i % 3) * 15}%`} /></li>)}
               {result?.categories.filter((c) => c.count > 0 || c.id === category).map((c) => (
@@ -157,7 +157,7 @@ export function ShopPage() {
 
           {vehicle && (
             <section className="widget">
-              <h2 className="widget__title">Your vehicle</h2>
+              <h2 className="widget__title">Your Vehicle</h2>
               <label className="check">
                 <input type="checkbox" checked={fitsOnly} onChange={() => update({ fitsOnly: fitsOnly ? null : 'true' })} />
                 Only parts that fit my {vehicle.model}
@@ -176,7 +176,7 @@ export function ShopPage() {
           </fieldset>
 
           <form className="widget" onSubmit={applyPrice}>
-            <h2 className="widget__title">Filter by price</h2>
+            <h2 className="widget__title">Filter by Price</h2>
             <div className="price-range">
               <label className="sr-only" htmlFor="min-price">Minimum price in pounds</label>
               <input id="min-price" className="input" inputMode="decimal" placeholder="£ Min" value={min} onChange={(e) => setMin(priceInput(e.target.value))} />
@@ -188,7 +188,7 @@ export function ShopPage() {
 
           {hasFilters && (
             <button type="button" className="link-btn" onClick={() => update(clearAll)}>
-              Clear filters
+              Clear Filters
             </button>
           )}
         </aside>
@@ -215,7 +215,7 @@ export function ShopPage() {
               <h2>No parts match{q ? ` “${q}”` : ' these filters'}</h2>
               <p>Try fewer filters, search by part number or engine code, or ask us to find it for you.</p>
               <div className="empty__actions">
-                {hasFilters && <button type="button" className="btn btn--outline" onClick={() => update(clearAll)}>Clear filters</button>}
+                {hasFilters && <button type="button" className="btn btn--outline" onClick={() => update(clearAll)}>Clear Filters</button>}
                 <Link className="btn btn--primary" to="/request-a-part">Request a Part</Link>
               </div>
             </div>

@@ -122,7 +122,7 @@ export function CompatibilityImportButton({ onDone }: { onDone: () => void }) {
   if (!state.available) {
     return (
       <div className="ebay-sync">
-        <button type="button" className="btn btn--outline" disabled aria-describedby="compat-note">Import compatibility from eBay</button>
+        <button type="button" className="btn btn--outline" disabled aria-describedby="compat-note">Import Compatibility from eBay</button>
         <p id="compat-note" className="ebay-sync__note">Not set up on this server: add EBAY_DEV_ID and EBAY_USER_TOKEN (the seller’s eBay sign-in) in Render.</p>
       </div>
     );
@@ -131,7 +131,7 @@ export function CompatibilityImportButton({ onDone }: { onDone: () => void }) {
   return (
     <div className="ebay-sync">
       <button type="button" className="btn btn--outline" onClick={() => void start()} disabled={s.running} aria-describedby="compat-note">
-        {s.running ? 'Importing compatibility…' : 'Import compatibility from eBay'}
+        {s.running ? 'Importing Compatibility…' : 'Import Compatibility from eBay'}
       </button>
       <p id="compat-note" className="ebay-sync__note" role="status">
         {s.running

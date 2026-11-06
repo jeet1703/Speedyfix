@@ -165,7 +165,7 @@ export function HelpChat({ site, ai, fedex }: { site: Site; ai: boolean; fedex: 
 
   const person = (
     <span className="chat__links">
-      <a href={whatsAppHref(site.whatsapp)} target="_blank" rel="noopener noreferrer">WhatsApp us</a>
+      <a href={whatsAppHref(site.whatsapp)} target="_blank" rel="noopener noreferrer">WhatsApp Us</a>
       <a href={telHref(site.phone)}>Call {site.phone}</a>
       <Link to="/request-a-part" onClick={close}>Request a Part</Link>
     </span>
@@ -183,13 +183,13 @@ export function HelpChat({ site, ai, fedex }: { site: Site; ai: boolean; fedex: 
         break;
       case 'delivery':
         say('bot', `Most UK orders arrive within **7 working days**. We ship with ${site.couriers}. ${fedex ? 'Parcels go by **FedEx**: enter your postcode at checkout to see the price and date for each service. In the UK the cheapest is **free when each part weighs 5 kg or less**, and delivery is **never more than £100**. Abroad, FedEx prices it at checkout.' : 'Parcels are **£9.95**, or free on orders over £100, and engines and gearboxes travel by pallet for **£79**.'} We can ship abroad too, at extra cost.`,
-          <Link to="/delivery" onClick={close}>Read delivery and returns</Link>);
+          <Link to="/delivery" onClick={close}>Read Delivery and Returns</Link>);
         break;
       case 'returns':
-        say('bot', `Here’s how returns work: ${site.returns}`, <Link to="/delivery" onClick={close}>Full returns policy</Link>);
+        say('bot', `Here’s how returns work: ${site.returns}`, <Link to="/delivery" onClick={close}>Full Returns Policy</Link>);
         break;
       case 'warranty':
-        say('bot', 'Aftermarket and refurbished parts come with a **3 months replacement warranty**. It covers the part only, not labour, towing or rentals. There’s no warranty on new genuine parts or electrical parts.', <Link to="/delivery" onClick={close}>Full returns and warranty policy</Link>);
+        say('bot', 'Aftermarket and refurbished parts come with a **3 months replacement warranty**. It covers the part only, not labour, towing or rentals. There’s no warranty on new genuine parts or electrical parts.', <Link to="/delivery" onClick={close}>Full Returns and Warranty Policy</Link>);
         break;
       case 'contact':
         say('bot', `Of course. The quickest way to reach the team is WhatsApp, or you can call or email ${site.email}.`, person);
@@ -217,7 +217,7 @@ export function HelpChat({ site, ai, fedex }: { site: Site; ai: boolean; fedex: 
       const car = `${v.year ? `${v.year} ` : ''}${v.make} ${v.model}, ${v.engine}`;
       if (r.fittingParts > 0) {
         say('bot', `That’s a **${car}**. We have **${r.fittingParts} part${r.fittingParts === 1 ? '' : 's'}** that may fit it. I’ll keep your car in mind, so tell me which part you need, or browse them all:`,
-          <Link to="/products?fitsOnly=true" onClick={close}>Show parts for my car</Link>, true);
+          <Link to="/products?fitsOnly=true" onClick={close}>Show Parts for My Car</Link>, true);
       } else {
         say('bot', `That’s a **${car}**. We don’t have parts listed for it right now, but the team may be able to source what you need:`, person, true);
       }
@@ -231,7 +231,7 @@ export function HelpChat({ site, ai, fedex }: { site: Site; ai: boolean; fedex: 
       const o = await withThinking('Finding your order', api.lookupOrder(reference, email));
       const sent = o.dispatch ? ` It went with ${o.dispatch.courier}${o.dispatch.trackingNumber ? `, tracking number **${o.dispatch.trackingNumber}**` : ''}.` : '';
       say('bot', `Found it! Order **${o.reference}** (${money(o.total)}) is **${STATUS[o.status]}**.${sent}`,
-        o.status === 'AWAITING_PAYMENT' ? <Link to={`/order-received/${o.reference}`} onClick={close}>Pay for this order</Link> : undefined, true);
+        o.status === 'AWAITING_PAYMENT' ? <Link to={`/order-received/${o.reference}`} onClick={close}>Pay for This Order</Link> : undefined, true);
     } catch (e) {
       say('bot', `${e instanceof ApiError ? e.message : 'I couldn’t look up that order.'}`, person, true);
     }
@@ -359,11 +359,11 @@ export function HelpChat({ site, ai, fedex }: { site: Site; ai: boolean; fedex: 
           </div>
           {ai && <p className="chat__disclaimer">AI can make mistakes. Check the part’s page, or ask the team, before you buy.</p>}
           <div className="chat__quick" role="group" aria-label="Common questions">
-            <button type="button" onClick={() => void choose('part', 'Find a part')}>Find a part</button>
-            <button type="button" onClick={() => void choose('order', 'Where’s my order?')}>Where’s my order?</button>
+            <button type="button" onClick={() => void choose('part', 'Find a part')}>Find a Part</button>
+            <button type="button" onClick={() => void choose('order', 'Where’s my order?')}>Where’s My Order?</button>
             <button type="button" onClick={() => void choose('delivery', 'Delivery')}>Delivery</button>
             <button type="button" onClick={() => void choose('returns', 'Returns')}>Returns</button>
-            <button type="button" onClick={() => void choose('contact', 'Talk to a person')}>Talk to a person</button>
+            <button type="button" onClick={() => void choose('contact', 'Talk to a person')}>Talk to a Person</button>
           </div>
           <form className="chat__form" onSubmit={(e) => void send(e)}>
             <label className="sr-only" htmlFor="chat-input">Your question</label>

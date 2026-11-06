@@ -39,12 +39,12 @@ export function VehicleTesterPage() {
   return (
     <AdminLayout title="Vehicle lookup tester">
       <section className="card" aria-labelledby="tester-title">
-        <h2 id="tester-title" className="card__title">Check a plate</h2>
+        <h2 id="tester-title" className="card__title">Check a Plate</h2>
         <p className="admin-muted">See which vehicle a plate identifies and which parts a shopper would be shown. Checks here aren’t counted as shopper searches.</p>
         <form className="inline-row tester-form" onSubmit={submit} noValidate>
           <label className="sr-only" htmlFor="tester-reg">Registration</label>
           <PlateField id="tester-reg" value={reg} onChange={setReg} invalid={!!error} describedBy={error ? 'tester-error' : undefined} />
-          <button type="submit" className="btn btn--dark" disabled={busy}>{busy ? 'Checking…' : 'Check plate'}</button>
+          <button type="submit" className="btn btn--dark" disabled={busy}>{busy ? 'Checking…' : 'Check Plate'}</button>
         </form>
         {error && <p id="tester-error" className="field-error" role="alert">{error}</p>}
         <p className="field__hint">{site.data?.demoPlates

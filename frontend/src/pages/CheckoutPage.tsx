@@ -179,15 +179,15 @@ export function CheckoutPage() {
         <div className="container">
           <div className="two-col">
             <section className="checkout__group" aria-labelledby="co-signin-title">
-              <h2 id="co-signin-title" className="panel__title">Sign in to check out</h2>
+              <h2 id="co-signin-title" className="panel__title">Sign In to Check Out</h2>
               <p>You need an account to place an order, so you can follow it and find your VAT invoice later. It takes one click with Google. Your basket is kept.</p>
               <div className="empty__actions">
-                <Link className="btn btn--primary" to="/account?next=/checkout">Sign in or create an account</Link>
-                <Link className="btn btn--outline" to="/basket">Back to basket</Link>
+                <Link className="btn btn--primary" to="/account?next=/checkout">Sign In or Create an Account</Link>
+                <Link className="btn btn--outline" to="/basket">Back to Basket</Link>
               </div>
             </section>
             <aside className="panel" aria-labelledby="co-summary-title">
-              <h2 id="co-summary-title" className="panel__title">Your order</h2>
+              <h2 id="co-summary-title" className="panel__title">Your Order</h2>
               <LineList lines={lines} />
               <Totals totals={basket!} />
             </aside>
@@ -203,9 +203,9 @@ export function CheckoutPage() {
         <PageTitle title="Checkout" crumbs={[{ label: 'Basket', to: '/basket' }, { label: 'Checkout' }]} />
         <div className="container">
           <div className="empty empty--page">
-            <h2>Your basket is empty</h2>
+            <h2>Your Basket Is Empty</h2>
             <p>Add a part to your basket before you check out.</p>
-            <div className="empty__actions"><Link className="btn btn--primary" to="/products">Browse parts</Link></div>
+            <div className="empty__actions"><Link className="btn btn--primary" to="/products">Browse Parts</Link></div>
           </div>
         </div>
       </Layout>
@@ -295,7 +295,7 @@ export function CheckoutPage() {
                 <div>
                   <button type="button" className={options ? 'btn btn--outline' : 'btn btn--primary'} onClick={loadOptions}
                     disabled={quoteState === 'loading'}>
-                    {quoteState === 'loading' ? 'Calculating…' : options ? 'Calculate again' : 'Calculate delivery'}
+                    {quoteState === 'loading' ? 'Calculating…' : options ? 'Calculate Again' : 'Calculate Delivery'}
                   </button>
                 </div>
                 {options && options.length > 0 && (
@@ -351,12 +351,12 @@ export function CheckoutPage() {
           </div>
 
           <aside className="panel" aria-labelledby="co-summary-title">
-            <h2 id="co-summary-title" className="panel__title">Your order</h2>
+            <h2 id="co-summary-title" className="panel__title">Your Order</h2>
             <LineList lines={shown?.lines ?? lines} />
             <Totals totals={withDelivery(shown!, chosen, exported)} export={exported} />
             {data?.paypalClientId
               ? <p className="panel__note"><strong>Pay with PayPal or a card in the Payment section{busy ? ' (placing your order…)' : ''}.</strong></p>
-              : <button type="submit" className="btn btn--primary btn--block" disabled={busy}>{busy ? 'Placing order…' : 'Place order'}</button>}
+              : <button type="submit" className="btn btn--primary btn--block" disabled={busy}>{busy ? 'Placing Order…' : 'Place Order'}</button>}
             <p className="panel__note">By placing your order you agree to our <Link to="/terms">terms and conditions</Link>. Read our <Link to="/privacy">privacy policy</Link> to see how we use your details.</p>
           </aside>
         </form>

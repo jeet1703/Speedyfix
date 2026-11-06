@@ -55,7 +55,7 @@ export function AccountPage() {
 
   return (
     <Layout title="My account">
-      <PageTitle title="My account" crumbs={[{ label: 'My account' }]} />
+      <PageTitle title="My account" crumbs={[{ label: 'My Account' }]} />
       <div className="container page-body account">
         {customer === undefined && (
           <div className="account__card" aria-busy="true" aria-label="Checking your account">
@@ -65,7 +65,7 @@ export function AccountPage() {
 
         {customer === null && (
           <section className="account__card" aria-labelledby="signin-title">
-            <h2 id="signin-title" className="account__title">{backTo === '/checkout' ? 'Sign in to check out' : 'Sign in or create an account'}</h2>
+            <h2 id="signin-title" className="account__title">{backTo === '/checkout' ? 'Sign In to Check Out' : 'Sign In or Create an Account'}</h2>
             {backTo === '/checkout' && <p>You need an account to place an order, so you can follow it and find your invoice later. Your basket is kept.</p>}
             <p>{emailSignIn
               ? 'Use your Google account in one click, or your email address and a password.'
@@ -106,12 +106,12 @@ export function AccountPage() {
               </div>
               <div className="empty__actions">
                 <Link className="btn btn--outline" to="/wishlist">Wishlist ({wishlist.length})</Link>
-                <button type="button" className="btn btn--outline" onClick={() => void signOut()}>Sign out</button>
+                <button type="button" className="btn btn--outline" onClick={() => void signOut()}>Sign Out</button>
               </div>
             </section>
 
             <section className="account__card account__card--wide" aria-labelledby="orders-title">
-              <h2 id="orders-title" className="account__title">My orders</h2>
+              <h2 id="orders-title" className="account__title">My Orders</h2>
               {orders === undefined && <SkeletonText lines={3} />}
               {orders === null && <p className="notice notice--error" role="alert">We couldn’t load your orders. Refresh the page to try again.</p>}
               {orders && orders.length === 0 && (
@@ -130,7 +130,7 @@ export function AccountPage() {
                       </p>
                       <p className="my-orders__lines">{o.lines.map((l) => (l.quantity > 1 ? `${l.quantity} × ${l.name}` : l.name)).join(', ')}</p>
                       {hasInvoice(o) && (
-                        <p className="page-body__note"><a href={invoiceUrl(o.reference)} target="_blank" rel="noopener">VAT invoice (PDF)</a></p>
+                        <p className="page-body__note"><a href={invoiceUrl(o.reference)} target="_blank" rel="noopener">VAT Invoice (PDF)</a></p>
                       )}
                       {o.dispatch && (
                         <p className="page-body__note">
@@ -144,7 +144,7 @@ export function AccountPage() {
             </section>
 
             <section className="account__card" aria-labelledby="searches-title">
-              <h2 id="searches-title" className="account__title">Recent searches</h2>
+              <h2 id="searches-title" className="account__title">Recent Searches</h2>
               {searches.length === 0 ? (
                 <p className="page-body__note">Your searches will appear here so you can run them again.</p>
               ) : (
@@ -154,7 +154,7 @@ export function AccountPage() {
                       <li key={q}><Link to={`/products?q=${encodeURIComponent(q)}`}>{q}</Link></li>
                     ))}
                   </ul>
-                  <button type="button" className="link-btn" onClick={clearSearches}>Clear search history</button>
+                  <button type="button" className="link-btn" onClick={clearSearches}>Clear Search History</button>
                 </>
               )}
             </section>

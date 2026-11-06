@@ -10,19 +10,19 @@ import { CardsSkeleton } from '../../components/Skeleton';
 import { ListingHtml } from '../../components/ListingHtml';
 
 const CONDITIONS: { value: Condition; label: string }[] = [
-  { value: 'USED', label: 'Used, tested' },
+  { value: 'USED', label: 'Used, Tested' },
   { value: 'REMANUFACTURED', label: 'Remanufactured' },
   { value: 'NEW', label: 'New' }
 ];
 const GRADES = [
-  { value: '', label: 'No grade' },
+  { value: '', label: 'No Grade' },
   { value: 'A', label: 'A' },
   { value: 'B', label: 'B' },
   { value: 'C', label: 'C' }
 ];
 const SHIPPING: { value: Shipping; label: string }[] = [
-  { value: 'PARCEL', label: 'Tracked parcel' },
-  { value: 'PALLET', label: 'Pallet (engines, gearboxes)' }
+  { value: 'PARCEL', label: 'Tracked Parcel' },
+  { value: 'PALLET', label: 'Pallet (Engines, Gearboxes)' }
 ];
 const MAX_PHOTOS = 4;
 const MAX_REFINEMENTS = 5;
@@ -271,15 +271,15 @@ export function ProductEditPage() {
   const title = id ? (detail ? 'Edit listing' : 'Loading listing…') : 'Create listing';
   const actions = (id && !detail) ? null : isLive ? (
     <>
-      <a className="btn btn--outline" href={`${import.meta.env.BASE_URL}products/${encodeURIComponent(id!)}`} target="_blank" rel="noreferrer">View in shop</a>
-      <button type="button" className="btn btn--outline" disabled={saving} onClick={() => void save('DRAFT')}>End listing</button>
+      <a className="btn btn--outline" href={`${import.meta.env.BASE_URL}products/${encodeURIComponent(id!)}`} target="_blank" rel="noreferrer">View in Shop</a>
+      <button type="button" className="btn btn--outline" disabled={saving} onClick={() => void save('DRAFT')}>End Listing</button>
       <button type="button" className="btn btn--primary" disabled={saving || !!blocker} onClick={() => void save('LIVE')}>
         {blocker ? `Save changes (${blocker})` : saving ? 'Saving…' : 'Save changes'}
       </button>
     </>
   ) : (
     <>
-      <button type="button" className="btn btn--outline" disabled={saving} onClick={() => void save('DRAFT')}>{saving ? 'Saving…' : 'Save draft'}</button>
+      <button type="button" className="btn btn--outline" disabled={saving} onClick={() => void save('DRAFT')}>{saving ? 'Saving…' : 'Save Draft'}</button>
       <button type="button" className="btn btn--primary" disabled={saving || !!blocker} onClick={() => void save('LIVE')}>
         {blocker ? `List it (${blocker})` : 'List it'}
       </button>
@@ -288,7 +288,7 @@ export function ProductEditPage() {
 
   if (loadError && id && !detail) {
     return (
-      <AdminLayout title="Edit listing" crumbs={[{ label: 'Listings', to: '/admin/listings' }, { label: 'Edit listing' }]}>
+      <AdminLayout title="Edit listing" crumbs={[{ label: 'Listings', to: '/admin/listings' }, { label: 'Edit Listing' }]}>
         <p className="notice notice--error" role="alert">{loadError}</p>
       </AdminLayout>
     );
@@ -307,13 +307,13 @@ export function ProductEditPage() {
             {loadError && <p className="notice notice--error" role="alert">{loadError}</p>}
 
             <section className="card" aria-labelledby="step-1">
-              <h2 id="step-1" className="card__title">1. Identify the part</h2>
+              <h2 id="step-1" className="card__title">1. Identify the Part</h2>
               <p className="admin-muted">Enter the part number to find vehicles already confirmed for other parts with the same number.</p>
               <form className="field" onSubmit={findVehicles}>
                 <label htmlFor="part-number">Part number</label>
                 <div className="inline-row">
                   <input id="part-number" className="input mono" value={partNumber} onChange={(e) => setPartNumber(e.target.value)} maxLength={40} autoComplete="off" spellCheck={false} />
-                  <button type="submit" className="btn btn--dark" disabled={finding}>Find vehicles</button>
+                  <button type="submit" className="btn btn--dark" disabled={finding}>Find Vehicles</button>
                 </div>
                 <p className="field__hint">Shoppers can search by it with or without spaces and dashes.</p>
               </form>
@@ -321,7 +321,7 @@ export function ProductEditPage() {
 
             <section className="card" aria-labelledby="step-2">
               <div className="card__head">
-                <h2 id="step-2" className="card__title">2. Confirm the vehicles it fits</h2>
+                <h2 id="step-2" className="card__title">2. Confirm the Vehicles It Fits</h2>
                 {rows.length > 0 && <p className="admin-muted"><strong>{ticked.length}</strong> of {rows.length} ticked · {highTicked} high confidence</p>}
               </div>
               <div aria-live="polite">
@@ -356,12 +356,12 @@ export function ProductEditPage() {
               )}
               <VehiclePicker onAdd={(found) => merge(found, () => true)} />
               <div className="fit-actions">
-                <button type="button" className="link-btn" disabled={finding} onClick={() => void applyEngineRule()}>Apply engine-code rule</button>
+                <button type="button" className="link-btn" disabled={finding} onClick={() => void applyEngineRule()}>Apply Engine-Code Rule</button>
               </div>
             </section>
 
             <section className="card" aria-labelledby="step-3">
-              <h2 id="step-3" className="card__title">3. Part details</h2>
+              <h2 id="step-3" className="card__title">3. Part Details</h2>
               <div className="field">
                 <label htmlFor="title">Title shown to shoppers</label>
                 <input id="title" className="input" value={name} onChange={(e) => setName(e.target.value)} maxLength={200} />
@@ -456,7 +456,7 @@ export function ProductEditPage() {
                       <button type="button" className="link-btn" onClick={addRefinement}>Add</button>
                     </span>
                   ) : refinements.length < MAX_REFINEMENTS && (
-                    <button type="button" className="link-btn" onClick={() => setNewRefinement('')}>Add one</button>
+                    <button type="button" className="link-btn" onClick={() => setNewRefinement('')}>Add One</button>
                   )}
                 </div>
               </div>
@@ -524,7 +524,7 @@ export function ProductEditPage() {
 
           <aside className="edit-side">
             <section className="card" aria-labelledby="ready-title">
-              <h2 id="ready-title" className="card__title">Ready to list?</h2>
+              <h2 id="ready-title" className="card__title">Ready to List?</h2>
               <ul className="checklist">
                 <Check ok={refOk} label={partNumber.trim() ? 'Part number entered' : refOk ? 'Engine code entered' : 'Part number or engine code'} />
                 <Check ok={highTicked > 0} label={highTicked > 0 ? `High-confidence compatibility (${highTicked})` : 'High-confidence compatibility (recommended)'} />
@@ -535,7 +535,7 @@ export function ProductEditPage() {
             </section>
 
             <section className="card" aria-labelledby="preview-title">
-              <h2 id="preview-title" className="card__title">Shopper preview</h2>
+              <h2 id="preview-title" className="card__title">Shopper Preview</h2>
               <p className="admin-muted">How this part appears to someone who searched a matching plate.</p>
               <div className="preview">
                 <div className="preview__photo">{previewImage ? <img src={previewImage} alt="" /> : <span>Photo</span>}</div>
@@ -549,7 +549,7 @@ export function ProductEditPage() {
                 </div>
               </div>
             </section>
-            {id && <p className="admin-muted">Need the full list? <Link to="/admin/listings">Back to listings</Link></p>}
+            {id && <p className="admin-muted">Need the full list? <Link to="/admin/listings">Back to Listings</Link></p>}
           </aside>
         </div>
       )}

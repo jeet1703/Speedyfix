@@ -125,7 +125,7 @@ function RequestDetail({ request: r, onChange }: { request: PartRequest; onChang
       </dl>
       {r.notes && (
         <div>
-          <h3 className="card__subtitle">Notes from the shopper</h3>
+          <h3 className="card__subtitle">Notes from the Shopper</h3>
           <p className="request-notes">{r.notes}</p>
         </div>
       )}
@@ -148,7 +148,7 @@ function RequestDetail({ request: r, onChange }: { request: PartRequest; onChang
         </div>
       )}
       <div className="request-actions">
-        {r.status !== 'QUOTED' && <button type="button" className="btn btn--primary btn--sm" disabled={busy} onClick={() => void setStatus('QUOTED')}>Mark as quoted</button>}
+        {r.status !== 'QUOTED' && <button type="button" className="btn btn--primary btn--sm" disabled={busy} onClick={() => void setStatus('QUOTED')}>Mark as Quoted</button>}
         {r.status !== 'CLOSED' && <button type="button" className="btn btn--outline btn--sm" disabled={busy} onClick={() => void setStatus('CLOSED')}>Close</button>}
         {r.status !== 'NEW' && <button type="button" className="btn btn--outline btn--sm" disabled={busy} onClick={() => void setStatus('NEW')}>Reopen</button>}
       </div>

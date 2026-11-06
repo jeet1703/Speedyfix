@@ -10,7 +10,7 @@ import { useStore } from '../state/StoreContext';
 
 const REPLY: { value: ReplyBy; label: string }[] = [
   { value: 'WHATSAPP', label: 'WhatsApp' },
-  { value: 'PHONE', label: 'Phone call' },
+  { value: 'PHONE', label: 'Phone Call' },
   { value: 'EMAIL', label: 'Email' }
 ];
 
@@ -48,7 +48,7 @@ export function RequestPartPage() {
   const site = data?.site;
   return (
     <Layout title="Request a part">
-      <PageTitle title="Request a part" crumbs={[{ label: 'Request a part' }]} />
+      <PageTitle title="Request a part" crumbs={[{ label: 'Request a Part' }]} />
       <div className="container two-col two-col--wide">
         {sent ? (
           <div className="received">
@@ -62,13 +62,13 @@ export function RequestPartPage() {
               </div>
             </div>
             <div className="empty__actions">
-              <button type="button" className="btn btn--outline" onClick={() => setSent(null)}>Request another part</button>
-              <Link className="btn btn--primary" to="/products">Browse parts</Link>
+              <button type="button" className="btn btn--outline" onClick={() => setSent(null)}>Request Another Part</button>
+              <Link className="btn btn--primary" to="/products">Browse Parts</Link>
             </div>
           </div>
         ) : (
           <form className="request" onSubmit={submit} noValidate encType="multipart/form-data">
-            <h2 className="panel__title">Tell us what you need</h2>
+            <h2 className="panel__title">Tell Us What You Need</h2>
             <p className="request__intro">Can’t find a part in the shop? Send your reg and the part you need, and we’ll source it and reply with a price and lead time.</p>
 
             {error && <p className="notice notice--error" role="alert">{error}</p>}
@@ -113,7 +113,7 @@ export function RequestPartPage() {
               </div>
             </div>
             <div>
-              <button type="submit" className="btn btn--primary" disabled={busy}>{busy ? 'Sending…' : 'Send request'}</button>
+              <button type="submit" className="btn btn--primary" disabled={busy}>{busy ? 'Sending…' : 'Send Request'}</button>
             </div>
             <p className="field__hint">We use these details only to reply to this request. See our <Link to="/privacy">privacy policy</Link>.</p>
           </form>
@@ -121,13 +121,13 @@ export function RequestPartPage() {
 
         <aside className="request__side">
           <section className="panel" aria-labelledby="next-title">
-            <h2 id="next-title" className="panel__title">What happens next</h2>
+            <h2 id="next-title" className="panel__title">What Happens Next</h2>
             <ol className="steps">
               {STEPS.map((s) => <li key={s}>{s}</li>)}
             </ol>
           </section>
           <section className="panel panel--dark" aria-labelledby="talk-title">
-            <h2 id="talk-title" className="panel__title">Prefer to talk?</h2>
+            <h2 id="talk-title" className="panel__title">Prefer to Talk?</h2>
             <p>Call {site?.phone}</p>
             <p>WhatsApp {site?.whatsapp}</p>
             <p>Email {site?.email}</p>

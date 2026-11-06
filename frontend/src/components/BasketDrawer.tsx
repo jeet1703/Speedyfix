@@ -27,7 +27,7 @@ export function BasketDrawer() {
     <div className="drawer-backdrop" onMouseDown={(e) => e.target === e.currentTarget && setBasketOpen(false)}>
       <aside className="drawer" role="dialog" aria-modal="true" aria-labelledby="basket-title">
         <div className="drawer__head">
-          <h2 id="basket-title">Your basket</h2>
+          <h2 id="basket-title">Your Basket</h2>
           <button ref={closeBtn} type="button" className="icon-btn" aria-label="Close basket" onClick={() => setBasketOpen(false)}>
             <Icon name="x" />
           </button>
@@ -66,8 +66,8 @@ export function BasketDrawer() {
             </dl>
             <p className="drawer__vat">Includes VAT of {money(basket!.vatIncluded)}</p>
             <div className="drawer__actions">
-              <Link className="btn btn--primary btn--block" to="/checkout" onClick={() => setBasketOpen(false)}>Go to checkout</Link>
-              <Link className="btn btn--outline btn--block" to="/basket" onClick={() => setBasketOpen(false)}>View basket</Link>
+              <Link className="btn btn--primary btn--block" to="/checkout" onClick={() => setBasketOpen(false)}>Go to Checkout</Link>
+              <Link className="btn btn--outline btn--block" to="/basket" onClick={() => setBasketOpen(false)}>View Basket</Link>
             </div>
           </>
         )}

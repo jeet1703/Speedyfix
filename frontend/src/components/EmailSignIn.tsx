@@ -95,9 +95,9 @@ export function EmailSignIn() {
               autoComplete="email" inputMode="email" placeholder="Your email address" maxLength={200} required autoFocus />
           </div>
           <button type="submit" className="btn btn--primary" disabled={busy || !email.trim()}>
-            {busy ? 'Please wait…' : 'Email me a code'}
+            {busy ? 'Please Wait…' : 'Email Me a Code'}
           </button>
-          <p className="page-body__note">Remembered it? <button type="button" className="link-btn" onClick={() => go('sign-in')}>Sign in</button></p>
+          <p className="page-body__note">Remembered it? <button type="button" className="link-btn" onClick={() => go('sign-in')}>Sign In</button></p>
         </>
       ) : step === 'reset' ? (
         <>
@@ -114,11 +114,11 @@ export function EmailSignIn() {
             <p id="ea-password-hint" className="field__hint">At least {MIN_PASSWORD} characters.</p>
           </div>
           <button type="submit" className="btn btn--primary" disabled={busy || code.length !== 6}>
-            {busy ? 'Saving…' : 'Set new password and sign in'}
+            {busy ? 'Saving…' : 'Set New Password and Sign In'}
           </button>
           <p className="page-body__note">
             No email? Check your spam folder. You can ask for one code a day; if you’re stuck, call us.
-            {' '}<button type="button" className="link-btn" onClick={() => go('sign-in')}>Back to sign in</button>
+            {' '}<button type="button" className="link-btn" onClick={() => go('sign-in')}>Back to Sign In</button>
           </p>
         </>
       ) : step === 'code' ? (
@@ -130,11 +130,11 @@ export function EmailSignIn() {
               inputMode="numeric" autoComplete="one-time-code" placeholder="123456" required autoFocus />
           </div>
           <button type="submit" className="btn btn--primary" disabled={busy || code.length !== 6}>
-            {busy ? 'Checking…' : 'Confirm and create account'}
+            {busy ? 'Checking…' : 'Confirm and Create Account'}
           </button>
           <p className="page-body__note">
             No email? Check your spam folder, or <button type="button" className="link-btn" onClick={() => void resend()} disabled={busy}>send a new code</button>.
-            {' '}Wrong address? <button type="button" className="link-btn" onClick={() => go('sign-up')}>Change it</button>.
+            {' '}Wrong address? <button type="button" className="link-btn" onClick={() => go('sign-up')}>Change It</button>.
           </p>
         </>
       ) : (
@@ -160,13 +160,13 @@ export function EmailSignIn() {
             {step === 'sign-up' && <p id="ea-password-hint" className="field__hint">At least {MIN_PASSWORD} characters.</p>}
           </div>
           <button type="submit" className="btn btn--primary" disabled={busy}>
-            {busy ? 'Please wait…' : step === 'sign-up' ? 'Create account' : 'Sign in'}
+            {busy ? 'Please Wait…' : step === 'sign-up' ? 'Create Account' : 'Sign In'}
           </button>
           <p className="page-body__note">
             {step === 'sign-in'
-              ? <>New here? <button type="button" className="link-btn" onClick={() => go('sign-up')}>Create an account</button>
-                {' · '}<button type="button" className="link-btn" onClick={() => { setPassword(''); go('forgot'); }}>Forgot password?</button></>
-              : <>Already have an account? <button type="button" className="link-btn" onClick={() => go('sign-in')}>Sign in</button></>}
+              ? <>New here? <button type="button" className="link-btn" onClick={() => go('sign-up')}>Create an Account</button>
+                {' · '}<button type="button" className="link-btn" onClick={() => { setPassword(''); go('forgot'); }}>Forgot Password?</button></>
+              : <>Already have an account? <button type="button" className="link-btn" onClick={() => go('sign-in')}>Sign In</button></>}
           </p>
         </>
       )}

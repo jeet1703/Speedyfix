@@ -11,10 +11,10 @@ import { PrivacyBody, ReturnPolicyBody, TermsBody } from './legal';
 /** fedex: parcel delivery is priced by FedEx from the postcode at checkout (SiteData.deliveryQuotes). */
 const PAGES: Record<string, { title: string; body: (site: Site, fedex: boolean) => ReactNode }> = {
   '/delivery': {
-    title: 'Delivery and returns',
+    title: 'Delivery and Returns',
     body: (site, fedex) => (
       <>
-        <h2 className="info__heading">UK delivery</h2>
+        <h2 className="info__heading">UK Delivery</h2>
         <ul className="info__list">
           {fedex
             ? <li>Parcels go by FedEx. Enter your postcode at checkout to see the price and delivery date for each service. In the UK the cheapest service is free when each part weighs 5 kg or less.</li>
@@ -26,13 +26,13 @@ const PAGES: Record<string, { title: string; body: (site: Site, fedex: boolean) 
           <li>UK delivery is usually within 7 working days (estimated). Courier delays can happen.</li>
           <li>Everything is securely packed and you get tracking once it’s dispatched from {site.shipsFrom}.</li>
         </ul>
-        <h2 className="info__heading">Our delivery partners</h2>
+        <h2 className="info__heading">Our Delivery Partners</h2>
         <p>We send parts with {site.couriers}, choosing the right service for the size and destination of your order.</p>
-        <h2 className="info__heading">International delivery</h2>
+        <h2 className="info__heading">International Delivery</h2>
         {fedex
           ? <p>We deliver worldwide with FedEx. Choose your country at checkout and calculate delivery to see each service’s price. Orders outside the UK are exports, so prices don’t include UK VAT. Your country may charge import duty and taxes on arrival, which you pay to the courier. You can also choose manual delivery and we’ll quote you separately.</p>
           : <p>We ship worldwide by UK Pallets or FedEx, Standard Economy or Express Priority. Choose your country at checkout and we’ll quote delivery after you pay for the parts. Orders outside the UK don’t include UK VAT. Allow 3 to 10 working days after dispatch. Buyers are responsible for customs clearance and any import VAT or duties.</p>}
-        <h2 className="info__heading">Returns, warranty and cancellation</h2>
+        <h2 className="info__heading">Returns, Warranty and Cancellation</h2>
         {ReturnPolicyBody(site)}
       </>
     )
@@ -46,9 +46,9 @@ const PAGES: Record<string, { title: string; body: (site: Site, fedex: boolean) 
         <dt>Is the part in the photos the one I’ll get?</dt>
         <dd>Yes. Our photos are of the actual unit for sale, not stock images.</dd>
         <dt>What warranty do I get?</dt>
-        <dd>A 3 months replacement warranty on aftermarket and refurbished parts, covering the part only (not labour, towing or rentals). No warranty on new genuine parts or electrical parts. See <Link to="/delivery">Delivery and returns</Link>.</dd>
+        <dd>A 3 months replacement warranty on aftermarket and refurbished parts, covering the part only (not labour, towing or rentals). No warranty on new genuine parts or electrical parts. See <Link to="/delivery">Delivery and Returns</Link>.</dd>
         <dt>How long does delivery take?</dt>
-        <dd>UK orders usually arrive within 7 working days, with {site.couriers}. {fedex ? 'Engines and gearboxes go by FedEx Freight.' : 'Engines and gearboxes travel by pallet.'} See <Link to="/delivery">Delivery and returns</Link>.</dd>
+        <dd>UK orders usually arrive within 7 working days, with {site.couriers}. {fedex ? 'Engines and gearboxes go by FedEx Freight.' : 'Engines and gearboxes travel by pallet.'} See <Link to="/delivery">Delivery and Returns</Link>.</dd>
         <dt>Which couriers do you use?</dt>
         <dd>{site.couriers}. You get a tracking number once your order is dispatched.</dd>
         <dt>Can I return a part?</dt>
@@ -60,8 +60,8 @@ const PAGES: Record<string, { title: string; body: (site: Site, fedex: boolean) 
       </dl>
     )
   },
-  '/terms': { title: 'Terms and conditions', body: TermsBody },
-  '/privacy': { title: 'Privacy policy', body: PrivacyBody }
+  '/terms': { title: 'Terms and Conditions', body: TermsBody },
+  '/privacy': { title: 'Privacy Policy', body: PrivacyBody }
 };
 
 export function ComingSoon() {
@@ -77,8 +77,8 @@ export function ComingSoon() {
           {page ? (data ? page.body(data.site, data.deliveryQuotes) : null) : <p>We couldn’t find that page. It may have moved.</p>}
         </div>
         <div className="empty__actions">
-          <Link className="btn btn--primary" to="/products">Browse parts</Link>
-          <Link className="btn btn--outline" to="/contact">Contact us</Link>
+          <Link className="btn btn--primary" to="/products">Browse Parts</Link>
+          <Link className="btn btn--outline" to="/contact">Contact Us</Link>
         </div>
       </div>
     </Layout>

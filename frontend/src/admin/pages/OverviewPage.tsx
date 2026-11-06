@@ -28,22 +28,22 @@ export function OverviewPage() {
 
   const needsAttention = data ? data.workQueue.filter((r) => r.vehicles === 0 || !r.hasPhoto).length : 0;
   const tiles = data ? [
-    { label: 'Active listings', count: data.listings.active, to: '/admin/listings?tab=active' },
+    { label: 'Active Listings', count: data.listings.active, to: '/admin/listings?tab=active' },
     { label: 'Drafts', count: data.listings.drafts, to: '/admin/listings?tab=drafts' },
-    { label: 'Out of stock', count: data.listings.outOfStock, to: '/admin/listings?tab=out-of-stock' },
-    { label: 'Needs compatibility or photos', count: needsAttention, to: '/admin/listings?tab=needs-attention' }
+    { label: 'Out of Stock', count: data.listings.outOfStock, to: '/admin/listings?tab=out-of-stock' },
+    { label: 'Needs Compatibility or Photos', count: needsAttention, to: '/admin/listings?tab=needs-attention' }
   ] : [];
   const orderLinks = data ? [
-    { label: 'Awaiting dispatch', count: data.orders.awaitingDispatch, to: '/admin/orders?status=awaiting-dispatch' },
-    { label: 'Awaiting payment', count: data.orders.awaitingPayment, to: '/admin/orders?status=awaiting-payment' },
+    { label: 'Awaiting Dispatch', count: data.orders.awaitingDispatch, to: '/admin/orders?status=awaiting-dispatch' },
+    { label: 'Awaiting Payment', count: data.orders.awaitingPayment, to: '/admin/orders?status=awaiting-payment' },
     { label: 'Dispatched', count: data.orders.dispatched, to: '/admin/orders?status=dispatched' },
     { label: 'Cancelled', count: data.orders.cancelled, to: '/admin/orders?status=cancelled' },
-    { label: 'New part requests', count: data.tasks.newPartRequests, to: '/admin/part-requests' },
+    { label: 'New Part Requests', count: data.tasks.newPartRequests, to: '/admin/part-requests' },
     { label: `Customers signed in (${data.customers.newThisWeek} new this week)`, count: data.customers.total, to: '/admin/customers' }
   ] : [];
 
   return (
-    <AdminLayout title="Overview" actions={<Link className="btn btn--primary" to="/admin/products/new">Create listing</Link>}>
+    <AdminLayout title="Overview" actions={<Link className="btn btn--primary" to="/admin/products/new">Create Listing</Link>}>
       {error && <p className="notice notice--error" role="alert">{error}</p>}
       {!data && !error && <CardsSkeleton cards={4} />}
       {data && (
@@ -60,13 +60,13 @@ export function OverviewPage() {
                   </Link>
                 ))}
               </div>
-              <div><Link className="btn btn--primary hub-card__cta" to="/admin/products/new">Create listing</Link></div>
+              <div><Link className="btn btn--primary hub-card__cta" to="/admin/products/new">Create Listing</Link></div>
             </section>
 
             <section className="card hub-card" aria-labelledby="orders-title">
               <HubCardHead id="orders-title" title="Orders" to="/admin/orders" />
               <ul className="hub-links">
-                <li><Link to="/admin/orders">See all orders</Link><span>{data.orders.all}</span></li>
+                <li><Link to="/admin/orders">See All Orders</Link><span>{data.orders.all}</span></li>
                 {orderLinks.map((o) => (
                   <li key={o.to}><Link to={o.to}>{o.label}</Link><span className={o.count === 0 ? 'is-zero' : undefined}>{o.count}</span></li>
                 ))}
@@ -102,7 +102,7 @@ export function OverviewPage() {
           <div className="dash-cols">
             <section className="card" aria-labelledby="queue-title">
               <div className="card__head">
-                <h2 id="queue-title" className="card__title">Listings to finish</h2>
+                <h2 id="queue-title" className="card__title">Listings to Finish</h2>
                 <Chips label="Show" options={QUEUE_FILTERS.filter((f) => f.value !== 'live')} value={filter} onChange={setFilter} />
               </div>
               {rows.length === 0 ? (
@@ -128,7 +128,7 @@ export function OverviewPage() {
                 </div>
               )}
               {rows.length > QUEUE_SIZE && (
-                <p className="card__foot">Showing {QUEUE_SIZE} of {rows.length}. <Link to="/admin/listings?tab=needs-attention">See them all</Link></p>
+                <p className="card__foot">Showing {QUEUE_SIZE} of {rows.length}. <Link to="/admin/listings?tab=needs-attention">See Them All</Link></p>
               )}
             </section>
 
@@ -148,7 +148,7 @@ export function OverviewPage() {
                 </ul>
               )}
               {data.noMatch.length > 0 && (data.buyingTeamEmail ? (
-                <a className="card__link" href={buyingTeamMail(data)}>Send list to buying team</a>
+                <a className="card__link" href={buyingTeamMail(data)}>Send List to Buying Team</a>
               ) : (
                 <p className="admin-muted">Add the buying team’s email in <Link to="/admin/settings">Settings</Link> to send them this list.</p>
               ))}

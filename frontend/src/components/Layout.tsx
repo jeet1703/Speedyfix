@@ -86,9 +86,9 @@ export function Layout({ title, description, noindex = false, jsonLd, children }
   if (error && !data) {
     return (
       <main className="state">
-        <h1 className="h-display">The store didn’t load</h1>
+        <h1 className="h-display">The Store Didn’t Load</h1>
         <p>{error}</p>
-        <button type="button" className="btn btn--primary" onClick={retry}>Try again</button>
+        <button type="button" className="btn btn--primary" onClick={retry}>Try Again</button>
       </main>
     );
   }
@@ -114,7 +114,7 @@ export function Layout({ title, description, noindex = false, jsonLd, children }
 
   return (
     <>
-      <a href="#main" className="skip-link">Skip to content</a>
+      <a href="#main" className="skip-link">Skip to Content</a>
       <TopBar phone={data.site.phone} />
       <Header menu={data.menu} />
       <main id="main" tabIndex={-1}>{children}</main>

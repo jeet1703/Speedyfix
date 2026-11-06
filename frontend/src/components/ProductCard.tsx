@@ -58,7 +58,7 @@ export function ProductCard({ product }: { product: Product }) {
           </button>
         ) : (
           <button type="button" className="btn btn--primary btn--block" onClick={add} disabled={adding || !product.inStock}>
-            {!product.inStock ? 'Out of stock' : adding ? 'Adding…' : inBasket > 0 ? 'Add another' : 'Add to basket'}
+            {!product.inStock ? 'Out of Stock' : adding ? 'Adding…' : inBasket > 0 ? 'Add Another' : 'Add to Basket'}
           </button>
         )}
       </div>

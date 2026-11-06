@@ -16,17 +16,17 @@ export function BasketPage() {
       <div className="container">
         {lines.length === 0 ? (
           <div className="empty empty--page">
-            <h2>Your basket is empty</h2>
+            <h2>Your Basket Is Empty</h2>
             <p>Add your reg to see parts that fit your car.</p>
             <div className="empty__actions">
-              <Link className="btn btn--primary" to="/products">Browse parts</Link>
+              <Link className="btn btn--primary" to="/products">Browse Parts</Link>
               <Link className="btn btn--outline" to="/request-a-part">Request a Part</Link>
             </div>
           </div>
         ) : (
           <div className="two-col">
             <section aria-labelledby="basket-lines-title">
-              <h2 id="basket-lines-title" className="sr-only">Parts in your basket</h2>
+              <h2 id="basket-lines-title" className="sr-only">Parts in Your Basket</h2>
               <table className="basket-table">
                 <thead>
                   <tr>
@@ -64,13 +64,13 @@ export function BasketPage() {
                   ))}
                 </tbody>
               </table>
-              <Link className="btn btn--outline" to="/products">Continue shopping</Link>
+              <Link className="btn btn--outline" to="/products">Continue Shopping</Link>
             </section>
 
             <aside className="panel" aria-labelledby="basket-totals-title">
-              <h2 id="basket-totals-title" className="panel__title">Basket totals</h2>
+              <h2 id="basket-totals-title" className="panel__title">Basket Totals</h2>
               <Totals totals={basket!} />
-              <Link className="btn btn--primary btn--block" to="/checkout">Go to checkout</Link>
+              <Link className="btn btn--primary btn--block" to="/checkout">Go to Checkout</Link>
               <p className="panel__note">
                 {basket!.delivery.method === 'PALLET'
                   ? 'Engines and gearboxes travel by pallet, so this order has pallet delivery.'

@@ -9,8 +9,8 @@ const TABS = [
   { label: 'Orders', to: '/admin/orders', match: (p: string) => p.startsWith('/admin/orders') },
   { label: 'Listings', to: '/admin/listings', match: (p: string) => p.startsWith('/admin/listings') || p.startsWith('/admin/products') },
   { label: 'Customers', to: '/admin/customers', match: (p: string) => p.startsWith('/admin/customers') },
-  { label: 'Part requests', to: '/admin/part-requests', match: (p: string) => p.startsWith('/admin/part-requests') },
-  { label: 'Vehicle lookup', to: '/admin/vehicle-lookup', match: (p: string) => p.startsWith('/admin/vehicle-lookup') },
+  { label: 'Part Requests', to: '/admin/part-requests', match: (p: string) => p.startsWith('/admin/part-requests') },
+  { label: 'Vehicle Lookup', to: '/admin/vehicle-lookup', match: (p: string) => p.startsWith('/admin/vehicle-lookup') },
   { label: 'Settings', to: '/admin/settings', match: (p: string) => p.startsWith('/admin/settings') }
 ];
 
@@ -30,7 +30,7 @@ export function AdminLayout({ title, crumbs, actions, children }: {
 
   return (
     <div className="admin">
-      <a href="#admin-main" className="skip-link">Skip to content</a>
+      <a href="#admin-main" className="skip-link">Skip to Content</a>
       <header className="hub-bar">
         <div className="hub-bar__inner">
           <Link to="/admin" className="admin-logo" aria-label="SpeedyFix Auto Sales Seller Hub, overview">
@@ -39,8 +39,8 @@ export function AdminLayout({ title, crumbs, actions, children }: {
           </Link>
           <div className="hub-bar__user">
             <span>{staff?.email}<span className="hub-bar__role"> · {staff?.role === 'MASTER' ? 'Master admin' : 'Staff'}</span></span>
-            <a href={import.meta.env.BASE_URL} target="_blank" rel="noreferrer">View shop</a>
-            <button type="button" className="hub-bar__signout" onClick={() => void signOut()}>Sign out</button>
+            <a href={import.meta.env.BASE_URL} target="_blank" rel="noreferrer">View Shop</a>
+            <button type="button" className="hub-bar__signout" onClick={() => void signOut()}>Sign Out</button>
           </div>
         </div>
         <nav className="hub-tabs" aria-label="Seller Hub">

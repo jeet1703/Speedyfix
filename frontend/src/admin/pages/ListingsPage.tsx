@@ -13,12 +13,12 @@ type Tab = 'active' | 'out-of-stock' | 'drafts' | 'ended' | 'needs-attention' | 
 /** Seller Hub-style listing tabs. needs-fitment and missing-photo are reached from Overview's tasks. */
 const TABS: { value: Tab; label: string; test: (r: ProductRow) => boolean; hidden?: boolean }[] = [
   { value: 'active', label: 'Active', test: (r) => r.status === 'LIVE' && r.stock > 0 },
-  { value: 'out-of-stock', label: 'Out of stock', test: (r) => r.status === 'LIVE' && r.stock === 0 },
+  { value: 'out-of-stock', label: 'Out of Stock', test: (r) => r.status === 'LIVE' && r.stock === 0 },
   { value: 'drafts', label: 'Drafts', test: (r) => r.status === 'DRAFT' },
   { value: 'ended', label: 'Ended', test: (r) => r.status === 'ENDED' },
-  { value: 'needs-attention', label: 'Needs attention', test: (r) => r.status !== 'ENDED' && (r.vehicles === 0 || !r.hasPhoto) },
-  { value: 'needs-fitment', label: 'Needs compatibility', test: (r) => r.status !== 'ENDED' && r.vehicles === 0, hidden: true },
-  { value: 'missing-photo', label: 'Needs photos', test: (r) => r.status !== 'ENDED' && !r.hasPhoto, hidden: true },
+  { value: 'needs-attention', label: 'Needs Attention', test: (r) => r.status !== 'ENDED' && (r.vehicles === 0 || !r.hasPhoto) },
+  { value: 'needs-fitment', label: 'Needs Compatibility', test: (r) => r.status !== 'ENDED' && r.vehicles === 0, hidden: true },
+  { value: 'missing-photo', label: 'Needs Photos', test: (r) => r.status !== 'ENDED' && !r.hasPhoto, hidden: true },
   { value: 'all', label: 'All', test: () => true }
 ];
 
@@ -70,7 +70,7 @@ export function ListingsPage() {
     <AdminLayout title="Listings" actions={<>
       <EbaySyncButton onDone={() => void adminApi.products().then(setRows).catch(() => undefined)} />
       <CompatibilityImportButton onDone={() => void adminApi.products().then(setRows).catch(() => undefined)} />
-      <Link className="btn btn--primary" to="/admin/products/new">Create listing</Link>
+      <Link className="btn btn--primary" to="/admin/products/new">Create Listing</Link>
     </>}>
       {error && <p className="notice notice--error" role="alert">{error}</p>}
       <section className="card" aria-label="Listings">

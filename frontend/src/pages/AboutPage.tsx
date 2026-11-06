@@ -28,20 +28,20 @@ export function AboutPage() {
 
   return (
     <Layout title="About us" description={site ? `${site.companyName}: used, remanufactured and new car parts from ${site.shipsFrom}, with a ${site.warranty} warranty and UK delivery.` : undefined}>
-      <PageTitle title="About us" crumbs={[{ label: 'About us' }]} />
+      <PageTitle title="About us" crumbs={[{ label: 'About Us' }]} />
 
       <section className="about-hero">
         <div className="container about-hero__inner">
           <div>
             <p className="eyebrow">{site?.tagline ?? 'Quality OEM and aftermarket car parts'}</p>
-            <h2 className="about-hero__title">Car parts we’ve checked and photographed, ready to ship</h2>
+            <h2 className="about-hero__title">Car Parts We’ve Checked and Photographed, Ready to Ship</h2>
             <p className="about-hero__text">
               {site?.companyName ?? 'SpeedyFix Auto Sales'} supplies used, remanufactured and new car parts from our unit in
               {' '}{site?.shipsFrom.replace(/, UK$/, '') ?? 'Uxbridge'}: complete engines and gearboxes, turbos, injectors,
               ECUs, body panels and more, for garages and drivers across the UK and abroad.
             </p>
             <div className="empty__actions">
-              <Link className="btn btn--primary" to="/products">Browse parts</Link>
+              <Link className="btn btn--primary" to="/products">Browse Parts</Link>
               <Link className="btn btn--outline-light" to="/request-a-part">Request a Part</Link>
             </div>
           </div>
@@ -56,16 +56,16 @@ export function AboutPage() {
 
       <div className="container page-body about">
         <section className="about__section" aria-labelledby="how-title">
-          <h2 id="how-title" className="about__heading">How we work</h2>
+          <h2 id="how-title" className="about__heading">How We Work</h2>
           <ul className="about-steps">
             <li>
               <Icon name="search" size={26} />
-              <h3>The actual part</h3>
+              <h3>The Actual Part</h3>
               <p>Every listing shows photos of the exact part you’ll receive and its part number, so you can match it to your old one.</p>
             </li>
             <li>
               <Icon name="truck" size={26} />
-              <h3>Checked to fit</h3>
+              <h3>Checked to Fit</h3>
               <p>Enter your reg to see what fits your vehicle. If you’re unsure, send us your reg or VIN and we’ll confirm before you buy.</p>
             </li>
             <li>
@@ -75,7 +75,7 @@ export function AboutPage() {
             </li>
             <li>
               <Icon name="wrench" size={26} />
-              <h3>Shipped safely</h3>
+              <h3>Shipped Safely</h3>
               <p>We pack each part to survive the trip and track it with {site?.couriers ?? 'our delivery partners'}. Engines and gearboxes are strapped down and sent by freight.</p>
             </li>
           </ul>
@@ -83,7 +83,7 @@ export function AboutPage() {
 
         {categories.length > 0 && (
           <section className="about__section" aria-labelledby="sell-title">
-            <h2 id="sell-title" className="about__heading">What we sell</h2>
+            <h2 id="sell-title" className="about__heading">What We Sell</h2>
             <ul className="about-cats">
               {categories.map((c) => {
                 const href = `/products?category=${c.id}`;
@@ -102,17 +102,17 @@ export function AboutPage() {
 
         <section className="about__section about__split" aria-labelledby="request-title">
           <div>
-            <h2 id="request-title" className="about__heading">Can’t find a part?</h2>
+            <h2 id="request-title" className="about__heading">Can’t Find a Part?</h2>
             <p>Many parts aren’t listed yet. Tell us what you’re after and we’ll try to source it.</p>
             <Link className="btn btn--outline" to="/request-a-part">Request a Part</Link>
           </div>
           {site && (
             <div className="panel about__contact">
-              <h3 className="panel__title">Find us</h3>
+              <h3 className="panel__title">Find Us</h3>
               <p>{site.companyName}<br />{site.address}</p>
               <p>
                 <a href={telHref(site.phone)}>{site.phone}</a><br />
-                <a href={whatsAppHref(site.whatsapp)} target="_blank" rel="noopener noreferrer">Message us on WhatsApp</a><br />
+                <a href={whatsAppHref(site.whatsapp)} target="_blank" rel="noopener noreferrer">Message Us on WhatsApp</a><br />
                 <a href={`mailto:${site.email}`}>{site.email}</a>
               </p>
               <p className="page-body__note">Registered in England and Wales, company no. {site.companyNumber}. VAT no. {site.vatNumber}.</p>

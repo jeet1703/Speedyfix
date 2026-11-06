@@ -126,10 +126,10 @@ export function OrderDetailPage() {
 
             {order.status === 'AWAITING_PAYMENT' && (
               <section className="card" aria-labelledby="pay-title">
-                <h2 id="pay-title" className="card__title">Take payment</h2>
+                <h2 id="pay-title" className="card__title">Take Payment</h2>
                 <p className="admin-muted">The buyer can pay online with PayPal or a card from their order page; the order moves to Awaiting dispatch by itself once PayPal confirms it. If they paid another way (by phone or bank transfer), mark it as paid.</p>
                 {order.payment && !order.payment.captureId && <p className="admin-muted">The buyer has started a PayPal payment but hasn’t finished it.</p>}
-                <div><button type="button" className="btn btn--primary" disabled={busy} onClick={() => void change('AWAITING_DISPATCH', 'Marked as paid. The order is now awaiting dispatch.')}>Mark as paid</button></div>
+                <div><button type="button" className="btn btn--primary" disabled={busy} onClick={() => void change('AWAITING_DISPATCH', 'Marked as paid. The order is now awaiting dispatch.')}>Mark as Paid</button></div>
               </section>
             )}
 
@@ -147,7 +147,7 @@ export function OrderDetailPage() {
                     <input id="tracking" className="input mono" value={tracking} onChange={(e) => setTracking(e.target.value)} maxLength={60} spellCheck={false} />
                   </div>
                 </div>
-                <div><button type="submit" className="btn btn--primary" disabled={busy}>Mark as dispatched</button></div>
+                <div><button type="submit" className="btn btn--primary" disabled={busy}>Mark as Dispatched</button></div>
               </form>
             )}
 
@@ -173,7 +173,7 @@ export function OrderDetailPage() {
                 <li><a href={`mailto:${order.customer.email}?subject=${encodeURIComponent(`Your order ${order.reference}`)}`}>{order.customer.email}</a></li>
                 <li><a href={`tel:${order.customer.phone.replace(/[^+\d]/g, '')}`}>{order.customer.phone}</a></li>
               </ul>
-              <h3 className="card__subtitle">Deliver to</h3>
+              <h3 className="card__subtitle">Deliver To</h3>
               <address className="contact">
                 <span>{order.address.line1}</span>
                 {order.address.line2 && <span>{order.address.line2}</span>}
@@ -191,7 +191,7 @@ export function OrderDetailPage() {
                 <p className="admin-muted">VAT invoice, dated {when(invoice.issuedAt!)}.</p>
                 <div className="request-actions">
                   <a className="btn btn--outline" href={invoiceUrl(order.reference)} target="_blank" rel="noopener">View PDF</a>
-                  {invoice.emailOn && <button type="button" className="btn btn--outline" disabled={busy} onClick={() => void emailInvoice()}>Email it again</button>}
+                  {invoice.emailOn && <button type="button" className="btn btn--outline" disabled={busy} onClick={() => void emailInvoice()}>Email It Again</button>}
                 </div>
                 {!invoice.emailOn && <p className="admin-muted">Email isn’t set up yet, so it wasn’t emailed. Download it and send it yourself if the buyer asks.</p>}
               </section>
@@ -213,15 +213,15 @@ export function OrderDetailPage() {
 
             {open && (
               <section className="card" aria-labelledby="cancel-title">
-                <h2 id="cancel-title" className="card__title">Cancel order</h2>
+                <h2 id="cancel-title" className="card__title">Cancel Order</h2>
                 <p className="admin-muted">Puts the parts back in stock. This can’t be undone.</p>
                 {confirmCancel ? (
                   <div className="request-actions">
-                    <button type="button" className="btn btn--dark" disabled={busy} onClick={() => void change('CANCELLED', 'Order cancelled. The parts are back in stock.')}>Yes, cancel the order</button>
-                    <button type="button" className="btn btn--outline" onClick={() => setConfirmCancel(false)}>Keep it</button>
+                    <button type="button" className="btn btn--dark" disabled={busy} onClick={() => void change('CANCELLED', 'Order cancelled. The parts are back in stock.')}>Yes, Cancel the Order</button>
+                    <button type="button" className="btn btn--outline" onClick={() => setConfirmCancel(false)}>Keep It</button>
                   </div>
                 ) : (
-                  <div><button type="button" className="btn btn--outline" onClick={() => setConfirmCancel(true)}>Cancel order</button></div>
+                  <div><button type="button" className="btn btn--outline" onClick={() => setConfirmCancel(true)}>Cancel Order</button></div>
                 )}
               </section>
             )}

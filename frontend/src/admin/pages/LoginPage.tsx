@@ -48,7 +48,7 @@ export function LoginPage() {
           <span className="admin-logo__mark">SPEEDY<span>FIX</span></span>
           <span className="admin-logo__sub">Admin</span>
         </p>
-        <h1 className="admin-login__title">Staff sign-in</h1>
+        <h1 className="admin-login__title">Staff Sign-In</h1>
         {error && <p className="notice notice--error" role="alert">{error}</p>}
         <div className="field">
           <label htmlFor="admin-email">Email</label>
@@ -60,7 +60,7 @@ export function LoginPage() {
           <input id="admin-password" className="input" type="password" autoComplete="current-password" value={password}
             onChange={(e) => setPassword(e.target.value)} maxLength={200} aria-invalid={error ? true : undefined} />
         </div>
-        <button type="submit" className="btn btn--primary btn--block" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
+        <button type="submit" className="btn btn--primary btn--block" disabled={busy}>{busy ? 'Signing In…' : 'Sign In'}</button>
         <p className="field__hint">Sessions last 12 hours, or until you close this tab.</p>
       </form>
     </main>

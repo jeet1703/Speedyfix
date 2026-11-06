@@ -38,8 +38,8 @@ export type QueueFilter = 'all' | 'needs-fitment' | 'missing-photo' | 'draft' | 
 
 export const QUEUE_FILTERS: { value: QueueFilter; label: string }[] = [
   { value: 'all', label: 'All' },
-  { value: 'needs-fitment', label: 'Needs compatibility' },
-  { value: 'missing-photo', label: 'Missing photo' },
+  { value: 'needs-fitment', label: 'Needs Compatibility' },
+  { value: 'missing-photo', label: 'Missing Photo' },
   { value: 'draft', label: 'Draft' },
   { value: 'live', label: 'Live' }
 ];

@@ -38,10 +38,10 @@ export function ProductPage() {
     return (
       <Layout title="Part not found" noindex>
         <div className="container state">
-          <h1 className="h-display">We couldn’t find that part</h1>
+          <h1 className="h-display">We Couldn’t Find That Part</h1>
           <p>{error}</p>
           <div className="empty__actions">
-            <Link className="btn btn--primary" to="/products">Browse all parts</Link>
+            <Link className="btn btn--primary" to="/products">Browse All Parts</Link>
             <Link className="btn btn--outline" to="/request-a-part">Request a Part</Link>
           </div>
         </div>
@@ -167,9 +167,9 @@ function FitCheck({ detail, vehicle }: { detail: ProductDetail; vehicle: Vehicle
           <span>
             {fit === 'FITS' && <>Fits your {vehicle.make} {vehicle.model}, {vehicle.engine}.</>}
             {fit === 'LIKELY_FITS' && <>Likely fits your {vehicle.make} {vehicle.model}, {vehicle.engine}: the listing matches its make, model, years and engine size. We check the part number before dispatch.</>}
-            {fit === 'DOES_NOT_FIT' && <>Doesn’t fit your {vehicle.make} {vehicle.model}. <Link to="/products?fitsOnly=true">See parts that fit</Link>.</>}
+            {fit === 'DOES_NOT_FIT' && <>Doesn’t fit your {vehicle.make} {vehicle.model}. <Link to="/products?fitsOnly=true">See Parts That Fit</Link>.</>}
             {fit === 'UNCONFIRMED' && <>Fit for your {vehicle.make} {vehicle.model} isn’t confirmed yet. Ask us and we’ll check it by part number before you order.</>}
-            {' '}{!editing && <button type="button" className="link-btn" onClick={() => setEditing(true)}>Check another reg</button>}
+            {' '}{!editing && <button type="button" className="link-btn" onClick={() => setEditing(true)}>Check Another Reg</button>}
           </span>
         </p>
       )}
@@ -178,7 +178,7 @@ function FitCheck({ detail, vehicle }: { detail: ProductDetail; vehicle: Vehicle
           <label htmlFor="fit-reg" className="fit-check__label">Check this part fits your car</label>
           <div className="fit-check__row">
             <PlateField id="fit-reg" value={reg} onChange={setReg} size="sm" invalid={!!error} describedBy={error ? 'fit-error' : 'fit-hint'} />
-            <button type="submit" className="btn btn--dark" disabled={busy}>{busy ? 'Checking…' : 'Check fit'}</button>
+            <button type="submit" className="btn btn--dark" disabled={busy}>{busy ? 'Checking…' : 'Check Fit'}</button>
           </div>
           {error && <p id="fit-error" className="field-error" role="alert">{error}</p>}
           <p id="fit-hint" className="fit-check__hint">Or call {data?.site.phone} with your reg and we’ll check for you.</p>
@@ -219,7 +219,7 @@ function BuyBox({ detail }: { detail: ProductDetail }) {
         </button>
       ) : (
         <button type="button" className="btn btn--primary buy__add" onClick={add} disabled={adding || !p.inStock}>
-          {!p.inStock ? 'Out of stock' : adding ? 'Adding…' : inBasket > 0 ? 'Add another' : 'Add to basket'}
+          {!p.inStock ? 'Out of Stock' : adding ? 'Adding…' : inBasket > 0 ? 'Add Another' : 'Add to Basket'}
         </button>
       )}
       <button type="button" className={'buy__wish' + (saved ? ' is-saved' : '')} aria-pressed={saved}
@@ -315,7 +315,7 @@ function DescriptionTab({ detail }: { detail: ProductDetail }) {
       </dl>
       {detail.specifics.length > 0 && (
         <>
-          <h3 className="tabs__subhead">Item specifics</h3>
+          <h3 className="tabs__subhead">Item Specifics</h3>
           <dl className="specs">
             {detail.specifics.map((s) => <div key={s.name}><dt>{s.name}</dt><dd>{s.value}</dd></div>)}
           </dl>

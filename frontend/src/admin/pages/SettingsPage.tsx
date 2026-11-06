@@ -43,7 +43,7 @@ export function SettingsPage() {
       {view && (
         <div className="settings">
           <form className="card" onSubmit={submit} noValidate aria-labelledby="buying-title">
-            <h2 id="buying-title" className="card__title">Buying team</h2>
+            <h2 id="buying-title" className="card__title">Buying Team</h2>
             {saved && <p className="notice notice--ok" role="status">{saved}</p>}
             {error && <p className="notice notice--error" role="alert">{error}</p>}
             <div className="field">
@@ -51,11 +51,11 @@ export function SettingsPage() {
               <input id="buying-email" className="input" type="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} maxLength={200} aria-describedby="buying-hint" />
               <p id="buying-hint" className="field__hint">“Send list to buying team” on the dashboard opens an email to this address.</p>
             </div>
-            <div><button type="submit" className="btn btn--primary" disabled={busy}>{busy ? 'Saving…' : 'Save settings'}</button></div>
+            <div><button type="submit" className="btn btn--primary" disabled={busy}>{busy ? 'Saving…' : 'Save Settings'}</button></div>
           </form>
 
           <section className="card" aria-labelledby="server-title">
-            <h2 id="server-title" className="card__title">This server</h2>
+            <h2 id="server-title" className="card__title">This Server</h2>
             <dl className="facts facts--stack">
               <div><dt>Signed in as</dt><dd>{view.staffName} ({view.staffEmail})</dd></div>
               <div><dt>Sign-in</dt><dd>Email and password for the master account (the ADMIN_EMAIL and ADMIN_PASSWORD secrets). Sessions last {view.sessionHours} hours.</dd></div>

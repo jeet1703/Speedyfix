@@ -31,9 +31,9 @@ export function WishlistPage() {
         {error && <p className="notice notice--error" role="alert">{error}</p>}
         {items && items.length === 0 && !error && (
           <div className="empty empty--page">
-            <h2>Your wishlist is empty</h2>
+            <h2>Your Wishlist Is Empty</h2>
             <p>Tap the heart on any part to save it here.</p>
-            <div className="empty__actions"><Link className="btn btn--primary" to="/products">Browse parts</Link></div>
+            <div className="empty__actions"><Link className="btn btn--primary" to="/products">Browse Parts</Link></div>
           </div>
         )}
         {items && items.length > 0 && (

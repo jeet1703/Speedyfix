@@ -15,14 +15,14 @@ export function TermsBody(site: Site, fedex = false) {
     <>
       <p className="info__note">Draft for review. Last updated {UPDATED}.</p>
 
-      <h2 className="info__heading">1. Who we are</h2>
+      <h2 className="info__heading">1. Who We Are</h2>
       <p>
         This website is run by {site.companyName}, a company registered in England and Wales (company no. {site.companyNumber},
         VAT no. {site.vatNumber}), of {site.address}. You can contact us on {site.phone} or at {site.email}.
       </p>
       <p>These terms apply when you buy from this website. Please read them before you order. If you buy as a business, section 11 applies too.</p>
 
-      <h2 className="info__heading">2. Your order</h2>
+      <h2 className="info__heading">2. Your Order</h2>
       <ul className="info__list">
         <li>When you place an order, we reserve the parts and you pay through PayPal (with a PayPal account, or a debit or credit card).</li>
         <li>Our contract with you starts when your payment is confirmed. We’ll show the confirmation on screen, and you can check your order’s status at any time with its order number.</li>
@@ -30,10 +30,10 @@ export function TermsBody(site: Site, fedex = false) {
         <li>Most of our parts are one-offs. If a part sells elsewhere before your order is confirmed, or a listing has an obvious error such as a wrong price, we’ll tell you and refund anything you’ve paid in full.</li>
       </ul>
 
-      <h2 className="info__heading">3. Prices and payment</h2>
+      <h2 className="info__heading">3. Prices and Payment</h2>
       <p>Prices are in pounds sterling and include VAT. Delivery is shown before you pay. Sale prices apply only while the listing shows them.</p>
 
-      <h2 className="info__heading">4. Checking a part fits</h2>
+      <h2 className="info__heading">4. Checking a Part Fits</h2>
       <p>
         Each listing shows the part number and the vehicles we know it fits. Our reg check is a guide based on the data we
         hold, so please compare the part number with the one on your old part. If you’re unsure, send us your registration
@@ -53,36 +53,36 @@ export function TermsBody(site: Site, fedex = false) {
         <li>The parts are your responsibility once they’re delivered. Please check them when they arrive and tell us within 24 hours if anything is damaged, missing or not what you ordered, with photos (see section 6).</li>
       </ul>
 
-      <h2 className="info__heading">6. Returns, warranty, refunds and cancellation</h2>
+      <h2 className="info__heading">6. Returns, Warranty, Refunds and Cancellation</h2>
       {ReturnPolicyBody(site)}
 
-      <h2 className="info__heading">7. Your account</h2>
+      <h2 className="info__heading">7. Your Account</h2>
       <p>You can shop without an account. If you sign in with Google, keep access to your Google account secure; you can ask us to delete your account at any time.</p>
 
-      <h2 className="info__heading">8. Help chat</h2>
+      <h2 className="info__heading">8. Help Chat</h2>
       <p>
         Our help chat answers from our stock and policies, and may use AI to word its replies. It can make mistakes, so
         please check the part’s page, or ask us, before you buy. These terms and the listing take priority over anything the chat says.
       </p>
 
-      <h2 className="info__heading">9. Our responsibility to you</h2>
+      <h2 className="info__heading">9. Our Responsibility to You</h2>
       <p>
         If we break these terms, we’re responsible for loss you suffer that is a foreseeable result. We don’t exclude
         liability where it would be unlawful to, such as for death or personal injury caused by our negligence, or for
         fraud. We aren’t responsible for losses that weren’t foreseeable, or for business losses where you buy as a consumer.
       </p>
 
-      <h2 className="info__heading">10. Events outside our control</h2>
+      <h2 className="info__heading">10. Events Outside Our Control</h2>
       <p>We aren’t responsible for delays caused by events outside our reasonable control, such as courier failures or severe weather. We’ll tell you, and you can cancel and get a refund for anything not yet delivered.</p>
 
-      <h2 className="info__heading">11. Business customers</h2>
+      <h2 className="info__heading">11. Business Customers</h2>
       <p>
         If you buy for a business (for example a garage), the returns policy in section 6 applies. Our total liability to a
         business is limited to the price of the parts concerned, and we aren’t liable for loss of profit, business or
         downtime. [to confirm]
       </p>
 
-      <h2 className="info__heading">12. Other things</h2>
+      <h2 className="info__heading">12. Other Things</h2>
       <p>
         These terms are governed by the law of England and Wales, and you can bring proceedings in the courts of England
         and Wales (or Scotland or Northern Ireland if you live there). We may update these terms; the version on this
@@ -164,14 +164,14 @@ export function PrivacyBody(site: Site) {
     <>
       <p className="info__note">Draft for review. Last updated {UPDATED}.</p>
 
-      <h2 className="info__heading">Who we are</h2>
+      <h2 className="info__heading">Who We Are</h2>
       <p>
         {site.companyName} (company no. {site.companyNumber}), {site.address}, is responsible for the personal information
         this website collects (the “controller” under UK data protection law). Contact us about your information at
         {' '}{site.email} or {site.phone}. Our ICO registration number is [to confirm: ICO registration number].
       </p>
 
-      <h2 className="info__heading">What we collect and why</h2>
+      <h2 className="info__heading">What We Collect and Why</h2>
       <ul className="info__list">
         <li><strong>Orders:</strong> your name, email, phone number, delivery address and any delivery notes, so we can process, deliver and support your order (to perform our contract with you). We keep order records for 6 years for tax and accounting (a legal obligation).</li>
         <li><strong>Payments:</strong> PayPal processes your payment. We never see or store your card details; we keep PayPal’s payment reference with your order.</li>
@@ -184,7 +184,7 @@ export function PrivacyBody(site: Site) {
       </ul>
       <p>We use the information we hold to run the shop, answer your questions and meet our legal duties. We don’t sell it, and we don’t send marketing emails.</p>
 
-      <h2 className="info__heading">Who we share it with</h2>
+      <h2 className="info__heading">Who We Share It With</h2>
       <p>We use trusted providers to run the shop. They act on our instructions and protect your information:</p>
       <ul className="info__list">
         <li><strong>Render</strong> (website and database hosting, servers in Frankfurt, Germany).</li>
@@ -196,14 +196,14 @@ export function PrivacyBody(site: Site) {
       </ul>
       <p>Some of these providers are based in, or may access data from, the United States. Where information leaves the UK, it’s protected by the UK’s data adequacy rules or standard contractual safeguards.</p>
 
-      <h2 className="info__heading">Cookies and browser storage</h2>
+      <h2 className="info__heading">Cookies and Browser Storage</h2>
       <p>
         We don’t use advertising or tracking cookies. The shop keeps your basket, wishlist, recent searches and sign-in in
         your browser’s storage so they’re there when you come back. Google may set a cookie when you use Sign in with
         Google, and PayPal sets cookies while you pay; see their own privacy notices.
       </p>
 
-      <h2 className="info__heading">Your rights</h2>
+      <h2 className="info__heading">Your Rights</h2>
       <p>
         You can ask for a copy of the information we hold about you, ask us to correct or delete it, object to how we use
         it, or ask us to restrict its use or send it to you in a portable form. Contact us at {site.email}. We’ll reply within

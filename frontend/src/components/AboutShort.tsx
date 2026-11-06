@@ -9,13 +9,13 @@ export function AboutShort({ site }: { site: Site }) {
       <div className="container home-about__inner">
         <div className="home-about__copy">
           <p className="eyebrow">About {site.name}</p>
-          <h2 id="home-about-title" className="h-display">Engines, gearboxes and parts, checked before they ship</h2>
+          <h2 id="home-about-title" className="h-display">Engines, Gearboxes and Parts, Checked Before They Ship</h2>
           <p>
             We supply used, remanufactured and new car parts from our unit in {town}: engines, gearboxes, turbos,
             injectors, ECUs, body panels and more, for garages and drivers across the UK. Every listing shows the part you’ll
             receive, and we’ll check it fits your car before you buy.
           </p>
-          <Link className="btn btn--outline" to="/about">More about us</Link>
+          <Link className="btn btn--outline" to="/about">More About Us</Link>
         </div>
         <dl className="home-about__facts">
           <div><dt>Warranty</dt><dd>{site.warranty}</dd><span>on every part, from delivery</span></div>

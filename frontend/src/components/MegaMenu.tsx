@@ -38,7 +38,7 @@ export function MegaMenu({ groups, id, onNavigate }: { groups: MenuGroup[]; id: 
             <span>{shown.label}</span>
           </Link>
         )}
-        <Link className="btn btn--dark btn--block" to="/products" onClick={onNavigate}>Shop all parts</Link>
+        <Link className="btn btn--dark btn--block" to="/products" onClick={onNavigate}>Shop All Parts</Link>
         <Link className="megamenu__promo" to="/request-a-part" onClick={onNavigate}>
           <span>Can’t find the part?</span>
           <strong>Request a Part</strong>

@@ -30,9 +30,9 @@ export function HomePage() {
     <Layout>
       {error && !data && (
         <div className="state">
-          <h1 className="h-display">The homepage didn’t load</h1>
+          <h1 className="h-display">The Homepage Didn’t Load</h1>
           <p>{error}</p>
-          <button type="button" className="btn btn--primary" onClick={() => load(vehicle?.id)}>Try again</button>
+          <button type="button" className="btn btn--primary" onClick={() => load(vehicle?.id)}>Try Again</button>
         </div>
       )}
       {!data && !error && <HomeSkeleton />}

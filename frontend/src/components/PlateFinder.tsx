@@ -38,12 +38,12 @@ export function PlateFinder() {
     <section className="finder" aria-labelledby="finder-title">
       <div className="container finder__inner">
         <div className="finder__copy">
-          <h2 id="finder-title">Find parts that fit your car</h2>
+          <h2 id="finder-title">Find Parts That Fit Your Car</h2>
           {vehicle ? (
             <p>
               Checking fit for <strong>{vehicle.make} {vehicle.model}</strong>, {vehicle.engine}
               {fitting !== null && <>, {fitting} {fitting === 1 ? 'part fits' : 'parts fit'}</>}.{' '}
-              <button type="button" className="link-btn" onClick={clear}>Remove vehicle</button>
+              <button type="button" className="link-btn" onClick={clear}>Remove Vehicle</button>
             </p>
           ) : (
             <p>Enter your reg and we’ll show which parts match.</p>
@@ -57,7 +57,7 @@ export function PlateFinder() {
               maxLength={9} autoComplete="off" spellCheck={false} aria-describedby={error ? 'reg-error' : data?.demoPlates ? 'reg-hint' : undefined}
               aria-invalid={!!error} />
           </div>
-          <button className="btn btn--dark" type="submit" disabled={busy}>{busy ? 'Checking…' : 'Find parts'}</button>
+          <button className="btn btn--dark" type="submit" disabled={busy}>{busy ? 'Checking…' : 'Find Parts'}</button>
         </form>
         {data?.demoPlates && <p id="reg-hint" className="finder__hint">Demo plates: AB12 CDE, VX16 ABC, JG17 XEE</p>}
         {error && <p id="reg-error" className="finder__error" role="alert">{error}</p>}

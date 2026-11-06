@@ -98,7 +98,7 @@ export function OrderReceivedPage() {
                 <section className="received__invoice" aria-labelledby="dispatch-title">
                   <span className="received__invoice-icon"><Icon name="truck" size={26} /></span>
                   <div>
-                    <h3 id="dispatch-title" className="panel__title">On its way</h3>
+                    <h3 id="dispatch-title" className="panel__title">On Its Way</h3>
                     <p>
                       Sent with <strong>{order.dispatch.courier}</strong> on {dateFormat.format(new Date(order.dispatch.dispatchedAt))}.
                       {order.dispatch.trackingNumber ? <> Tracking number: <strong className="mono">{order.dispatch.trackingNumber}</strong>.</> : ''}
@@ -111,10 +111,10 @@ export function OrderReceivedPage() {
                 <section className="received__invoice" aria-labelledby="invoice-title">
                   <span className="received__invoice-icon"><Icon name="file" size={26} /></span>
                   <div>
-                    <h3 id="invoice-title" className="panel__title">Your VAT invoice</h3>
+                    <h3 id="invoice-title" className="panel__title">Your VAT Invoice</h3>
                     <p>{data?.orderEmails ? <>We’ve emailed it to <strong>{order.customer.email}</strong>. You can also open or save it here at any time.</> : 'Open or save it here at any time, from this page or My orders.'}</p>
                     <div className="received__invoice-actions">
-                      <a className="btn btn--primary" href={invoiceUrl(order.reference)} target="_blank" rel="noopener">View invoice</a>
+                      <a className="btn btn--primary" href={invoiceUrl(order.reference)} target="_blank" rel="noopener">View Invoice</a>
                       <a className="btn btn--outline" href={invoiceUrl(order.reference, true)}><Icon name="download" size={18} /> Download PDF</a>
                     </div>
                   </div>
@@ -123,7 +123,7 @@ export function OrderReceivedPage() {
 
               <div className="received__cols">
                 <section>
-                  <h3 className="panel__title">Delivery address</h3>
+                  <h3 className="panel__title">Delivery Address</h3>
                   <address>
                     {order.customer.name}<br />
                     {order.address.line1}<br />
@@ -141,11 +141,11 @@ export function OrderReceivedPage() {
               </div>
 
               <p>Questions about your order? Call {data?.site.phone} or email {data?.site.email}, quoting {order.reference}.</p>
-              <Link className="btn btn--outline" to="/products">Continue shopping</Link>
+              <Link className="btn btn--outline" to="/products">Continue Shopping</Link>
             </div>
 
             <aside className="panel" aria-labelledby="received-summary-title">
-              <h2 id="received-summary-title" className="panel__title">Order summary</h2>
+              <h2 id="received-summary-title" className="panel__title">Order Summary</h2>
               <LineList lines={order.lines} />
               <Totals totals={order} export={!ukVat(order.address.country)} />
             </aside>
