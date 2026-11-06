@@ -376,7 +376,7 @@ export function HelpChat({ site, ai, fedex }: { site: Site; ai: boolean; fedex: 
       )}
       <button type="button" className="chat__bubble" aria-expanded={open} aria-label={open ? 'Close help chat' : 'Open help chat'}
         onClick={() => setOpen(!open)}>
-        {open ? '×' : <><span aria-hidden="true">✦</span><span className="chat__bubble-text">Ask our assistant</span></>}
+        {open ? '×' : <><span aria-hidden="true">✦</span><span className="chat__bubble-text">Ask Our Assistant</span></>}
       </button>
     </div>
   );
