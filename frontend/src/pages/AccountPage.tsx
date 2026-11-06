@@ -54,8 +54,8 @@ export function AccountPage() {
   const orders = useMyOrders(token);
 
   return (
-    <Layout title="My account">
-      <PageTitle title="My account" crumbs={[{ label: 'My Account' }]} />
+    <Layout title="My Account">
+      <PageTitle title="My Account" crumbs={[{ label: 'My Account' }]} />
       <div className="container page-body account">
         {customer === undefined && (
           <div className="account__card" aria-busy="true" aria-label="Checking your account">

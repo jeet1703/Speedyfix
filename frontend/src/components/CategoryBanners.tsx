@@ -7,7 +7,7 @@ export function CategoryBanners({ categories }: { categories: Category[] }) {
   return (
     <section className="section" aria-labelledby="categories-title">
       <div className="container">
-        <SectionHeading id="categories-title" title="Shop popular categories" />
+        <SectionHeading id="categories-title" title="Shop Popular Categories" />
         <ul className="banners">
           {categories.map((c) => (
             <li key={c.id}>

@@ -38,7 +38,7 @@ export function PartRequestsPage() {
   ];
 
   return (
-    <AdminLayout title="Part requests">
+    <AdminLayout title="Part Requests">
       {error && <p className="notice notice--error" role="alert">{error}</p>}
       <div className="requests">
         <section className="card" aria-label="Requests">

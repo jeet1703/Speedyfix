@@ -43,8 +43,8 @@ export function HomePage() {
           <Features items={data.features} />
           <AboutShort site={data.site} />
           <CategoryBanners categories={data.popularCategories} />
-          <ProductCarousel id="best-selling" title="Best selling products" products={data.bestSelling} />
-          <ProductCarousel id="latest" title="Latest products" products={data.latest} />
+          <ProductCarousel id="best-selling" title="Best Selling Products" products={data.bestSelling} />
+          <ProductCarousel id="latest" title="Latest Products" products={data.latest} />
           <Reviews reviews={data.reviews} />
         </>
       )}

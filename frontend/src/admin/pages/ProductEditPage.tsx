@@ -288,7 +288,7 @@ export function ProductEditPage() {
 
   if (loadError && id && !detail) {
     return (
-      <AdminLayout title="Edit listing" crumbs={[{ label: 'Listings', to: '/admin/listings' }, { label: 'Edit Listing' }]}>
+      <AdminLayout title="Edit Listing" crumbs={[{ label: 'Listings', to: '/admin/listings' }, { label: 'Edit Listing' }]}>
         <p className="notice notice--error" role="alert">{loadError}</p>
       </AdminLayout>
     );
@@ -529,7 +529,7 @@ export function ProductEditPage() {
                 <Check ok={refOk} label={partNumber.trim() ? 'Part number entered' : refOk ? 'Engine code entered' : 'Part number or engine code'} />
                 <Check ok={highTicked > 0} label={highTicked > 0 ? `High-confidence compatibility (${highTicked})` : 'High-confidence compatibility (recommended)'} />
                 <Check ok={photoOk} label={usesSample ? 'Photo (sample only)' : usesEbayPhotos ? 'Photos from eBay' : 'At least one photo'} />
-                <Check ok={priceOk} label="Price set" />
+                <Check ok={priceOk} label="Price Set" />
               </ul>
               {detail && <p className="admin-muted">Currently {detail.status === 'LIVE' ? 'live in the shop' : detail.status === 'ENDED' ? 'ended (not in the shop)' : 'a draft'}.</p>}
             </section>

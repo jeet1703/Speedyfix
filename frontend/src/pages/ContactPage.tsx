@@ -9,7 +9,7 @@ export function ContactPage() {
   const site = data?.site;
   return (
     <Layout title="Contact">
-      <PageTitle title="Contact us" crumbs={[{ label: 'Contact' }]} />
+      <PageTitle title="Contact Us" crumbs={[{ label: 'Contact' }]} />
       <div className="container two-col two-col--wide page-body">
         <section className="panel" aria-labelledby="contact-title">
           <h2 id="contact-title" className="panel__title">Get in Touch</h2>

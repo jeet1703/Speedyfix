@@ -47,8 +47,8 @@ export function RequestPartPage() {
 
   const site = data?.site;
   return (
-    <Layout title="Request a part">
-      <PageTitle title="Request a part" crumbs={[{ label: 'Request a Part' }]} />
+    <Layout title="Request a Part">
+      <PageTitle title="Request a Part" crumbs={[{ label: 'Request a Part' }]} />
       <div className="container two-col two-col--wide">
         {sent ? (
           <div className="received">

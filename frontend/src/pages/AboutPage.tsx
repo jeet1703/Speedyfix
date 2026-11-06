@@ -27,8 +27,8 @@ export function AboutPage() {
   const categories = (shop?.categories ?? []).filter((c) => c.count > 0).sort((a, b) => b.count - a.count);
 
   return (
-    <Layout title="About us" description={site ? `${site.companyName}: used, remanufactured and new car parts from ${site.shipsFrom}, with a ${site.warranty} warranty and UK delivery.` : undefined}>
-      <PageTitle title="About us" crumbs={[{ label: 'About Us' }]} />
+    <Layout title="About Us" description={site ? `${site.companyName}: used, remanufactured and new car parts from ${site.shipsFrom}, with a ${site.warranty} warranty and UK delivery.` : undefined}>
+      <PageTitle title="About Us" crumbs={[{ label: 'About Us' }]} />
 
       <section className="about-hero">
         <div className="container about-hero__inner">

@@ -86,7 +86,7 @@ export function Header({ menu }: { menu: MenuGroup[] }) {
             onClick={() => setSearchOpen((o) => !o)}>
             <Icon name="search" />
           </button>
-          <Link className="icon-btn icon-btn--hide-sm" to="/account" aria-label="My account"><Icon name="user" /></Link>
+          <Link className="icon-btn icon-btn--hide-sm" to="/account" aria-label="My Account"><Icon name="user" /></Link>
           <button type="button" className="basket-btn" onClick={() => setBasketOpen(true)}
             aria-label={`Basket, ${count} ${count === 1 ? 'item' : 'items'}`}>
             <Icon name="basket" />

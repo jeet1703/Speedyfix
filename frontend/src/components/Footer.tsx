@@ -4,8 +4,8 @@ import type { Site } from '../api/types';
 import { Logo } from './Logo';
 
 const COLUMNS = [
-  { title: 'Links', links: [['Home', '/'], ['About us', '/about'], ['My account', '/account'], ['Contact us', '/contact']] },
-  { title: 'Information', links: [['Terms and conditions', '/terms'], ['Privacy policy', '/privacy'], ['Delivery and returns', '/delivery'], ['FAQs', '/faq']] }
+  { title: 'Links', links: [['Home', '/'], ['About Us', '/about'], ['My Account', '/account'], ['Contact Us', '/contact']] },
+  { title: 'Information', links: [['Terms and Conditions', '/terms'], ['Privacy Policy', '/privacy'], ['Delivery and Returns', '/delivery'], ['FAQs', '/faq']] }
 ];
 
 export function Footer({ site }: { site: Site }) {

@@ -8,7 +8,7 @@ export function Reviews({ reviews }: { reviews: Review[] }) {
   return (
     <section className="section reviews" aria-labelledby="reviews-title">
       <div className="container">
-        <SectionHeading id="reviews-title" title="What our customers say" />
+        <SectionHeading id="reviews-title" title="What Our Customers Say" />
         <ul className="reviews__list">
           {items.map((r, i) => (
             <li key={i} className="review">

@@ -37,7 +37,7 @@ export function VehicleTesterPage() {
   const v = result?.vehicle;
 
   return (
-    <AdminLayout title="Vehicle lookup tester">
+    <AdminLayout title="Vehicle Lookup Tester">
       <section className="card" aria-labelledby="tester-title">
         <h2 id="tester-title" className="card__title">Check a Plate</h2>
         <p className="admin-muted">See which vehicle a plate identifies and which parts a shopper would be shown. Checks here aren’t counted as shopper searches.</p>
@@ -63,7 +63,7 @@ export function VehicleTesterPage() {
               <div><dt>Shoppers see</dt><dd>{live} {live === 1 ? 'part' : 'parts'}</dd></div>
             </dl>
           </section>
-          <PartsTable title="Parts confirmed for this vehicle" rows={result.confirmed}
+          <PartsTable title="Parts Confirmed for This Vehicle" rows={result.confirmed}
             empty="No parts are confirmed for this vehicle. A shopper would see the request-a-part prompt." />
           {result.sameEngineCode.length > 0 && (
             <PartsTable title={`Same engine code (${v.engineCode}), not confirmed`} rows={result.sameEngineCode}

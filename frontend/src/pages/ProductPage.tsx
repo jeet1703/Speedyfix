@@ -36,7 +36,7 @@ export function ProductPage() {
 
   if (error && !detail) {
     return (
-      <Layout title="Part not found" noindex>
+      <Layout title="Part Not Found" noindex>
         <div className="container state">
           <h1 className="h-display">We Couldn’t Find That Part</h1>
           <p>{error}</p>
@@ -95,7 +95,7 @@ export function ProductPage() {
 
       <div className="container tabs">
         <div className="tabs__list" role="tablist" aria-label="Part information">
-          {([['description', 'Description'], ['fitment', 'Compatibility'], ['delivery', 'Delivery and returns']] as [Tab, string][]).map(([key, label]) => (
+          {([['description', 'Description'], ['fitment', 'Compatibility'], ['delivery', 'Delivery and Returns']] as [Tab, string][]).map(([key, label]) => (
             <button key={key} type="button" role="tab" id={`tab-${key}`} aria-controls={`panel-${key}`}
               aria-selected={tab === key} tabIndex={tab === key ? 0 : -1} className="tabs__tab" onClick={() => setTab(key)}
               onKeyDown={(e) => {
@@ -120,7 +120,7 @@ export function ProductPage() {
       {detail.related.length > 0 && (
         <section className="section related" aria-labelledby="related-title">
           <div className="container">
-            <SectionHeading id="related-title" title="Related products" />
+            <SectionHeading id="related-title" title="Related Products" />
             <ul className="product-grid product-grid--4">
               {detail.related.map((r) => <li key={r.id}><ProductCard product={r} /></li>)}
             </ul>
