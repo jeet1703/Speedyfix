@@ -25,7 +25,9 @@ site:
   # The shop's public address, for the sitemap: https://www.speedyfixautosales.com once it's on its own domain.
   public-url: ${SITE_URL:https://jeet1703.github.io/Speedyfix}
   tagline: House of quality spare parts
+  # The mobile, also on WhatsApp, and the shop's landline.
   phone: "+44 7707 704977"
+  landline: "+44 20 3411 1980"
   whatsapp: "+44 7707 704977"
   email: "eBay.speedyfix@gmail.com"
   company-name: "SpeedyFix Auto Sales Ltd"

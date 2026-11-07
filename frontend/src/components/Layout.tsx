@@ -71,7 +71,7 @@ export function Layout({ title, description, noindex = false, jsonLd, children }
       '@type': 'AutoPartsStore',
       name: data.site.companyName,
       url: `${window.location.origin}${import.meta.env.BASE_URL}`,
-      telephone: data.site.phone,
+      telephone: data.site.landline || data.site.phone,
       email: data.site.email,
       address: data.site.address,
       vatID: data.site.vatNumber
@@ -115,7 +115,7 @@ export function Layout({ title, description, noindex = false, jsonLd, children }
   return (
     <>
       <a href="#main" className="skip-link">Skip to Content</a>
-      <TopBar phone={data.site.phone} />
+      <TopBar phone={data.site.landline || data.site.phone} />
       <Header menu={data.menu} />
       <main id="main" tabIndex={-1}>{children}</main>
       <Footer site={data.site} />

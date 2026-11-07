@@ -229,7 +229,8 @@ public class ChatService {
                         + "(no labour, towing or rentals). No returns or warranty on new genuine parts. No warranty and no returns "
                         + "on electrical parts (switches, sensors, regulators, ignition modules, computers, relays, solenoids and the like).");
                 out.put("payment", "PayPal, or debit or credit card through PayPal. Prices include VAT.");
-                out.put("contact", "WhatsApp or phone " + site.phone() + ", email " + site.email() + ". Address: " + site.address() + ".");
+                out.put("contact", (site.landline().isBlank() ? "" : "Landline " + site.landline() + ". ")
+                        + "Mobile and WhatsApp " + site.phone() + ", email " + site.email() + ". Address: " + site.address() + ".");
                 out.put("company", site.companyName() + ", company no. " + site.companyNumber() + ", VAT " + site.vatNumber() + ".");
                 out.put("orderTracking", "Customers track orders with the chat's 'Where's my order?' button (order number and email).");
             }

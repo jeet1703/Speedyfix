@@ -164,7 +164,7 @@ public class InvoicePdf {
             }
             text(bold, 6.5f, ORANGE, x, y + 3, "CONTACT");
             text(regular, 8.5f, WHITE, x, y + 14, site.email());
-            text(regular, 8.5f, WHITE, x, y + 24.5f, site.phone());
+            text(regular, 8.5f, WHITE, x, y + 24.5f, site.landline().isBlank() ? site.phone() : site.landline() + "  ·  " + site.phone());
             text(bold, 8.5f, WHITE, x, y + 38, "VAT No: " + site.vatNumber());
             text(bold, 8.5f, WHITE, x, y + 48.5f, "Company No: " + site.companyNumber());
 

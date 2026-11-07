@@ -14,7 +14,8 @@ export function ContactPage() {
         <section className="panel" aria-labelledby="contact-title">
           <h2 id="contact-title" className="panel__title">Get in Touch</h2>
           <dl className="specs">
-            <div><dt>Phone</dt><dd>{site && <a href={telHref(site.phone)}>{site.phone}</a>}</dd></div>
+            {site?.landline && <div><dt>Landline</dt><dd><a href={telHref(site.landline)}>{site.landline}</a></dd></div>}
+            <div><dt>Mobile</dt><dd>{site && <a href={telHref(site.phone)}>{site.phone}</a>}</dd></div>
             <div><dt>WhatsApp</dt><dd>{site && <a href={whatsAppHref(site.whatsapp)} target="_blank" rel="noopener noreferrer">Message Us on WhatsApp</a>}</dd></div>
             <div><dt>Email</dt><dd>{site && <a href={`mailto:${site.email}`}>{site.email}</a>}</dd></div>
             <div><dt>Address</dt><dd>{site?.address}</dd></div>

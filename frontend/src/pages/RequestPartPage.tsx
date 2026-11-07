@@ -128,7 +128,7 @@ export function RequestPartPage() {
           </section>
           <section className="panel panel--dark" aria-labelledby="talk-title">
             <h2 id="talk-title" className="panel__title">Prefer to Talk?</h2>
-            <p>Call {site?.phone}</p>
+            <p>Call {site?.landline ? `${site.landline} (landline) or ${site.phone} (mobile)` : site?.phone}</p>
             <p>WhatsApp {site?.whatsapp}</p>
             <p>Email {site?.email}</p>
           </section>

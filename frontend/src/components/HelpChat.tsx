@@ -198,6 +198,7 @@ export function HelpChat({ site, ai, fedex }: { site: Site; ai: boolean; fedex: 
   const person = (
     <span className="chat__links">
       <a href={whatsAppHref(site.whatsapp)} target="_blank" rel="noopener noreferrer">WhatsApp Us</a>
+      {site.landline && <a href={telHref(site.landline)}>Call {site.landline}</a>}
       <a href={telHref(site.phone)}>Call {site.phone}</a>
       <Link to="/request-a-part" onClick={close}>Request a Part</Link>
     </span>

@@ -111,7 +111,8 @@ export function AboutPage() {
               <h3 className="panel__title">Find Us</h3>
               <p>{site.companyName}<br />{site.address}</p>
               <p>
-                <a href={telHref(site.phone)}>{site.phone}</a><br />
+                {site.landline && <><a href={telHref(site.landline)}>{site.landline}</a> (landline)<br /></>}
+                <a href={telHref(site.phone)}>{site.phone}</a> (mobile)<br />
                 <a href={whatsAppHref(site.whatsapp)} target="_blank" rel="noopener noreferrer">Message Us on WhatsApp</a><br />
                 <a href={`mailto:${site.email}`}>{site.email}</a>
               </p>

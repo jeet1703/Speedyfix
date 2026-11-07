@@ -28,7 +28,8 @@ export function Footer({ site }: { site: Site }) {
           <ul>
             <li>{site.companyName}</li>
             <li>{site.address}</li>
-            <li>Tel: <a href={telHref(site.phone)}>{site.phone}</a></li>
+            {site.landline && <li>Landline: <a href={telHref(site.landline)}>{site.landline}</a></li>}
+            <li>Mobile: <a href={telHref(site.phone)}>{site.phone}</a></li>
             <li>Email: <a href={`mailto:${site.email}`}>{site.email}</a></li>
           </ul>
         </div>

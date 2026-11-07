@@ -72,7 +72,10 @@ export interface Review {
 export interface Site {
   name: string;
   tagline: string;
+  /** The mobile, also on WhatsApp. */
   phone: string;
+  /** The shop's landline; empty when there isn't one. */
+  landline: string;
   whatsapp: string;
   email: string;
   companyName: string;
