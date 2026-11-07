@@ -237,6 +237,26 @@ class AdminApiTest {
     }
 
     @Test
+    void aCompatibilityTablePastedFromEbayBecomesVehiclesToTick() throws Exception {
+        String table = "Make\tModel\tYear\tVariant\tType\tChassis\tEngine\tNotes\n"
+                + "Toyota\tLandCruiser\t2025\tDiesel Chassis Cab\t4.2 D 4x4\tAWD\t4164cc 100KW 136HP 1H-Z\t\n"
+                + "Toyota\tLandCruiser\t2026\tDiesel Chassis Cab\t4.2 D 4x4\tAWD\t4164cc 100KW 136HP 1H-Z\t\n";
+        mvc.perform(post("/api/admin/vehicle-catalogue/pasted").header(HttpHeaders.AUTHORIZATION, bearer)
+                        .contentType(MediaType.APPLICATION_JSON).content(new com.fasterxml.jackson.databind.ObjectMapper()
+                                .writeValueAsString(java.util.Map.of("text", table))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].engineCode").value("1H-Z"))
+                .andExpect(jsonPath("$[0].year").value(2025))
+                .andExpect(jsonPath("$[0].yearTo").value(2026))
+                .andExpect(jsonPath("$[0].source").value("Pasted from eBay"));
+
+        mvc.perform(post("/api/admin/vehicle-catalogue/pasted").header(HttpHeaders.AUTHORIZATION, bearer)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"text\":\"just some words\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void categoriesToListInAreGroupedAsInTheShopMenu() throws Exception {
         mvc.perform(get("/api/admin/categories").header(HttpHeaders.AUTHORIZATION, bearer))
                 .andExpect(status().isOk())

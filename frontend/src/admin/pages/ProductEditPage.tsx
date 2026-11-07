@@ -4,6 +4,7 @@ import { Icon } from '../../components/Icons';
 import { adminApi, errorMessage } from '../adminApi';
 import { AdminLayout } from '../AdminLayout';
 import { ConfidencePill } from '../components';
+import { EbayPaste } from '../EbayPaste';
 import { VehiclePicker } from '../VehiclePicker';
 import type { CategoryOption, Condition, Fitment, ProductDetail, ProductStatus, Shipping } from '../types';
 import { CardsSkeleton } from '../../components/Skeleton';
@@ -314,9 +315,15 @@ export function ProductEditPage() {
     }
   }
 
+  // Listings brought over from eBay keep the eBay item number at the end of their id (EbayImportService.productId).
+  const ebayItem = id?.match(/-(\d{12})$/)?.[1];
+  const ebayUrl = ebayItem ? `https://www.ebay.co.uk/itm/${ebayItem}` : null;
+  const ebayLink = ebayUrl && <a className="btn btn--outline" href={ebayUrl} target="_blank" rel="noreferrer">Open on eBay</a>;
+
   const title = id ? (detail ? 'Edit Listing' : 'Loading Listing…') : 'Create Listing';
   const actions = (id && !detail) ? null : isLive ? (
     <>
+      {ebayLink}
       <a className="btn btn--outline" href={`${import.meta.env.BASE_URL}products/${encodeURIComponent(id!)}`} target="_blank" rel="noreferrer">View in Shop</a>
       <button type="button" className="btn btn--outline" disabled={saving} onClick={() => void save('DRAFT')}>End Listing</button>
       <button type="button" className="btn btn--primary" disabled={saving || !!blocker} onClick={() => void save('LIVE')}>
@@ -325,6 +332,7 @@ export function ProductEditPage() {
     </>
   ) : (
     <>
+      {ebayLink}
       <button type="button" className="btn btn--outline" disabled={saving} onClick={() => void save('DRAFT')}>{saving ? 'Saving…' : 'Save Draft'}</button>
       <button type="button" className="btn btn--primary" disabled={saving || !!blocker} onClick={() => void save('LIVE')}>
         {blocker ? `List It (${blocker})` : saving ? 'Listing…' : 'List It'}
@@ -490,7 +498,7 @@ export function ProductEditPage() {
                 {fitNote && <p className="admin-muted">{fitNote}</p>}
               </div>
               {rows.length === 0 ? (
-                <p className="admin-muted">No vehicles yet. Add them from the vehicle list below, or apply the engine-code rule.</p>
+                <p className="admin-muted">No vehicles yet. Add them from the vehicle list below, paste them from eBay, or apply the engine-code rule.</p>
               ) : (
                 <div className="table-wrap">
                   <table className="table table--fit">
@@ -516,6 +524,7 @@ export function ProductEditPage() {
                 </div>
               )}
               <VehiclePicker onAdd={(found) => merge(found, () => true)} />
+              <EbayPaste ebayUrl={ebayUrl} onAdd={(found) => merge(found, () => true)} />
               <div className="fit-actions">
                 <button type="button" className="link-btn" disabled={finding} onClick={() => void applyEngineRule()}>Apply Engine-Code Rule</button>
               </div>

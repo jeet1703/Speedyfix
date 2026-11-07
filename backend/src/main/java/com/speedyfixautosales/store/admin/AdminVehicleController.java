@@ -1,6 +1,7 @@
 package com.speedyfixautosales.store.admin;
 
 import com.speedyfixautosales.store.common.BadRequestException;
+import com.speedyfixautosales.store.vehicle.CompatibilityTable;
 import com.speedyfixautosales.store.vehicle.Vehicle;
 import com.speedyfixautosales.store.vehicle.VehicleCatalogue;
 import com.speedyfixautosales.store.vehicle.VehicleRange;
@@ -21,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * The listing editor's vehicle picker: eBay UK's catalogue step by step (makes, then models, years and engines), and
- * adding a compatibility row from it. Every route needs a staff session (AdminWebConfig).
+ * adding a compatibility row from it, or every row of a compatibility table pasted from an eBay listing. Every route needs a staff session (AdminWebConfig).
  */
 @RestController
 @RequestMapping("/api/admin/vehicle-catalogue")
@@ -79,5 +80,26 @@ public class AdminVehicleController {
             Vehicle v = vehicles.addRange(VehicleRange.of(r.make(), r.model(), r.yearFrom(), r.yearTo(), engine, fuel));
             return AdminCatalogService.fitment(v, "Picked from the vehicle list", AdminCatalogService.Confidence.HIGH);
         }).toList();
+    }
+
+    /** eBay's table as copied from a listing page (CompatibilityTable); up to about 2,000 vehicle rows at a time. */
+    public record Pasted(@NotBlank(message = "Paste the compatibility table from the eBay listing.") @Size(max = 400_000) String text) {
+    }
+
+    /** Adds a row per make, model, engine and run of years in the pasted table, and returns them, ready to tick. */
+    @PostMapping("/pasted")
+    public List<AdminCatalogService.Fitment> pasted(@Valid @RequestBody Pasted p) {
+        List<VehicleRange> ranges = CompatibilityTable.ranges(CompatibilityTable.parse(p.text()));
+        if (ranges.isEmpty()) {
+            throw new BadRequestException("No vehicles found. On the eBay listing, open Compatibility, select the table "
+                    + "from Make to the last row, copy it and paste it here.");
+        }
+        if (ranges.size() > ProductForm.MAX_VEHICLES) {
+            throw new BadRequestException("That table has " + ranges.size() + " vehicles; a part can list up to "
+                    + ProductForm.MAX_VEHICLES + ". Paste fewer pages.");
+        }
+        return ranges.stream()
+                .map(r -> AdminCatalogService.fitment(vehicles.addRange(r), "Pasted from eBay", AdminCatalogService.Confidence.HIGH))
+                .toList();
     }
 }

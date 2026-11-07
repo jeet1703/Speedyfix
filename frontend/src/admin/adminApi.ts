@@ -80,6 +80,8 @@ export const adminApi = {
     authed<EngineChoice[]>(`/api/admin/vehicle-catalogue/engines?make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}&yearFrom=${yearFrom}&yearTo=${yearTo}`),
   addVehicleRange: (range: { make: string; model: string; yearFrom: number; yearTo: number; engines: string[] }) =>
     authed<Fitment[]>('/api/admin/vehicle-catalogue', json('POST', range)),
+  /** Vehicles from a compatibility table copied off an eBay listing page. */
+  pastedVehicles: (text: string) => authed<Fitment[]>('/api/admin/vehicle-catalogue/pasted', json('POST', { text })),
   fitment: (partNumber: string, engineCode: string, productId: string | null) => {
     const q = new URLSearchParams();
     if (partNumber) q.set('partNumber', partNumber);
