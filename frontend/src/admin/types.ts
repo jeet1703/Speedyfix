@@ -3,7 +3,7 @@ import type { Order, OrderStatus, ReplyBy, Vehicle } from '../api/types';
 export type { Order, OrderStatus };
 
 export type ProductStatus = 'DRAFT' | 'LIVE' | 'ENDED';
-export type WorkStatus = 'NEEDS_FITMENT' | 'MISSING_PHOTO' | 'DRAFT' | 'LIVE';
+export type WorkStatus = 'MISSING_PHOTO' | 'DRAFT' | 'LIVE';
 export type Condition = 'USED' | 'REMANUFACTURED' | 'NEW';
 export type Shipping = 'PARCEL' | 'PALLET';
 /** LOW: an AI suggestion nobody has checked yet. */
@@ -120,7 +120,6 @@ export interface Dashboard {
     awaitingPayment: number;
     awaitingDispatch: number;
     newPartRequests: number;
-    needFitment: number;
     missingPhotos: number;
     outOfStock: number;
   };
@@ -131,7 +130,6 @@ export interface Dashboard {
   orders: { all: number; awaitingPayment: number; awaitingDispatch: number; dispatched: number; cancelled: number };
   customers: { total: number; newThisWeek: number };
   listings: { active: number; drafts: number; outOfStock: number };
-  needFitment: number;
   missingPhotos: number;
   noMatchSearches: number;
   lookupsThisMonth: number;

@@ -221,6 +221,10 @@ public class DeliveryQuotes {
             options.add(new Option(r.serviceType(), FEDEX, label(r.serviceName()), price,
                     r.arrives() == null || r.arrives().length() < 10 ? null : r.arrives().substring(0, 10)));
         }
+        // With free delivery on offer, the paid FedEx services are left out: nobody needs to pay for a faster one.
+        if (free && !options.isEmpty()) {
+            return List.of(options.get(0));
+        }
         return List.copyOf(options);
     }
 

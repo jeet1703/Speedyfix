@@ -108,7 +108,6 @@ export function ProductEditPage() {
   const [rows, setRows] = useState<FitRow[]>([]);
   const [fitNote, setFitNote] = useState('');
   const [fitError, setFitError] = useState('');
-  const [finding, setFinding] = useState(false);
   const [suggesting, setSuggesting] = useState(false);
   // AI suggestions that didn't match a vehicle in the list, shown so staff can add them by hand.
   const [aiMissed, setAiMissed] = useState<string[]>([]);
@@ -235,27 +234,6 @@ export function ProductEditPage() {
       setFitError(errorMessage(err, 'The AI suggestion didn’t work. Try again.'));
     } finally {
       setSuggesting(false);
-    }
-  }
-
-  async function applyEngineRule() {
-    setFitNote('');
-    setFitError('');
-    if (!engineCode.trim()) {
-      setFitError('Enter the engine code under Part Details first.');
-      return;
-    }
-    setFinding(true);
-    try {
-      const found = await adminApi.fitment('', engineCode.trim(), id ?? null);
-      merge(found, () => false);
-      setFitNote(found.length
-        ? `Found ${found.length} ${found.length === 1 ? 'vehicle' : 'vehicles'} with engine ${engineCode.trim()}. Tick the ones you’ve checked.`
-        : `No vehicles in the vehicle data have engine ${engineCode.trim()}.`);
-    } catch (err) {
-      setFitError(errorMessage(err, 'We couldn’t apply the engine-code rule. Try again.'));
-    } finally {
-      setFinding(false);
     }
   }
 
@@ -536,7 +514,7 @@ export function ProductEditPage() {
                 {fitNote && <p className="admin-muted">{fitNote}</p>}
               </div>
               {rows.length === 0 ? (
-                <p className="admin-muted">No vehicles yet. Add them from the vehicle list below, paste them from eBay, or apply the engine-code rule.</p>
+                <p className="admin-muted">No vehicles yet (optional). Add them with AI, from the vehicle list below, or paste them from eBay.</p>
               ) : (
                 <div className="table-wrap">
                   <table className="table table--fit">
@@ -582,9 +560,6 @@ export function ProductEditPage() {
               </div>
               <VehiclePicker onAdd={(found) => merge(found, () => true)} />
               <EbayPaste ebayUrl={ebayUrl} onAdd={(found) => merge(found, () => true)} />
-              <div className="fit-actions">
-                <button type="button" className="link-btn" disabled={finding} onClick={() => void applyEngineRule()}>Apply Engine-Code Rule</button>
-              </div>
             </section>
 
             <section className="card" aria-labelledby="step-description">
@@ -665,7 +640,7 @@ export function ProductEditPage() {
               <h2 id="ready-title" className="card__title">Ready to List?</h2>
               <ul className="checklist">
                 <Check ok={refOk} label={partNumber.trim() ? 'Part number entered' : refOk ? 'Engine code entered' : 'Part number or engine code'} />
-                <Check ok={highTicked > 0} label={highTicked > 0 ? `High-confidence compatibility (${highTicked})` : 'High-confidence compatibility (recommended)'} />
+                <Check ok={ticked.length > 0} optional label={ticked.length > 0 ? `Compatibility (${ticked.length} ${ticked.length === 1 ? 'vehicle' : 'vehicles'})` : 'Compatibility (optional)'} />
                 <Check ok={photoOk} label={usesSample ? 'Photo (sample only)' : usesListingPhoto ? 'Photo already on the listing' : 'At least one photo'} />
                 <Check ok={priceOk} label="Price Set" />
               </ul>
@@ -695,11 +670,12 @@ export function ProductEditPage() {
   );
 }
 
-function Check({ ok, label }: { ok: boolean; label: string }) {
+/** optional: not needed to list, so it shows as a dash rather than a warning until it's done. */
+function Check({ ok, label, optional = false }: { ok: boolean; label: string; optional?: boolean }) {
   return (
-    <li className={ok ? 'is-ok' : 'is-todo'}>
-      <span className="checklist__mark" aria-hidden="true">{ok ? '✓' : '!'}</span>
-      {label}<span className="sr-only">{ok ? ': done' : ': to do'}</span>
+    <li className={ok ? 'is-ok' : optional ? 'is-optional' : 'is-todo'}>
+      <span className="checklist__mark" aria-hidden="true">{ok ? '✓' : optional ? '–' : '!'}</span>
+      {label}<span className="sr-only">{ok ? ': done' : optional ? ': optional' : ': to do'}</span>
     </li>
   );
 }

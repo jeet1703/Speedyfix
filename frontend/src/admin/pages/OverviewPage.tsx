@@ -26,12 +26,12 @@ export function OverviewPage() {
 
   const rows = data ? data.workQueue.filter((r) => inQueue(r, filter) && r.workStatus !== 'LIVE') : [];
 
-  const needsAttention = data ? data.workQueue.filter((r) => r.vehicles === 0 || !r.hasPhoto).length : 0;
+  const needsAttention = data ? data.workQueue.filter((r) => !r.hasPhoto).length : 0;
   const tiles = data ? [
     { label: 'Active Listings', count: data.listings.active, to: '/admin/listings?tab=active' },
     { label: 'Drafts', count: data.listings.drafts, to: '/admin/listings?tab=drafts' },
     { label: 'Out of Stock', count: data.listings.outOfStock, to: '/admin/listings?tab=out-of-stock' },
-    { label: 'Needs Compatibility or Photos', count: needsAttention, to: '/admin/listings?tab=needs-attention' }
+    { label: 'Needs Photos', count: needsAttention, to: '/admin/listings?tab=needs-attention' }
   ] : [];
   const orderLinks = data ? [
     { label: 'Awaiting Dispatch', count: data.orders.awaitingDispatch, to: '/admin/orders?status=awaiting-dispatch' },

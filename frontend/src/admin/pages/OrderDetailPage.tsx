@@ -23,6 +23,9 @@ function emailState(e: InvoiceStatus['emails'][number]) {
 }
 
 const COURIERS = ['FedEx', 'UPS', 'Royal Mail', 'DHL', 'DPD', 'Pallet network', 'Collected'];
+/** The part's page in the shop, as customers see it. */
+const shopUrl = (productId: string) => `${import.meta.env.BASE_URL}products/${encodeURIComponent(productId)}`;
+
 /** What a collected order records as its courier. */
 const COLLECTED = 'Collected from store';
 
@@ -122,7 +125,10 @@ export function OrderDetailPage() {
               <ul className="order-lines">
                 {order.lines.map((l) => (
                   <li key={l.productId} className={paid ? 'order-line--photos' : undefined}>
-                    <span>{l.quantity} × {l.name}{l.reference && <span className="table__sub mono">{l.reference}</span>}</span>
+                    <span>
+                      {l.quantity} × <a href={shopUrl(l.productId)} target="_blank" rel="noreferrer">{l.name}<span className="sr-only"> (opens the shop page in a new tab)</span></a>
+                      {l.reference && <span className="table__sub mono">{l.reference}</span>}
+                    </span>
                     <span>{gbpOrDash(l.lineTotal)}</span>
                     {paid && (
                       <div className="order-photos">

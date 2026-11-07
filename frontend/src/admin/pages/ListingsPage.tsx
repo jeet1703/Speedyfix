@@ -8,16 +8,15 @@ import type { ProductRow } from '../types';
 import { Pagination } from '../../components/Pagination';
 import { TableSkeleton } from '../../components/Skeleton';
 
-type Tab = 'active' | 'out-of-stock' | 'drafts' | 'ended' | 'needs-attention' | 'needs-fitment' | 'missing-photo' | 'all';
+type Tab = 'active' | 'out-of-stock' | 'drafts' | 'ended' | 'needs-attention' | 'missing-photo' | 'all';
 
-/** Seller Hub-style listing tabs. needs-fitment and missing-photo are reached from Overview's tasks. */
+/** Seller Hub-style listing tabs. missing-photo is reached from Overview's tasks. Compatibility is optional, so it's not a task. */
 const TABS: { value: Tab; label: string; test: (r: ProductRow) => boolean; hidden?: boolean }[] = [
   { value: 'active', label: 'Active', test: (r) => r.status === 'LIVE' && r.stock > 0 },
   { value: 'out-of-stock', label: 'Out of Stock', test: (r) => r.status === 'LIVE' && r.stock === 0 },
   { value: 'drafts', label: 'Drafts', test: (r) => r.status === 'DRAFT' },
   { value: 'ended', label: 'Ended', test: (r) => r.status === 'ENDED' },
-  { value: 'needs-attention', label: 'Needs Attention', test: (r) => r.status !== 'ENDED' && (r.vehicles === 0 || !r.hasPhoto) },
-  { value: 'needs-fitment', label: 'Needs Compatibility', test: (r) => r.status !== 'ENDED' && r.vehicles === 0, hidden: true },
+  { value: 'needs-attention', label: 'Needs Attention', test: (r) => r.status !== 'ENDED' && !r.hasPhoto },
   { value: 'missing-photo', label: 'Needs Photos', test: (r) => r.status !== 'ENDED' && !r.hasPhoto, hidden: true },
   { value: 'all', label: 'All', test: () => true }
 ];

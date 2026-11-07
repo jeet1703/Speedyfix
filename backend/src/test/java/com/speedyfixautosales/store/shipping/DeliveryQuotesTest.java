@@ -108,7 +108,8 @@ class DeliveryQuotesTest {
         sizes.setWeight("gm-sensor", new BigDecimal("5"));
         List<DeliveryQuotes.Option> options = q.options(light, "SW1A 1AA");
         assertThat(options.get(0).price()).isEqualByComparingTo("0");
-        assertThat(options.get(1).price()).isEqualByComparingTo("18.00");
+        // With delivery free, the paid FedEx services aren't offered: only manual delivery and collection follow.
+        assertThat(options).extracting(DeliveryQuotes.Option::id).containsExactly("FEDEX_ECONOMY", DeliveryQuotes.MANUAL, DeliveryQuotes.COLLECT);
         // Two 3 kg parts (6 kg together): still free, as each is light.
         sizes.setWeight("gm-sensor", new BigDecimal("3"));
         sizes.setWeight("astra-loom", new BigDecimal("3"));

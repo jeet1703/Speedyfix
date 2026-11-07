@@ -20,7 +20,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 public class InvoiceTest {
 
     public static final SiteProperties SITE = new SiteProperties("SpeedyFix Auto Sales", "", "+44 7707 704977", "", "eBay.speedyfix@gmail.com",
-            "SpeedyFix Auto Sales Ltd", "Unit 2E, Tomo Industrial Estate, Packet Boat Lane, Uxbridge, Middlesex, UB8 2JP",
+            "SpeedyFix Auto Sales Ltd", "Tomo Industrial Estate, Packet Boat Lane, Uxbridge, Middlesex, UB8 2JP",
             "", "", "", "", "", "GB 508552979", "16664355", List.of());
 
     public static BasketView.Line line(String id, String name, String price, int qty) {

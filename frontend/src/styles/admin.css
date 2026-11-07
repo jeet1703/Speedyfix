@@ -143,6 +143,7 @@ select.input--sm { padding-right: 32px; }
 .checklist__mark { flex: none; width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; }
 .checklist .is-ok .checklist__mark { background: #e4f3e9; color: var(--ok); }
 .checklist .is-todo .checklist__mark { background: #fde6dd; color: var(--bad); }
+.checklist .is-optional .checklist__mark { background: var(--surface-2); color: var(--ink-2); }
 .preview { border: 1px solid var(--admin-line); border-radius: 8px; overflow: hidden; }
 .preview__photo { aspect-ratio: 5 / 2; background: #ece9e3; display: flex; align-items: center; justify-content: center; color: var(--ink-3); font-size: 14px; }
 .preview__photo img { width: 100%; height: 100%; object-fit: cover; }

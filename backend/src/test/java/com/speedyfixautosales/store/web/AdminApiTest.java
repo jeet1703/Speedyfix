@@ -101,10 +101,12 @@ class AdminApiTest {
 
     @Test
     void dashboardCountsTheWorkQueue() throws Exception {
-        // Seeded parts use sample photos, so every one is missing a real photo; seven have no confirmed vehicles.
+        // Seeded parts use sample photos, so every one is missing a real photo. Compatibility is optional: parts with
+        // no confirmed vehicles aren't flagged for it.
         mvc.perform(get("/api/admin/dashboard").header(HttpHeaders.AUTHORIZATION, bearer))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.workQueue[0].workStatus").value("NEEDS_FITMENT"));
+                .andExpect(jsonPath("$.workQueue[0].workStatus").value("MISSING_PHOTO"))
+                .andExpect(jsonPath("$.needFitment").doesNotExist());
     }
 
     @Test

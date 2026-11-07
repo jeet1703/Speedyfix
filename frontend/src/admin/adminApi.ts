@@ -84,13 +84,6 @@ export const adminApi = {
   suggestVehicles: (part: { title: string; partNumber: string; engineCode: string; brand: string; category: string; notes: string }) =>
     authed<{ vehicles: Fitment[]; notMatched: string[] }>('/api/admin/vehicle-catalogue/suggest', json('POST', part)),
   pastedVehicles: (text: string) => authed<Fitment[]>('/api/admin/vehicle-catalogue/pasted', json('POST', { text })),
-  fitment: (partNumber: string, engineCode: string, productId: string | null) => {
-    const q = new URLSearchParams();
-    if (partNumber) q.set('partNumber', partNumber);
-    if (engineCode) q.set('engineCode', engineCode);
-    if (productId) q.set('productId', productId);
-    return authed<Fitment[]>(`/api/admin/fitment?${q}`);
-  },
   plateCheck: (registration: string) => authed<PlateCheck>('/api/admin/plate-check', json('POST', { registration })),
 
   partRequests: () => authed<PartRequest[]>('/api/admin/part-requests'),

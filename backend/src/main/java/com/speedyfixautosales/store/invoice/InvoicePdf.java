@@ -368,7 +368,7 @@ public class InvoicePdf {
 
     // Text helpers, kept static so they can be tested.
 
-    /** The address as up to three lines: "Unit 2E, Tomo Industrial Estate, Packet Boat Lane" and so on. */
+    /** The address as up to three lines: "Tomo Industrial Estate, Packet Boat Lane" and so on. */
     static List<String> addressLines(String address) {
         String[] parts = address.split(",\\s*");
         List<String> lines = new ArrayList<>();

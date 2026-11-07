@@ -308,7 +308,7 @@ export function CheckoutPage() {
                           <span className="delivery-option__name">
                             {o.method === 'MANUAL' ? 'Manual delivery' : o.label}
                             {o.method === 'MANUAL'
-                              ? <small>Don’t want FedEx? Pay for your parts now, then contact us and we’ll quote you from our other delivery partners. Delivery is paid separately.</small>
+                              ? <small><strong>Get a specialised quote</strong> for delivery outside the UK mainland or anywhere across the globe. Pay for your parts now, then contact us and we’ll quote you from our other delivery partners. Delivery is paid separately.</small>
                               : o.method === 'COLLECT'
                                 ? <small>Pick your parts up from us{data?.site.address ? ` at ${data.site.address}` : ''}. We’ll contact you when they’re ready; bring your order number.</small>
                                 : arrivesText(o.arrives) && <small>{arrivesText(o.arrives)}</small>}

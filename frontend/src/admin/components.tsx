@@ -1,7 +1,6 @@
 import type { Confidence, OrderStatus, PartRequestStatus, ProductRow, WorkStatus } from './types';
 
 const WORK_LABEL: Record<WorkStatus, string> = {
-  NEEDS_FITMENT: 'Needs compatibility',
   MISSING_PHOTO: 'Missing photo',
   DRAFT: 'Draft',
   LIVE: 'Live'
@@ -35,20 +34,18 @@ export function OrderPill({ status }: { status: OrderStatus }) {
 }
 
 /** Work-queue filters, shared by the overview and the listings page. */
-export type QueueFilter = 'all' | 'needs-fitment' | 'missing-photo' | 'draft' | 'live';
+export type QueueFilter = 'all' | 'missing-photo' | 'draft' | 'live';
 
 export const QUEUE_FILTERS: { value: QueueFilter; label: string }[] = [
   { value: 'all', label: 'All' },
-  { value: 'needs-fitment', label: 'Needs Compatibility' },
   { value: 'missing-photo', label: 'Missing Photo' },
   { value: 'draft', label: 'Draft' },
   { value: 'live', label: 'Live' }
 ];
 
-/** A part can be in several queues at once: no vehicles and no photo, say. Its pill shows the most urgent. */
+/** A part can be in several queues at once: a draft with no photo, say. Its pill shows the most urgent. */
 export function inQueue(row: ProductRow, filter: QueueFilter) {
   switch (filter) {
-    case 'needs-fitment': return row.vehicles === 0;
     case 'missing-photo': return !row.hasPhoto;
     case 'draft': return row.status === 'DRAFT';
     case 'live': return row.status === 'LIVE';

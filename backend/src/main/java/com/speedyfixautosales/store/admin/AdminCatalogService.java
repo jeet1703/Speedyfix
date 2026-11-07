@@ -63,7 +63,7 @@ public class AdminCatalogService {
 
     /** Where a part is in the listing workflow, most urgent first. A part shows the first that applies. */
     public enum WorkStatus {
-        NEEDS_FITMENT, MISSING_PHOTO, DRAFT, LIVE
+        MISSING_PHOTO, DRAFT, LIVE
     }
 
     /** LOW: suggested by AI (FitmentSuggester) and not yet checked by anyone. */
@@ -104,8 +104,7 @@ public class AdminCatalogService {
     }
 
     /** The Overview page's to-do list, like Seller Hub's Tasks. */
-    public record Tasks(long awaitingPayment, long awaitingDispatch, long newPartRequests, long needFitment,
-                        long missingPhotos, long outOfStock) {
+    public record Tasks(long awaitingPayment, long awaitingDispatch, long newPartRequests, long missingPhotos, long outOfStock) {
     }
 
     /**
@@ -131,7 +130,7 @@ public class AdminCatalogService {
     }
 
     public record Dashboard(Tasks tasks, List<Sales> sales, List<SalesDay> dailySales, OrderCounts orders,
-                            CustomerCounts customers, Listings listings, long needFitment, long missingPhotos,
+                            CustomerCounts customers, Listings listings, long missingPhotos,
                             long noMatchSearches, long lookupsThisMonth, String buyingTeamEmail,
                             List<Row> workQueue, List<NoMatch> noMatch) {
     }
@@ -223,13 +222,12 @@ public class AdminCatalogService {
                 .toList();
         // Ended listings aren't for sale, so they're not work to do.
         List<Row> open = rows.stream().filter(r -> r.status() != ProductStatus.ENDED).toList();
-        long needFitment = open.stream().filter(r -> r.vehicles() == 0).count();
         long missingPhotos = open.stream().filter(r -> !r.hasPhoto()).count();
         long outOfStock = rows.stream().filter(r -> r.status() == ProductStatus.LIVE && r.stock() == 0).count();
         List<Order> all = orders.all();
         Tasks tasks = new Tasks(countOrders(all, Order.Status.AWAITING_PAYMENT), countOrders(all, Order.Status.AWAITING_DISPATCH),
                 partRequests.all().stream().filter(r -> r.status() == PartRequest.Status.NEW).count(),
-                needFitment, missingPhotos, outOfStock);
+                missingPhotos, outOfStock);
         LocalDate today = LocalDate.now(UK);
         Instant now = Instant.now();
         Instant todayStart = today.atStartOfDay(UK).toInstant();
@@ -251,7 +249,7 @@ public class AdminCatalogService {
                 everyone.stream().filter(c -> c.joinedAt().isAfter(now.minus(Duration.ofDays(7)))).count());
         Listings listings = new Listings(rows.stream().filter(r -> r.status() == ProductStatus.LIVE).count(),
                 rows.stream().filter(r -> r.status() == ProductStatus.DRAFT).count(), outOfStock);
-        return new Dashboard(tasks, sales, daily, orderCounts, customerCounts, listings, needFitment, missingPhotos,
+        return new Dashboard(tasks, sales, daily, orderCounts, customerCounts, listings, missingPhotos,
                 lookups.noMatchSince(weekAgo), lookupsThisMonth, settings.get().buyingTeamEmail(), open, noMatch);
     }
 
@@ -437,10 +435,8 @@ public class AdminCatalogService {
                 parcelSizes.weight(p.id()).orElse(null), ParcelSizes.typicalWeight(p.categoryId()));
     }
 
+    /** Compatibility is optional, so a part with no vehicles isn't unfinished; one without a real photo is. */
     static WorkStatus workStatus(Product p) {
-        if (p.fitsVehicleIds().isEmpty()) {
-            return WorkStatus.NEEDS_FITMENT;
-        }
         if (!p.hasPhoto()) {
             return WorkStatus.MISSING_PHOTO;
         }

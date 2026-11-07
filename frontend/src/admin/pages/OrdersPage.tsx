@@ -78,7 +78,11 @@ export function OrdersPage() {
                     <td className="mono">{o.reference}<span className="table__sub">{when(o.placedAt)}</span></td>
                     <td>{o.customer.name}<span className="table__sub">{o.address.town}{o.address.postcode ? `, ${o.address.postcode}` : ''}{o.address.country !== 'GB' ? `, ${countryName(o.address.country)}` : ''}</span></td>
                     <td>
-                      {o.lines[0]?.name}
+                      {o.lines[0] && (
+                        <a href={`${import.meta.env.BASE_URL}products/${encodeURIComponent(o.lines[0].productId)}`} target="_blank" rel="noreferrer">
+                          {o.lines[0].name}<span className="sr-only"> (opens the shop page in a new tab)</span>
+                        </a>
+                      )}
                       {o.lines.length > 1 && <span className="table__sub">and {o.lines.length - 1} more</span>}
                     </td>
                     <td className="num">{gbpOrDash(o.total)}</td>
