@@ -29,7 +29,8 @@ import org.springframework.stereotype.Service;
  * when every part weighs up to delivery.free-up-to-kg (5 kg), however many there are, and no service costs more than
  * delivery.uk-max-price (£100) when one is heavier; abroad, FedEx's price applies. Manual delivery (a quote by hand after payment) is
  * always offered too, and is the only choice when FedEx can't price the order, so checkout never stops. Without
- * FedEx set up, the flat prices apply (BasketService).
+ * FedEx set up, the flat prices apply (BasketService). Collection from the store is offered free to UK addresses (a part
+ * collected in Uxbridge is a UK sale, never a VAT-free export).
  */
 @Service
 public class DeliveryQuotes {
@@ -49,6 +50,16 @@ public class DeliveryQuotes {
     public static final String MANUAL = "MANUAL";
     static final Option MANUAL_OPTION = new Option(MANUAL, MANUAL, "Manual delivery: contact us for a quote after payment",
             BigDecimal.ZERO.setScale(2), null);
+
+    /** The shopper collects the parts from the store in Uxbridge: nothing is sent, and there's nothing to pay for it. */
+    public static final String COLLECT = "COLLECT";
+    static final Option COLLECT_OPTION = new Option(COLLECT, COLLECT, "Collect from our store in Uxbridge",
+            BigDecimal.ZERO.setScale(2), null);
+
+    /** True when the shopper collects the order from the store. */
+    public static boolean collect(BasketView.Delivery delivery) {
+        return delivery != null && COLLECT.equals(delivery.method());
+    }
 
     /** True when the order's delivery is quoted by hand after payment, so it isn't in the order total. */
     public static boolean manual(BasketView.Delivery delivery) {
@@ -115,8 +126,9 @@ public class DeliveryQuotes {
     }
 
     /**
-     * The choices for the basket to the destination, the cheapest first, then manual delivery. Abroad, prices have no
-     * UK VAT (a zero-rated export) and nothing is free; without FedEx, delivery abroad is quoted by hand.
+     * The choices for the basket to the destination, the cheapest first, then manual delivery, then (in the UK)
+     * collection from the store. Abroad, prices have no UK VAT (a zero-rated export) and nothing is free; without FedEx, delivery abroad
+     * is quoted by hand.
      */
     public List<Option> options(BasketView basket, FedExClient.Destination to) {
         if (basket.lines().isEmpty()) {
@@ -125,10 +137,14 @@ public class DeliveryQuotes {
         boolean export = !Countries.ukVat(to.country());
         BasketView.Delivery flat = basket.delivery();
         if (!live()) {
-            return export ? List.of(MANUAL_OPTION) : List.of(new Option(flat.method(), flat.method(), flat.label(), flat.price(), null));
+            return export ? List.of(MANUAL_OPTION)
+                    : List.of(new Option(flat.method(), flat.method(), flat.label(), flat.price(), null), COLLECT_OPTION);
         }
         List<Option> options = new ArrayList<>(fedexOptions(basket, to, "PALLET".equals(flat.method()), export));
         options.add(MANUAL_OPTION);
+        if (!export) {
+            options.add(COLLECT_OPTION);
+        }
         return List.copyOf(options);
     }
 
@@ -220,9 +236,9 @@ public class DeliveryQuotes {
             return basket.delivery();
         }
         // The shopper chose a FedEx service, but FedEx can't price the order now: don't switch them to manual delivery.
-        boolean fedexChosen = optionId != null && !optionId.equals(MANUAL) && live();
+        boolean fedexChosen = optionId != null && !optionId.equals(MANUAL) && !optionId.equals(COLLECT) && live();
         if (fedexChosen && options.stream().noneMatch(o -> FEDEX.equals(o.method()))) {
-            throw new ConflictException("We couldn’t confirm the FedEx delivery price just now. Try again in a moment, or choose manual delivery.");
+            throw new ConflictException("We couldn’t confirm the FedEx delivery price just now. Try again in a moment, or choose manual delivery or collection.");
         }
         return options.stream().filter(o -> o.id().equals(optionId)).findFirst().orElse(options.get(0)).delivery();
     }

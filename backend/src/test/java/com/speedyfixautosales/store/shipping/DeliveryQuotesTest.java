@@ -93,7 +93,7 @@ class DeliveryQuotesTest {
         DeliveryQuotes q = quotes(new FakeFedEx(true), "10", "1.00");
         List<DeliveryQuotes.Option> options = q.options(basket("gm-sensor"), "sw1a1aa");
         // Economy: (8.50 + 10% + £1) + VAT = 12.42; Priority: (15.00 + 10% + £1) + VAT = 21.00.
-        assertThat(options).extracting(DeliveryQuotes.Option::id).containsExactly("FEDEX_ECONOMY", "FEDEX_PRIORITY", DeliveryQuotes.MANUAL);
+        assertThat(options).extracting(DeliveryQuotes.Option::id).containsExactly("FEDEX_ECONOMY", "FEDEX_PRIORITY", DeliveryQuotes.MANUAL, DeliveryQuotes.COLLECT);
         assertThat(options.get(0).price()).isEqualByComparingTo("12.42");
         assertThat(options.get(1).price()).isEqualByComparingTo("21.00");
         assertThat(options.get(1).label()).isEqualTo("FedEx Priority");
@@ -129,7 +129,7 @@ class DeliveryQuotesTest {
         DeliveryQuotes q = quotes(new FakeFedEx(true), "1000", "0", "5", "100");
         List<DeliveryQuotes.Option> uk = q.options(basket("yd25-engine"), "SW1A 1AA");
         // Only the cheapest service at the ceiling: a faster one would cost the shopper the same.
-        assertThat(uk).extracting(DeliveryQuotes.Option::id).containsExactly("FEDEX_ECONOMY", DeliveryQuotes.MANUAL);
+        assertThat(uk).extracting(DeliveryQuotes.Option::id).containsExactly("FEDEX_ECONOMY", DeliveryQuotes.MANUAL, DeliveryQuotes.COLLECT);
         assertThat(uk.get(0).price()).isEqualByComparingTo("100.00");
         // Abroad: FedEx's price (no VAT), with no ceiling.
         List<DeliveryQuotes.Option> abroad = q.options(basket("yd25-engine"), new FedExClient.Destination("75001", "Paris", "FR"));
@@ -153,7 +153,7 @@ class DeliveryQuotesTest {
         BasketView engine = basket("yd25-engine");
         assertThat(engine.subtotal()).isGreaterThan(new BigDecimal("100"));
         List<DeliveryQuotes.Option> options = q.options(engine, "SW1A 1AA");
-        assertThat(options).extracting(DeliveryQuotes.Option::id).containsExactly("FEDEX_ECONOMY", "FEDEX_PRIORITY", DeliveryQuotes.MANUAL);
+        assertThat(options).extracting(DeliveryQuotes.Option::id).containsExactly("FEDEX_ECONOMY", "FEDEX_PRIORITY", DeliveryQuotes.MANUAL, DeliveryQuotes.COLLECT);
         // Over £100, but heavy: the cheapest service isn't free.
         assertThat(options.get(0).price()).isEqualByComparingTo("10.20");
         assertThat(fedex.asked).hasSize(1);
@@ -180,14 +180,14 @@ class DeliveryQuotesTest {
         FakeFedEx down = new FakeFedEx(true);
         down.down = true;
         DeliveryQuotes q = quotes(down, "0", "0");
-        assertThat(q.options(basket("gm-sensor"), "SW1A 1AA")).extracting(DeliveryQuotes.Option::id).containsExactly(DeliveryQuotes.MANUAL);
-        assertThat(q.options(basket("yd25-engine"), "SW1A 1AA")).extracting(DeliveryQuotes.Option::id).containsExactly(DeliveryQuotes.MANUAL);
+        assertThat(q.options(basket("gm-sensor"), "SW1A 1AA")).extracting(DeliveryQuotes.Option::id).containsExactly(DeliveryQuotes.MANUAL, DeliveryQuotes.COLLECT);
+        assertThat(q.options(basket("yd25-engine"), "SW1A 1AA")).extracting(DeliveryQuotes.Option::id).containsExactly(DeliveryQuotes.MANUAL, DeliveryQuotes.COLLECT);
         // A shopper who chose FedEx isn't quietly switched to manual delivery.
         assertThatThrownBy(() -> q.choose(basket("gm-sensor"), "SW1A 1AA", "FEDEX_PRIORITY")).isInstanceOf(ConflictException.class);
         assertThat(q.choose(basket("gm-sensor"), "SW1A 1AA", DeliveryQuotes.MANUAL).method()).isEqualTo(DeliveryQuotes.MANUAL);
-        // Without FedEx set up at all, the flat prices still apply.
+        // Without FedEx set up at all, the flat prices still apply (and collection).
         assertThat(quotes(new FakeFedEx(false), "0", "0").options(basket("gm-sensor"), "SW1A 1AA"))
-                .singleElement().satisfies(o -> assertThat(o.method()).isEqualTo("STANDARD"));
+                .extracting(DeliveryQuotes.Option::method).containsExactly("STANDARD", DeliveryQuotes.COLLECT);
     }
 
     @Test
@@ -204,7 +204,7 @@ class DeliveryQuotesTest {
     void manualDeliveryIsOfferedForParcelsAndChargesNothingUpFront() {
         DeliveryQuotes q = quotes(new FakeFedEx(true), "0", "0");
         BasketView basket = basket("gm-sensor");
-        assertThat(q.options(basket, "SW1A 1AA")).last().satisfies(o -> assertThat(o.id()).isEqualTo(DeliveryQuotes.MANUAL));
+        assertThat(q.options(basket, "SW1A 1AA")).extracting(DeliveryQuotes.Option::id).contains(DeliveryQuotes.MANUAL);
         BasketView.Delivery manual = q.choose(basket, "SW1A 1AA", DeliveryQuotes.MANUAL);
         assertThat(DeliveryQuotes.manual(manual)).isTrue();
         assertThat(manual.price()).isEqualByComparingTo("0");
@@ -235,6 +235,27 @@ class DeliveryQuotesTest {
         assertThat(line.unitPrice()).isEqualByComparingTo(BasketService.exVat(basket.lines().get(0).unitPrice()));
         assertThat(export.vatIncluded()).isEqualByComparingTo("0");
         assertThat(export.total()).isEqualByComparingTo(export.subtotal().add(new BigDecimal("79.18")));
+    }
+
+    @Test
+    void ukShoppersCanCollectFromTheStoreForFree() {
+        DeliveryQuotes q = quotes(new FakeFedEx(true), "0", "0");
+        BasketView engine = basket("yd25-engine");
+        assertThat(q.options(engine, "SW1A 1AA")).last().satisfies(o -> {
+            assertThat(o.id()).isEqualTo(DeliveryQuotes.COLLECT);
+            assertThat(o.price()).isEqualByComparingTo("0");
+        });
+        BasketView.Delivery collect = q.choose(engine, "SW1A 1AA", DeliveryQuotes.COLLECT);
+        assertThat(DeliveryQuotes.collect(collect)).isTrue();
+        assertThat(collect.price()).isEqualByComparingTo("0");
+        // Chosen while FedEx is down: collection still works, nothing to price.
+        FakeFedEx down = new FakeFedEx(true);
+        down.down = true;
+        assertThat(DeliveryQuotes.collect(quotes(down, "0", "0").choose(engine, "SW1A 1AA", DeliveryQuotes.COLLECT))).isTrue();
+        assertThat(DeliveryQuotes.collect(quotes(new FakeFedEx(false), "0", "0").choose(engine, "SW1A 1AA", DeliveryQuotes.COLLECT))).isTrue();
+        // Not abroad: a part collected in Uxbridge is a UK sale, never a VAT-free export.
+        assertThat(q.options(engine, new FedExClient.Destination("75001", "Paris", "FR")))
+                .extracting(DeliveryQuotes.Option::id).doesNotContain(DeliveryQuotes.COLLECT);
     }
 
     @Test

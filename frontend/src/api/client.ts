@@ -163,10 +163,11 @@ export const money = (value: number) => exact.format(value);
 
 /**
  * A delivery's price as the totals show it: "£9.95", "Free", "At checkout" while FedEx hasn't priced it yet, or
- * "Quoted separately" for manual delivery.
+ * "Quoted separately" for manual delivery, or "Free (collection)" when the shopper collects from the store.
  */
 export function deliveryPrice(delivery: Delivery) {
   if (delivery.method === 'QUOTE') return 'At checkout';
   if (delivery.method === 'MANUAL') return 'Quoted separately';
+  if (delivery.method === 'COLLECT') return 'Free (collection)';
   return delivery.price ? money(delivery.price) : 'Free';
 }

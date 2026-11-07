@@ -218,6 +218,8 @@ public class ChatService {
                             ? " Engines and gearboxes go by FedEx Freight, also priced at checkout, and capped at £100 in the UK."
                                 + " Manual delivery is also offered at checkout: pay for the parts, then get a quote from another courier."
                             : " Engines and gearboxes go by pallet, £79 per order.")
+                        + " Buyers in the UK can also choose free collection from our store at checkout (" + site.address()
+                        + "); we contact them when the parts are ready, and they bring their order number."
                         + " Worldwide delivery: the buyer picks their country at checkout; "
                         + (quotes.live() ? "FedEx prices it there" : "delivery abroad is quoted after they pay for the parts")
                         + ". Orders outside the UK are exports, charged without UK VAT; the buyer pays any import duty and taxes"

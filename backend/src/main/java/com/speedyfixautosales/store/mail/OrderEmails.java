@@ -180,12 +180,17 @@ public class OrderEmails {
         html.append(p("We’ve received your payment of " + money(order.total()) + ". Your VAT invoice <strong>" + invoice.invoice().label()
                 + "</strong> is attached; keep it for your records."));
         html.append(lines(order));
-        html.append(p("<strong>Delivering to</strong><br>" + address(order)));
-        if (DeliveryQuotes.manual(order.delivery())) {
+        if (DeliveryQuotes.collect(order.delivery())) {
+            html.append(p("<strong>You chose to collect from our store</strong><br>" + esc(site.address()).replace(", ", "<br>")));
+            html.append(p("We’ll check your parts and contact you when they’re ready to collect. Please bring your order number, "
+                    + order.reference() + ". Call " + esc(site.phone()) + " before you come if you’d like to check a time."));
+        } else if (DeliveryQuotes.manual(order.delivery())) {
+            html.append(p("<strong>Delivering to</strong><br>" + address(order)));
             html.append(p("<strong>You chose manual delivery.</strong> Delivery isn’t included in what you’ve paid. Reply to this email "
                     + "or call " + esc(site.phone()) + ", quoting " + order.reference() + ", and we’ll quote you from our other delivery "
                     + "partners (" + esc(site.couriers()) + "). We’ll send your parts once delivery is agreed."));
         } else {
+            html.append(p("<strong>Delivering to</strong><br>" + address(order)));
             html.append(p("We’ll check and pack your parts, then send them. The courier and tracking number will show on your "
                     + "<a href=\"" + esc(orderUrl) + "\" style=\"color:#F26B1D\">order page</a> once they’re on their way."));
         }
@@ -193,8 +198,14 @@ public class OrderEmails {
         html.append(end());
         String text = "Thank you, " + first + ". Your order " + order.reference() + " is confirmed.\n\n"
                 + "We've received your payment of " + money(order.total()) + ". Your VAT invoice " + invoice.invoice().label() + " is attached.\n\n"
-                + linesText(order) + "\nDelivering to: " + addressText(order) + "\n\n"
-                + (DeliveryQuotes.manual(order.delivery())
+                + linesText(order) + "\n"
+                + (DeliveryQuotes.collect(order.delivery())
+                        ? "You chose to collect from our store: " + site.address() + ". We'll check your parts and contact you when "
+                                + "they're ready to collect. Please bring your order number, " + order.reference() + ". Call "
+                                + site.phone() + " before you come if you'd like to check a time.\n\n"
+                        : "Delivering to: " + addressText(order) + "\n\n")
+                + (DeliveryQuotes.collect(order.delivery()) ? ""
+                        : DeliveryQuotes.manual(order.delivery())
                         ? "You chose manual delivery. Delivery isn't included in what you've paid. Reply to this email or call "
                                 + site.phone() + ", quoting " + order.reference() + ", and we'll quote you from our other delivery "
                                 + "partners (" + site.couriers() + "). We'll send your parts once delivery is agreed.\n\n"
@@ -215,7 +226,12 @@ public class OrderEmails {
         html.append(lines(order));
         html.append(p("<strong>Buyer</strong><br>" + esc(order.customer().name()) + "<br>" + esc(order.customer().email())
                 + "<br>" + esc(order.customer().phone())));
-        html.append(p("<strong>Deliver to</strong><br>" + address(order)));
+        if (DeliveryQuotes.collect(order.delivery())) {
+            html.append(p("<strong>Collection from the store:</strong> the buyer will collect, so there’s nothing to send. Contact "
+                    + "them when the parts are ready, and mark the order as collected in the admin once they’ve picked it up."));
+        } else {
+            html.append(p("<strong>Deliver to</strong><br>" + address(order)));
+        }
         if (DeliveryQuotes.manual(order.delivery())) {
             html.append(p("<strong>Manual delivery:</strong> the buyer didn’t want FedEx and hasn’t paid for delivery. They’ve been asked "
                     + "to contact us for a quote from another courier; agree it and take payment before sending."));
@@ -228,7 +244,9 @@ public class OrderEmails {
         html.append(end());
         String text = "New order " + order.reference() + ", " + how + ".\n\n" + linesText(order)
                 + "\nBuyer: " + order.customer().name() + ", " + order.customer().email() + ", " + order.customer().phone()
-                + "\nDeliver to: " + addressText(order)
+                + (DeliveryQuotes.collect(order.delivery())
+                        ? "\nCollection from the store: the buyer will collect. Contact them when the parts are ready."
+                        : "\nDeliver to: " + addressText(order))
                 + (DeliveryQuotes.manual(order.delivery())
                         ? "\nManual delivery: the buyer hasn't paid for delivery and will contact us for a quote from another courier."
                         : "")

@@ -2,6 +2,7 @@ package com.speedyfixautosales.store.mail;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.speedyfixautosales.store.basket.BasketView;
 import com.speedyfixautosales.store.invoice.InvoicePdf;
 import com.speedyfixautosales.store.invoice.InvoiceService;
 import com.speedyfixautosales.store.invoice.InvoiceTest;
@@ -11,6 +12,7 @@ import com.speedyfixautosales.store.order.Order;
 import com.speedyfixautosales.store.order.OrderCancelled;
 import com.speedyfixautosales.store.order.OrderPaid;
 import com.speedyfixautosales.store.order.PaymentNeedsChecking;
+import com.speedyfixautosales.store.shipping.DeliveryQuotes;
 import java.math.BigDecimal;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -109,6 +111,24 @@ class OrderEmailsTest {
         emails.sendInvoiceAgain(order);
         assertThat(sender.sent).hasSize(1);
         assertThat(outbox.forOrder(order.reference())).singleElement().satisfies(e -> assertThat(e.status()).isEqualTo(EmailOutbox.Status.SENT));
+    }
+
+    @Test
+    void aCollectionOrderSaysWhereToCollectInsteadOfWhereItsSent() {
+        FakeSender sender = new FakeSender(true);
+        OrderEmails emails = emails(sender, "orders@example.com");
+        Order sent = paid("Ann Smith");
+        Order collect = new Order("SF-COLLECT1", sent.placedAt(), sent.status(), sent.customer(), sent.address(), null, sent.lines(),
+                new BasketView.Delivery(DeliveryQuotes.COLLECT, "Collect from our store in Uxbridge", BigDecimal.ZERO.setScale(2)),
+                sent.subtotal(), sent.subtotal(), sent.vatIncluded(), null, sent.payment(), null);
+        orders.save(collect);
+        emails.orderPaid(new OrderPaid(collect));
+        emails.sendDue();
+
+        assertThat(sender.sent).hasSize(2);
+        assertThat(sender.sent.get(0).text()).contains("collect from our store", InvoiceTest.SITE.address(), "bring your order number, SF-COLLECT1")
+                .doesNotContain("Delivering to", "pack your parts, then send them");
+        assertThat(sender.sent.get(1).text()).contains("Collection from the store").doesNotContain("Deliver to");
     }
 
     @Test

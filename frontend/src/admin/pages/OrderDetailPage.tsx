@@ -23,6 +23,8 @@ function emailState(e: InvoiceStatus['emails'][number]) {
 }
 
 const COURIERS = ['FedEx', 'UPS', 'Royal Mail', 'DHL', 'DPD', 'Pallet network', 'Collected'];
+/** What a collected order records as its courier. */
+const COLLECTED = 'Collected from store';
 
 /** /admin/orders/:reference : the buyer, what they ordered, and the next step (paid, dispatched or cancelled). */
 export function OrderDetailPage() {
@@ -77,12 +79,13 @@ export function OrderDetailPage() {
     }
   }
 
-  async function change(status: OrderStatus, message: string) {
+  /** courierName: what to record as the courier, when it isn't the one typed in the Dispatch form. */
+  async function change(status: OrderStatus, message: string, courierName?: string) {
     setError('');
     setNotice('');
     setBusy(true);
     try {
-      setOrder(await adminApi.setOrderStatus(reference, status, courier.trim(), tracking.trim()));
+      setOrder(await adminApi.setOrderStatus(reference, status, courierName ?? courier.trim(), courierName ? '' : tracking.trim()));
       setNotice(message);
       setConfirmCancel(false);
     } catch (err) {
@@ -139,6 +142,9 @@ export function OrderDetailPage() {
                 <li><span>Delivery{order.delivery.label ? ` (${order.delivery.label})` : ''}</span><span>{gbpOrDash(order.delivery.price)}</span></li>
                 <li><strong>Total {ukVat(order.address.country) ? `(inc. ${gbpOrDash(order.vatIncluded)} VAT)` : '(no UK VAT: export)'}</strong><strong>{gbpOrDash(order.total)}</strong></li>
               </ul>
+              {order.delivery.method === 'COLLECT' && (
+                <p><strong>Collection from the store:</strong> the buyer will collect, so there’s nothing to send. Contact them when the parts are ready, and mark the order as collected once they’ve picked it up.</p>
+              )}
               {order.delivery.method === 'MANUAL' && (
                 <p><strong>Manual delivery:</strong> the buyer didn’t want FedEx and hasn’t paid for delivery. They’ll contact you for a quote from another courier; agree it and take payment before sending.</p>
               )}
@@ -160,7 +166,15 @@ export function OrderDetailPage() {
               </section>
             )}
 
-            {order.status === 'AWAITING_DISPATCH' && (
+            {order.status === 'AWAITING_DISPATCH' && order.delivery.method === 'COLLECT' && (
+              <section className="card" aria-labelledby="collect-title">
+                <h2 id="collect-title" className="card__title">Collection</h2>
+                <p className="admin-muted">When the buyer has picked the parts up from the store, mark the order as collected.</p>
+                <div><button type="button" className="btn btn--primary" disabled={busy} onClick={() => void change('DISPATCHED', 'Marked as collected.', COLLECTED)}>Mark as Collected</button></div>
+              </section>
+            )}
+
+            {order.status === 'AWAITING_DISPATCH' && order.delivery.method !== 'COLLECT' && (
               <form className="card" aria-labelledby="dispatch-title" onSubmit={dispatch}>
                 <h2 id="dispatch-title" className="card__title">Dispatch</h2>
                 <div className="field-row">
@@ -180,11 +194,11 @@ export function OrderDetailPage() {
 
             {order.dispatch && (
               <section className="card" aria-labelledby="sent-title">
-                <h2 id="sent-title" className="card__title">Dispatched</h2>
+                <h2 id="sent-title" className="card__title">{order.delivery.method === 'COLLECT' ? 'Collected' : 'Dispatched'}</h2>
                 <dl className="facts">
                   <div><dt>Courier</dt><dd>{order.dispatch.courier}</dd></div>
                   <div><dt>Tracking</dt><dd className="mono">{order.dispatch.trackingNumber ?? '—'}</dd></div>
-                  <div><dt>Sent</dt><dd>{when(order.dispatch.dispatchedAt)}</dd></div>
+                  <div><dt>{order.delivery.method === 'COLLECT' ? 'Collected' : 'Sent'}</dt><dd>{when(order.dispatch.dispatchedAt)}</dd></div>
                 </dl>
               </section>
             )}

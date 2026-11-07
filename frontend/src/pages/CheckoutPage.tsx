@@ -309,7 +309,9 @@ export function CheckoutPage() {
                             {o.method === 'MANUAL' ? 'Manual delivery' : o.label}
                             {o.method === 'MANUAL'
                               ? <small>Don’t want FedEx? Pay for your parts now, then contact us and we’ll quote you from our other delivery partners. Delivery is paid separately.</small>
-                              : arrivesText(o.arrives) && <small>{arrivesText(o.arrives)}</small>}
+                              : o.method === 'COLLECT'
+                                ? <small>Pick your parts up from us{data?.site.address ? ` at ${data.site.address}` : ''}. We’ll contact you when they’re ready; bring your order number.</small>
+                                : arrivesText(o.arrives) && <small>{arrivesText(o.arrives)}</small>}
                           </span>
                           <span className="delivery-option__price">{o.method === 'MANUAL' ? 'Quote' : o.price ? money(o.price) : 'Free'}</span>
                         </label>

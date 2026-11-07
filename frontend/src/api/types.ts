@@ -248,9 +248,10 @@ export interface Basket {
 /**
  * QUOTE: FedEx prices it at checkout, once the postcode is in. FEDEX: a FedEx service chosen at checkout.
  * MANUAL: the shopper pays for the parts only and contacts us afterwards for a quote from another courier.
+ * COLLECT: the shopper collects from the store in Uxbridge, free (UK addresses only).
  */
 export interface Delivery {
-  method: 'NONE' | 'STANDARD' | 'PALLET' | 'FEDEX' | 'QUOTE' | 'MANUAL';
+  method: 'NONE' | 'STANDARD' | 'PALLET' | 'FEDEX' | 'QUOTE' | 'MANUAL' | 'COLLECT';
   label: string | null;
   price: number;
 }

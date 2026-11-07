@@ -94,15 +94,30 @@ export function OrderReceivedPage() {
                 </div>
               )}
 
+              {order.delivery.method === 'COLLECT' && order.status !== 'CANCELLED' && !order.dispatch && (
+                <div className="notice" role="note">
+                  <p><strong>You chose to collect from our store.</strong></p>
+                  <p>
+                    {data?.site.address && <>Collect from {data.site.address}. </>}
+                    {order.status === 'AWAITING_PAYMENT' ? 'Once you’ve paid, we’ll' : 'We’ll'} check your parts and contact you when they’re
+                    ready. Please bring your order number, {order.reference}{data?.site ? `, and call ${data.site.phone} if you’d like to check a time` : ''}.
+                  </p>
+                </div>
+              )}
+
               {order.dispatch && (
                 <section className="received__invoice" aria-labelledby="dispatch-title">
                   <span className="received__invoice-icon"><Icon name="truck" size={26} /></span>
                   <div>
-                    <h3 id="dispatch-title" className="panel__title">On Its Way</h3>
+                    <h3 id="dispatch-title" className="panel__title">{order.delivery.method === 'COLLECT' ? 'Collected' : 'On Its Way'}</h3>
+                    {order.delivery.method === 'COLLECT' ? (
+                      <p>Collected from our store on {dateFormat.format(new Date(order.dispatch.dispatchedAt))}.</p>
+                    ) : (
                     <p>
                       Sent with <strong>{order.dispatch.courier}</strong> on {dateFormat.format(new Date(order.dispatch.dispatchedAt))}.
                       {order.dispatch.trackingNumber ? <> Tracking number: <strong className="mono">{order.dispatch.trackingNumber}</strong>.</> : ''}
                     </p>
+                    )}
                   </div>
                 </section>
               )}
@@ -123,7 +138,7 @@ export function OrderReceivedPage() {
 
               <div className="received__cols">
                 <section>
-                  <h3 className="panel__title">Delivery Address</h3>
+                  <h3 className="panel__title">{order.delivery.method === 'COLLECT' ? 'Your Address' : 'Delivery Address'}</h3>
                   <address>
                     {order.customer.name}<br />
                     {order.address.line1}<br />
