@@ -14,7 +14,8 @@ import org.springframework.web.multipart.MultipartFile;
  */
 public interface ProductPhotoStore {
 
-    int MAX_PER_PART = 4;
+    /** As many as eBay allows on a listing. */
+    int MAX_PER_PART = 24;
 
     record Photo(String id, String productId, String contentType, byte[] data) {
     }
@@ -26,6 +27,19 @@ public interface ProductPhotoStore {
 
     /** Keeps only the listed photos for the part, then adds the new files. Returns the part's photo ids in order. */
     List<String> update(String productId, List<String> keepIds, List<MultipartFile> files);
+
+    /** A photo the part came with from its eBay listing: shown after the uploaded ones. */
+    record Imported(String id, String url, String thumbnailUrl) {
+    }
+
+    /** The part's photos from its eBay listing, in order (none in the sample catalogue). */
+    default List<Imported> imported(String productId) {
+        return List.of();
+    }
+
+    /** Takes the given photos from the eBay listing off the part; ids that aren't its imported photos are ignored. */
+    default void removeImported(String productId, List<String> photoIds) {
+    }
 
     static byte[] read(MultipartFile f) {
         try {

@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { adminApi, errorMessage } from '../adminApi';
 import { AdminLayout } from '../AdminLayout';
-import { CompatibilityImportButton, EbaySyncButton } from '../EbaySyncButton';
 import { Chips, gbpOrDash, WorkPill } from '../components';
 import type { ProductRow } from '../types';
 import { Pagination } from '../../components/Pagination';
@@ -33,6 +32,8 @@ export function ListingsPage() {
   const [error, setError] = useState('');
   const tab = (TABS.find((t) => t.value === params.get('tab'))?.value ?? 'active') as Tab;
   const q = params.get('q') ?? '';
+  // Set by the listing editor after a save: what happened, and the part to open again.
+  const saved = useLocation().state as { saved?: string; id?: string; name?: string } | null;
 
   useEffect(() => {
     adminApi.products().then(setRows).catch((err) => setError(errorMessage(err, 'The listings didn’t load. Try again.')));
@@ -68,10 +69,13 @@ export function ListingsPage() {
 
   return (
     <AdminLayout title="Listings" actions={<>
-      <EbaySyncButton onDone={() => void adminApi.products().then(setRows).catch(() => undefined)} />
-      <CompatibilityImportButton onDone={() => void adminApi.products().then(setRows).catch(() => undefined)} />
       <Link className="btn btn--primary" to="/admin/products/new">Create Listing</Link>
     </>}>
+      {saved?.saved && (
+        <p className="notice notice--ok" role="status">
+          {saved.saved}{saved.id && <> <Link to={`/admin/products/${encodeURIComponent(saved.id)}`}>Open “{saved.name}”</Link></>}
+        </p>
+      )}
       {error && <p className="notice notice--error" role="alert">{error}</p>}
       <section className="card" aria-label="Listings">
         <div className="card__head card__head--wrap">

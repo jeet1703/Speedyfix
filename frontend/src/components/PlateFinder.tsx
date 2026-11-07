@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { useSite } from '../state/SiteContext';
 import { useStore } from '../state/StoreContext';
@@ -47,6 +48,10 @@ export function PlateFinder() {
             </p>
           ) : (
             <p>Enter your reg and we’ll show which parts match.</p>
+          )}
+          {/* The shop shows only fitting parts while a vehicle is saved (ShopPage's fitsOnly). */}
+          {vehicle && (
+            <Link className="btn btn--dark finder__fits" to="/products">Show All Parts That Fit Your {vehicle.model}</Link>
           )}
         </div>
         <form className="finder__form" onSubmit={submit} noValidate>

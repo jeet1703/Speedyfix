@@ -75,7 +75,11 @@ select.input { appearance: none; padding-right: 36px; background: var(--surface)
 .widget .btn--sm { align-self: flex-start; }
 .shop__results { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
 .shop__toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; font-size: 14px; color: var(--ink-2); }
+.shop__fits { padding: 10px 14px; border-radius: var(--radius); background: var(--surface-2); border-left: 4px solid var(--ok); font-size: 14px; }
+.shop__fits--off { border-left-color: var(--line); }
 .sort .input { min-height: 40px; font-size: 14px; width: auto; }
+/* iPhones zoom into fields under 16px when tapped. */
+@media (max-width: 640px) { .sort .input { font-size: 16px; } }
 
 .product-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
 .product-grid > li { display: flex; }

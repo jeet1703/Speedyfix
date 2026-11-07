@@ -2,6 +2,7 @@ package com.speedyfixautosales.store.ebay;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.speedyfixautosales.store.catalog.Brands;
 import com.speedyfixautosales.store.catalog.CatalogRepository;
 import com.speedyfixautosales.store.catalog.JdbcCatalogRepository;
 import com.speedyfixautosales.store.photo.PhotoProcessor;
@@ -235,14 +236,14 @@ public class EbayImportService {
         List<String> mapped = jdbc.queryForList("SELECT category_id FROM ebay_category_map WHERE ebay_category_id = ?",
                 String.class, row.categoryId());
         if (!mapped.isEmpty() && mapped.get(0) != null) {
-            return mapped.get(0);
+            return CategoryMapper.refine(mapped.get(0), row.title());
         }
         String suggested = CategoryMapper.suggest(row.categoryName());
         if (!dryRun && mapped.isEmpty()) {
             jdbc.update("INSERT INTO ebay_category_map (ebay_category_id, ebay_name, category_id) VALUES (?, ?, ?) ON CONFLICT DO NOTHING",
                     row.categoryId(), row.categoryName(), suggested);
         }
-        return suggested;
+        return CategoryMapper.refine(suggested, row.title());
     }
 
     private void upsert(String id, boolean exists, EbayCsv.Row row, TitleParser.Parsed parsed, String categoryId, boolean live) {
@@ -257,13 +258,13 @@ public class EbayImportService {
                         ebay_synced_at = now(), updated_at = now()
                     WHERE id = ?""",
                     name, categoryId, condition(row.condition()), row.price(), row.quantity(), status, row.sold(), row.sold() > 0,
-                    parsed.partNumber(), parsed.make(), shipping, id);
+                    parsed.partNumber(), Brands.canonical(parsed.make()), shipping, id);
         } else {
             jdbc.update("""
                     INSERT INTO products (id, name, category_id, condition, price, part_number, brand, shipping, stock, best_seller,
                                           sold_count, status, added_on, ebay_item_id, ebay_synced_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())""",
-                    id, name, categoryId, condition(row.condition()), row.price(), parsed.partNumber(), parsed.make(), shipping,
+                    id, name, categoryId, condition(row.condition()), row.price(), parsed.partNumber(), Brands.canonical(parsed.make()), shipping,
                     row.quantity(), row.sold() > 0, row.sold(), status,
                     Date.valueOf(row.startDate() != null ? row.startDate() : LocalDate.now()), row.itemNumber());
         }
@@ -278,7 +279,7 @@ public class EbayImportService {
                         productId, cut(a.name(), 100), cut(a.value(), 500));
             }
         }
-        String brand = firstReal(d.brand(), aspect(d, "Brand"));
+        String brand = Brands.canonical(firstReal(d.brand(), aspect(d, "Brand")));
         String partNumber = firstReal(d.mpn(), aspect(d, "Manufacturer Part Number"), aspect(d, "Reference OE/OEM Number"),
                 aspect(d, "OE/OEM Part Number"));
         String subType = firstReal(aspect(d, "Type"), aspect(d, "Sub-Type"));

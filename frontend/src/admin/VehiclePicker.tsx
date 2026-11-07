@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { adminApi, errorMessage } from './adminApi';
-import type { Fitment } from './types';
+import type { EngineChoice, Fitment } from './types';
 
 /**
  * Adds compatibility from eBay UK's vehicle catalogue: make, then model, the years, and one or more engines (none
@@ -14,7 +14,7 @@ export function VehiclePicker({ onAdd }: { onAdd: (rows: Fitment[]) => void }) {
   const [years, setYears] = useState<string[]>([]);
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
-  const [engines, setEngines] = useState<string[] | null>(null);
+  const [engines, setEngines] = useState<EngineChoice[] | null>(null);
   const [chosen, setChosen] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -22,7 +22,7 @@ export function VehiclePicker({ onAdd }: { onAdd: (rows: Fitment[]) => void }) {
   const fail = (e: unknown, fallback: string) => setError(errorMessage(e, fallback));
 
   useEffect(() => {
-    adminApi.catalogueMakes().then(setMakes).catch((e) => { setMakes([]); fail(e, 'eBay’s vehicle list didn’t load.'); });
+    adminApi.catalogueMakes().then(setMakes).catch((e) => { setMakes([]); fail(e, 'The vehicle list didn’t load.'); });
   }, []);
 
   const knownMake = makes?.find((m) => m.toLowerCase() === make.trim().toLowerCase()) ?? null;
@@ -69,7 +69,7 @@ export function VehiclePicker({ onAdd }: { onAdd: (rows: Fitment[]) => void }) {
   const ordered = [...years].sort();
   return (
     <div className="vpick" role="group" aria-labelledby="vpick-title">
-      <p id="vpick-title" className="vpick__title">Add vehicles from eBay’s list</p>
+      <p id="vpick-title" className="vpick__title">Add Vehicles From the List</p>
       <div className="vpick__row">
         <div className="field">
           <label htmlFor="vp-make">Make</label>
@@ -103,13 +103,17 @@ export function VehiclePicker({ onAdd }: { onAdd: (rows: Fitment[]) => void }) {
       {model && from && to && (
         <fieldset className="vpick__engines">
           <legend>Engines <span className="field__optional">(tick the ones it fits; none ticked means all engines)</span></legend>
-          {engines === null ? <p className="admin-muted">Loading engines…</p> : engines.length === 0 ? <p className="admin-muted">eBay lists no engines for these years.</p> : (
+          {engines === null ? <p className="admin-muted">Loading engines…</p> : engines.length === 0 ? <p className="admin-muted">No engines are listed for these years.</p> : (
             <ul>
               {engines.map((e) => (
-                <li key={e}>
+                <li key={e.name}>
                   <label>
-                    <input type="checkbox" checked={chosen.includes(e)} onChange={(ev) => setChosen(ev.target.checked ? [...chosen, e] : chosen.filter((x) => x !== e))} />
-                    <span className="mono">{e}</span>
+                    <input type="checkbox" checked={chosen.includes(e.name)} onChange={(ev) => setChosen(ev.target.checked ? [...chosen, e.name] : chosen.filter((x) => x !== e.name))} />
+                    <span>
+                      <strong>{e.label}</strong>{!e.fuel && <span className="admin-muted"> (fuel not listed)</span>}
+                      {e.engineCode && <> · engine <span className="mono">{e.engineCode}</span></>}
+                      <span className="table__sub mono">{e.name}</span>
+                    </span>
                   </label>
                 </li>
               ))}

@@ -237,6 +237,19 @@ class AdminApiTest {
     }
 
     @Test
+    void categoriesToListInAreGroupedAsInTheShopMenu() throws Exception {
+        mvc.perform(get("/api/admin/categories").header(HttpHeaders.AUTHORIZATION, bearer))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value("engines"))
+                .andExpect(jsonPath("$[0].name").value("Complete Engines"))
+                .andExpect(jsonPath("$[0].group").value("Engines and Drivetrain"))
+                .andExpect(jsonPath("$[1].id").value("bare-engines"))
+                // Not in the menu: listed last, under Other.
+                .andExpect(jsonPath("$[-1:].id").value(org.hamcrest.Matchers.contains("rebuild-kits")))
+                .andExpect(jsonPath("$[-1:].group").value(org.hamcrest.Matchers.contains("Other")));
+    }
+
+    @Test
     void plateCheckListsConfirmedPartsAndIsNotLoggedAsAShopperSearch() throws Exception {
         mvc.perform(post("/api/admin/plate-check").contentType(MediaType.APPLICATION_JSON).content("{\"registration\":\"AB12 CDE\"}")
                         .header(HttpHeaders.AUTHORIZATION, bearer))

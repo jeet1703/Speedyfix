@@ -5,9 +5,10 @@ import com.speedyfixautosales.store.ebay.EbayItemSource;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeSet;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,15 +53,33 @@ public class VehicleCatalogue {
                 .sorted((a, b) -> b.compareTo(a)).toList();
     }
 
-    /** Every engine fitted in any of the years, by eBay's names ("1461cc 81KW 110HP K9K 646"). */
-    public List<String> engines(String make, String model, int yearFrom, int yearTo) {
-        TreeSet<String> all = new TreeSet<>();
+    /**
+     * An engine to choose from: eBay's name, what staff read ("1.5L diesel, 110HP"), its fuel and engine code. The
+     * fuel comes from eBay's variants in the first year the engine was fitted; null when they don't agree.
+     */
+    public record EngineChoice(String name, String label, String fuel, String engineCode) {
+    }
+
+    public List<EngineChoice> engineChoices(String make, String model, int yearFrom, int yearTo) {
+        // A few eBay requests each, run side by side; every answer is kept for a day.
+        return firstYears(make, model, yearFrom, yearTo).entrySet().parallelStream().map(e -> {
+            String fuel = fuel(make, model, e.getValue(), e.getKey());
+            VehicleRange r = VehicleRange.of(make, model, e.getValue(), e.getValue(), e.getKey(), fuel);
+            return new EngineChoice(e.getKey(), r.engineLabel(), fuel, r.engineCode());
+        }).sorted(Comparator.comparing(EngineChoice::label).thenComparing(EngineChoice::name)).toList();
+    }
+
+    /** Each engine fitted in the years, with the first year it was. */
+    private Map<String, Integer> firstYears(String make, String model, int yearFrom, int yearTo) {
+        Map<String, Integer> first = new TreeMap<>();
         int from = Math.min(yearFrom, yearTo);
         int to = Math.min(Math.max(yearFrom, yearTo), from + MAX_YEARS);
         for (int y = from; y <= to; y++) {
-            all.addAll(values("Engine", Map.of("Car Make", make, "Model", model, "Cars Year", String.valueOf(y))));
+            for (String engine : values("Engine", Map.of("Car Make", make, "Model", model, "Cars Year", String.valueOf(y)))) {
+                first.putIfAbsent(engine, y);
+            }
         }
-        return List.copyOf(all);
+        return first;
     }
 
     /** Petrol, diesel, hybrid or electric when eBay's variants for this engine agree on one, else null. */
@@ -75,7 +94,7 @@ public class VehicleCatalogue {
 
     private List<String> values(String property, Map<String, String> filter) {
         if (!enabled()) {
-            throw new UnavailableException("The vehicle catalogue needs the eBay keys (EBAY_CLIENT_ID, EBAY_CLIENT_SECRET).");
+            throw new UnavailableException("The vehicle list isn’t set up on this server yet.");
         }
         // Filter order matters to eBay (make, then model, year, engine), so build it in that order.
         StringBuilder f = new StringBuilder();
@@ -95,7 +114,7 @@ public class VehicleCatalogue {
             return v;
         } catch (IOException e) {
             log.warn("eBay vehicle catalogue: {}", e.getMessage());
-            throw new UnavailableException("eBay’s vehicle list didn’t load. Try again in a moment.");
+            throw new UnavailableException("The vehicle list didn’t load. Try again in a moment.");
         }
     }
 }

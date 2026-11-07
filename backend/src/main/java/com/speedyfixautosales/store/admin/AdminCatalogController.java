@@ -1,6 +1,5 @@
 package com.speedyfixautosales.store.admin;
 
-import com.speedyfixautosales.store.catalog.Category;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -42,8 +41,13 @@ public class AdminCatalogController {
         return catalog.list();
     }
 
+    @GetMapping("/brands")
+    public List<String> brands() {
+        return catalog.brands();
+    }
+
     @GetMapping("/categories")
-    public List<Category> categories() {
+    public List<AdminCatalogService.CategoryOption> categories() {
         return catalog.categories();
     }
 
@@ -52,7 +56,7 @@ public class AdminCatalogController {
         return catalog.get(id);
     }
 
-    /** multipart/form-data: "part" is the ProductForm as JSON, plus up to four "photos". */
+    /** multipart/form-data: "part" is the ProductForm as JSON, plus up to 24 "photos". */
     @PostMapping(path = "/products", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<AdminCatalogService.Detail> create(@Valid @RequestPart("part") ProductForm form,
                                                              @RequestPart(name = "photos", required = false) List<MultipartFile> photos) {

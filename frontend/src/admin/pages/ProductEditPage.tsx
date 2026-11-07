@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type DragEvent, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type DragEvent } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Icon } from '../../components/Icons';
 import { adminApi, errorMessage } from '../adminApi';
@@ -8,6 +8,7 @@ import { VehiclePicker } from '../VehiclePicker';
 import type { CategoryOption, Condition, Fitment, ProductDetail, ProductStatus, Shipping } from '../types';
 import { CardsSkeleton } from '../../components/Skeleton';
 import { ListingHtml } from '../../components/ListingHtml';
+import { buildDescription, EMPTY_FIELDS, madeFromFields, readFields, type DescriptionFields, type ListingFields } from '../listingDescription';
 
 const CONDITIONS: { value: Condition; label: string }[] = [
   { value: 'USED', label: 'Used, Tested' },
@@ -24,13 +25,63 @@ const SHIPPING: { value: Shipping; label: string }[] = [
   { value: 'PARCEL', label: 'Tracked Parcel' },
   { value: 'PALLET', label: 'Pallet (Engines, Gearboxes)' }
 ];
-const MAX_PHOTOS = 4;
+/** As many as eBay allows on a listing (the server's limit too). */
+const MAX_PHOTOS = 24;
+/** The server's limit on vehicles per part (ProductForm.MAX_VEHICLES). */
+const MAX_VEHICLES = 500;
 const MAX_REFINEMENTS = 5;
+/** The brand list's "Add a new brand…" choice. */
+const NEW_BRAND = '__new-brand__';
 const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+/** Photos are turned into WebP at most this many pixels on the longest side before upload, so many fit in one save. */
+const PHOTO_MAX_SIDE = 1600;
 const gbp = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' });
 
-/** Digits and at most one decimal point (as on the shop's price filter). */
-const priceInput = (value: string) => value.replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1');
+/** Digits, at most one decimal point and two decimals (pounds and pence, or kilograms like 7.25). */
+const decimalInput = (value: string) => value.replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1').replace(/(\.\d{2})\d+/, '$1');
+
+/** The description's own lines, in the template's order: field, label, example. */
+const DESCRIPTION_INPUTS: [Exclude<keyof DescriptionFields, 'notes'>, string, string][] = [
+  ['part', 'Part', 'e.g. Alternator Generator'],
+  ['colour', 'Colour', 'e.g. Black'],
+  ['year', 'Year', 'e.g. 2014-2019'],
+  ['miles', 'Miles', 'e.g. 49K Miles'],
+  ['make', 'Make', 'e.g. Land Rover'],
+  ['model', 'Model', 'e.g. Discovery Sport'],
+  ['yearRange', 'Year range', 'e.g. 2014-2019'],
+  ['engine', 'Engine type', 'e.g. 2.0L Diesel']
+];
+
+const listingFields = (title: string, brand: string, partNumber: string, condition: Condition): ListingFields => ({
+  title, brand, partNumber, condition: CONDITIONS.find((c) => c.value === condition)?.label.replace(',', '') ?? ''
+});
+
+/** Encodes the canvas, or null when the browser can't make that type (older Safari gives a PNG instead of WebP). */
+const encode = (canvas: HTMLCanvasElement, type: string, quality: number) =>
+  new Promise<Blob | null>((resolve) => canvas.toBlob((b) => resolve(b && b.type === type ? b : null), type, quality));
+
+/**
+ * Every photo as WebP, at most PHOTO_MAX_SIDE pixels across: a 4–8 MB phone photo usually comes out under 400 KB,
+ * and WebP loads faster for shoppers. Where the browser can't make WebP, a JPEG instead. A photo that's already a
+ * smaller WebP, or one the browser can't redraw, is sent as it is.
+ */
+async function shrink(file: File): Promise<File> {
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, PHOTO_MAX_SIDE / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    canvas.getContext('2d')!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    const webp = await encode(canvas, 'image/webp', 0.82);
+    const blob = webp ?? await encode(canvas, 'image/jpeg', 0.85);
+    if (!blob || (file.type === blob.type && blob.size >= file.size)) return file;
+    return new File([blob], file.name.replace(/\.\w+$/, '') + (webp ? '.webp' : '.jpg'), { type: blob.type });
+  } catch {
+    return file;
+  }
+}
 
 interface FitRow {
   fit: Fitment;
@@ -70,14 +121,21 @@ export function ProductEditPage() {
   const [shipping, setShipping] = useState<Shipping>('PARCEL');
   const [engineCode, setEngineCode] = useState('');
   const [brand, setBrand] = useState('');
+  const [brands, setBrands] = useState<string[]>([]);
+  // Typing a brand that isn't in the list yet, instead of picking one.
+  const [newBrand, setNewBrand] = useState(false);
   const [subType, setSubType] = useState('');
   const [refinements, setRefinements] = useState<string[]>([]);
   const [descriptionHtml, setDescriptionHtml] = useState('');
-  const [previewDescription, setPreviewDescription] = useState(false);
+  const [descFields, setDescFields] = useState<DescriptionFields>(EMPTY_FIELDS);
+  // The saved description as built from what the listing had when it loaded (see descriptionToSave).
+  const [loadedBuild, setLoadedBuild] = useState('');
   const [newRefinement, setNewRefinement] = useState<string | null>(null);
   const [bestSeller, setBestSeller] = useState(false);
 
   const [kept, setKept] = useState<{ id: string; url: string }[]>([]);
+  // Photos from the part's eBay listing that are staying; any removed are sent as removePhotoIds.
+  const [imported, setImported] = useState<{ id: string; url: string }[]>([]);
   const [added, setAdded] = useState<NewPhoto[]>([]);
   const [photoError, setPhotoError] = useState('');
   const [dragging, setDragging] = useState(false);
@@ -96,8 +154,8 @@ export function ProductEditPage() {
   useEffect(() => {
     adminApi.categories().then((c) => {
       setCategories(c);
-      setCategoryId((current) => current || c[0]?.id || '');
     }).catch(() => setLoadError('The categories didn’t load. Reload the page.'));
+    adminApi.brands().then(setBrands).catch(() => setNewBrand(true));
     if (id) {
       adminApi.product(id).then(fill).catch((err) => setLoadError(errorMessage(err, 'This part didn’t load. Try again.')));
     }
@@ -114,6 +172,9 @@ export function ProductEditPage() {
     setSubType(d.subType ?? '');
     setRefinements(d.refinements);
     setDescriptionHtml(d.descriptionHtml ?? '');
+    const read = readFields(d.descriptionHtml);
+    setDescFields(read);
+    setLoadedBuild(buildDescription(listingFields(d.name, d.brand ?? '', d.partNumber ?? '', d.condition), read));
     setRows(d.vehicles.map((fit) => ({ fit, ticked: true })));
     setName(d.name);
     setCategoryId(d.categoryId);
@@ -128,6 +189,7 @@ export function ProductEditPage() {
     setEngineCode(d.engineCode ?? '');
     setBestSeller(d.bestSeller);
     setKept(d.photos);
+    setImported(d.importedPhotos ?? []);
     setAdded((prev) => {
       prev.forEach((p) => URL.revokeObjectURL(p.url));
       return [];
@@ -142,33 +204,11 @@ export function ProductEditPage() {
     });
   }
 
-  async function findVehicles(e: FormEvent) {
-    e.preventDefault();
-    setFitNote('');
-    setFitError('');
-    if (!partNumber.trim()) {
-      setFitError('Enter the part number first.');
-      return;
-    }
-    setFinding(true);
-    try {
-      const found = await adminApi.fitment(partNumber.trim(), '', id ?? null);
-      merge(found, (f) => f.confidence === 'HIGH');
-      setFitNote(found.length
-        ? `Found ${found.length} ${found.length === 1 ? 'vehicle' : 'vehicles'} from parts with this part number.`
-        : 'No vehicles are confirmed for this part number yet. Apply the engine-code rule, or add vehicles from eBay’s list below.');
-    } catch (err) {
-      setFitError(errorMessage(err, 'We couldn’t search for vehicles. Try again.'));
-    } finally {
-      setFinding(false);
-    }
-  }
-
   async function applyEngineRule() {
     setFitNote('');
     setFitError('');
     if (!engineCode.trim()) {
-      setFitError('Enter the engine code under Part details first.');
+      setFitError('Enter the engine code under Part Details first.');
       return;
     }
     setFinding(true);
@@ -194,13 +234,13 @@ export function ProductEditPage() {
     setNewRefinement(null);
   }
 
-  function addFiles(files: File[]) {
+  async function addFiles(files: File[]) {
     setPhotoError('');
     const images = files.filter((f) => PHOTO_TYPES.includes(f.type));
     if (images.length < files.length) setPhotoError('Photos must be JPG, PNG or WebP images.');
-    const room = MAX_PHOTOS - kept.length - added.length;
-    if (images.length > room) setPhotoError(`Add up to ${MAX_PHOTOS} photos per part.`);
-    const take = images.slice(0, Math.max(0, room));
+    const room = MAX_PHOTOS - kept.length - imported.length - added.length;
+    if (images.length > room) setPhotoError(`A listing can have up to ${MAX_PHOTOS} photos.`);
+    const take = await Promise.all(images.slice(0, Math.max(0, room)).map(shrink));
     setAdded((prev) => [...prev, ...take.map((file) => ({ file, url: URL.createObjectURL(file) }))]);
   }
 
@@ -225,14 +265,22 @@ export function ProductEditPage() {
   const saleOk = saleValue === null || (Number.isInteger(saleValue) && saleValue >= 1 && saleValue <= 90);
   // Same rounding as the server: to the penny, half a penny up.
   const salePrice = priceOk && saleValue && saleOk ? Math.round(priceValue! * (100 - saleValue)) / 100 : null;
-  const photoCount = kept.length + added.length;
+  const photoCount = kept.length + imported.length + added.length;
   const usesSample = photoCount === 0 && !!detail?.samplePhoto;
-  // Imported listings show their eBay photos, which aren't in the uploaded list; they count as the listing's photo.
-  const usesEbayPhotos = photoCount === 0 && !detail?.samplePhoto && !!detail?.imageUrl;
-  const photoOk = photoCount > 0 || usesSample || usesEbayPhotos;
+  // A listing whose photo was never downloaded still shows it from its link; "photo coming soon" isn't a photo.
+  const usesListingPhoto = photoCount === 0 && !detail?.samplePhoto && !!detail?.imageUrl && !detail.imageUrl.endsWith('/placeholder.svg')
+    && !(detail.importedPhotos?.length);
+  const photoOk = photoCount > 0 || usesSample || usesListingPhoto;
   const refOk = !!(partNumber.trim() || engineCode.trim());
   const blocker = !photoOk ? 'add a photo first' : !priceOk ? 'add a price first' : !refOk ? 'add a part number first' : '';
   const isLive = detail?.status === 'LIVE';
+
+  const builtDescription = buildDescription(listingFields(name, brand, partNumber, condition), descFields);
+  // A description imported from eBay is kept exactly as it was until something it shows changes; then it's rebuilt
+  // from the fields like any other.
+  const descriptionToSave = !descriptionHtml.trim() || madeFromFields(descriptionHtml) || builtDescription !== loadedBuild
+    ? builtDescription : descriptionHtml;
+  const setDesc = (key: keyof DescriptionFields) => (e: { target: { value: string } }) => setDescFields((prev) => ({ ...prev, [key]: e.target.value }));
 
   async function save(status: ProductStatus) {
     setSaveError('');
@@ -240,6 +288,7 @@ export function ProductEditPage() {
     const stockValue = Number(stock);
     if (!name.trim()) return setSaveError('Enter the title shoppers will see.');
     if (!categoryId) return setSaveError('Choose a category.');
+    if (ticked.length > MAX_VEHICLES) return setSaveError(`A part can list up to ${MAX_VEHICLES} vehicles. Untick some, or add fewer years or engines.`);
     if (priceValue !== null && !priceOk) return setSaveError('Enter a price above £0, like 149.00.');
     if (!saleOk) return setSaveError('Enter a sale between 1% and 90% off, or leave it empty for no sale.');
     if (!weightOk) return setSaveError('Enter a weight between 0.1 and 999 kg, or leave it empty for the typical weight.');
@@ -249,18 +298,15 @@ export function ProductEditPage() {
       const saved = await adminApi.saveProduct(id ?? null, {
         name: name.trim(), categoryId, condition, grade, price: priceValue, partNumber: partNumber.trim(),
         engineCode: engineCode.trim(), brand: brand.trim(), subType: subType.trim(), refinements, shipping, stock: stockValue, bestSeller,
-        vehicleIds: ticked.map((r) => r.fit.vehicleId), keepPhotoIds: kept.map((p) => p.id), status, descriptionHtml, salePercent: saleValue, weightKg: weightValue
+        vehicleIds: ticked.map((r) => r.fit.vehicleId), keepPhotoIds: kept.map((p) => p.id),
+        removePhotoIds: (detail?.importedPhotos ?? []).filter((p) => !imported.some((i) => i.id === p.id)).map((p) => p.id), status, descriptionHtml: descriptionToSave, salePercent: saleValue, weightKg: weightValue
       }, added.map((p) => p.file));
       const message = status === 'LIVE'
         ? (isLive ? 'Changes saved. The listing is live in the shop.' : 'Listed. The part is now in the shop.')
         : (isLive ? 'Listing ended. The part is saved as a draft.' : 'Saved as a draft. Shoppers can’t see it yet.');
-      if (!id) {
-        navigate(`/admin/products/${encodeURIComponent(saved.id)}`, { replace: true, state: { saved: message } });
-      } else {
-        fill(saved);
-        setNotice(message);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
+      // Back to the listings, on the tab the part is now in, with a link to open it again.
+      const tab = saved.status === 'DRAFT' ? 'drafts' : saved.status === 'ENDED' ? 'ended' : saved.stock > 0 ? '' : 'out-of-stock';
+      navigate(`/admin/listings${tab ? `?tab=${tab}` : ''}`, { state: { saved: message, id: saved.id, name: saved.name } });
     } catch (err) {
       setSaveError(errorMessage(err, 'We couldn’t save the listing. Try again.'));
     } finally {
@@ -268,20 +314,20 @@ export function ProductEditPage() {
     }
   }
 
-  const title = id ? (detail ? 'Edit listing' : 'Loading listing…') : 'Create listing';
+  const title = id ? (detail ? 'Edit Listing' : 'Loading Listing…') : 'Create Listing';
   const actions = (id && !detail) ? null : isLive ? (
     <>
       <a className="btn btn--outline" href={`${import.meta.env.BASE_URL}products/${encodeURIComponent(id!)}`} target="_blank" rel="noreferrer">View in Shop</a>
       <button type="button" className="btn btn--outline" disabled={saving} onClick={() => void save('DRAFT')}>End Listing</button>
       <button type="button" className="btn btn--primary" disabled={saving || !!blocker} onClick={() => void save('LIVE')}>
-        {blocker ? `Save changes (${blocker})` : saving ? 'Saving…' : 'Save changes'}
+        {blocker ? `Save Changes (${blocker})` : saving ? 'Saving…' : 'Save Changes'}
       </button>
     </>
   ) : (
     <>
       <button type="button" className="btn btn--outline" disabled={saving} onClick={() => void save('DRAFT')}>{saving ? 'Saving…' : 'Save Draft'}</button>
       <button type="button" className="btn btn--primary" disabled={saving || !!blocker} onClick={() => void save('LIVE')}>
-        {blocker ? `List it (${blocker})` : 'List it'}
+        {blocker ? `List It (${blocker})` : saving ? 'Listing…' : 'List It'}
       </button>
     </>
   );
@@ -294,11 +340,11 @@ export function ProductEditPage() {
     );
   }
 
-  const previewImage = added[0]?.url ?? kept[0]?.url ?? (usesSample || usesEbayPhotos ? detail?.imageUrl : null);
+  const previewImage = added[0]?.url ?? kept[0]?.url ?? imported[0]?.url ?? (usesSample || usesListingPhoto ? detail?.imageUrl : null);
   const reference = partNumber.trim() ? `Part no. ${partNumber.trim()}` : engineCode.trim() ? `Engine code ${engineCode.trim()}` : '';
 
   return (
-    <AdminLayout title={title} crumbs={[{ label: 'Listings', to: '/admin/listings' }, { label: id ? 'Edit listing' : 'Create listing' }]} actions={actions}>
+    <AdminLayout title={title} crumbs={[{ label: 'Listings', to: '/admin/listings' }, { label: id ? 'Edit Listing' : 'Create Listing' }]} actions={actions}>
       {id && !detail ? <CardsSkeleton cards={3} /> : (
         <div className="edit-cols">
           <div className="edit-main">
@@ -306,62 +352,8 @@ export function ProductEditPage() {
             {saveError && <p ref={errorRef} className="notice notice--error" role="alert" tabIndex={-1}>{saveError}</p>}
             {loadError && <p className="notice notice--error" role="alert">{loadError}</p>}
 
-            <section className="card" aria-labelledby="step-1">
-              <h2 id="step-1" className="card__title">1. Identify the Part</h2>
-              <p className="admin-muted">Enter the part number to find vehicles already confirmed for other parts with the same number.</p>
-              <form className="field" onSubmit={findVehicles}>
-                <label htmlFor="part-number">Part number</label>
-                <div className="inline-row">
-                  <input id="part-number" className="input mono" value={partNumber} onChange={(e) => setPartNumber(e.target.value)} maxLength={40} autoComplete="off" spellCheck={false} />
-                  <button type="submit" className="btn btn--dark" disabled={finding}>Find Vehicles</button>
-                </div>
-                <p className="field__hint">Shoppers can search by it with or without spaces and dashes.</p>
-              </form>
-            </section>
-
-            <section className="card" aria-labelledby="step-2">
-              <div className="card__head">
-                <h2 id="step-2" className="card__title">2. Confirm the Vehicles It Fits</h2>
-                {rows.length > 0 && <p className="admin-muted"><strong>{ticked.length}</strong> of {rows.length} ticked · {highTicked} high confidence</p>}
-              </div>
-              <div aria-live="polite">
-                {fitError && <p className="field-error">{fitError}</p>}
-                {fitNote && <p className="admin-muted">{fitNote}</p>}
-              </div>
-              {rows.length === 0 ? (
-                <p className="admin-muted">No vehicles yet. Find them by part number, apply the engine-code rule, or add them by hand.</p>
-              ) : (
-                <div className="table-wrap">
-                  <table className="table table--fit">
-                    <thead>
-                      <tr><th scope="col">Fits</th><th scope="col">Vehicle</th><th scope="col">Engine</th><th scope="col">Year</th><th scope="col">Source</th><th scope="col">Confidence</th></tr>
-                    </thead>
-                    <tbody>
-                      {rows.map((r) => (
-                        <tr key={r.fit.vehicleId} className={r.ticked ? undefined : 'is-unticked'}>
-                          <td>
-                            <input type="checkbox" className="tick" checked={r.ticked} aria-label={`Fits ${r.fit.vehicle}`}
-                              onChange={(e) => setRows(rows.map((x) => (x === r ? { ...x, ticked: e.target.checked } : x)))} />
-                          </td>
-                          <td>{r.fit.vehicle}<span className="table__sub">{r.fit.engine}</span></td>
-                          <td className="mono">{r.fit.engineCode ?? '—'}</td>
-                          <td>{r.fit.year == null ? '—' : r.fit.yearTo != null && r.fit.yearTo !== r.fit.year ? `${r.fit.year}–${r.fit.yearTo}` : r.fit.year}</td>
-                          <td>{r.fit.source}</td>
-                          <td><ConfidencePill confidence={r.fit.confidence} /></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-              <VehiclePicker onAdd={(found) => merge(found, () => true)} />
-              <div className="fit-actions">
-                <button type="button" className="link-btn" disabled={finding} onClick={() => void applyEngineRule()}>Apply Engine-Code Rule</button>
-              </div>
-            </section>
-
-            <section className="card" aria-labelledby="step-3">
-              <h2 id="step-3" className="card__title">3. Part Details</h2>
+            <section className="card" aria-labelledby="step-details">
+              <h2 id="step-details" className="card__title">1. Part Details</h2>
               <div className="field">
                 <label htmlFor="title">Title shown to shoppers</label>
                 <input id="title" className="input" value={name} onChange={(e) => setName(e.target.value)} maxLength={200} />
@@ -370,7 +362,12 @@ export function ProductEditPage() {
                 <div className="field">
                   <label htmlFor="category">Category</label>
                   <select id="category" className="input" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
-                    {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    {!categoryId && <option value="">Choose a category</option>}
+                    {[...new Set(categories.map((c) => c.group))].map((group) => (
+                      <optgroup key={group} label={group}>
+                        {categories.filter((c) => c.group === group).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </optgroup>
+                    ))}
                   </select>
                 </div>
                 <div className="field">
@@ -387,7 +384,7 @@ export function ProductEditPage() {
                 </div>
                 <div className="field">
                   <label htmlFor="price">Price (£, inc. VAT)</label>
-                  <input id="price" className="input" inputMode="decimal" placeholder="0.00" value={price} onChange={(e) => setPrice(priceInput(e.target.value))} />
+                  <input id="price" className="input" inputMode="decimal" placeholder="0.00" value={price} onChange={(e) => setPrice(decimalInput(e.target.value))} />
                 </div>
                 <div className="field">
                   <label htmlFor="sale">Sale (% off)<span className="field__optional"> (optional)</span></label>
@@ -411,19 +408,40 @@ export function ProductEditPage() {
                   <div className="field">
                     <label htmlFor="weight">Packed weight (kg)<span className="field__optional"> (optional)</span></label>
                     <input id="weight" className="input" inputMode="decimal" placeholder={typicalWeight != null ? String(typicalWeight) : 'e.g. 7.5'} value={weight}
-                      aria-describedby="weight-hint" onChange={(e) => setWeight(e.target.value.replace(/[^0-9.]/g, '').slice(0, 6))} />
+                      aria-describedby="weight-hint" onChange={(e) => setWeight(decimalInput(e.target.value).slice(0, 6))} />
                     <p id="weight-hint" className={'field__hint' + (weightOk ? '' : ' field-error')}>
                       {!weightOk ? 'Between 0.1 and 999 kg.' : 'For FedEx’s delivery price. Leave empty to use the category’s typical weight' + (typicalWeight != null ? ` (${typicalWeight} kg).` : '.')}
                     </p>
                   </div>
                 )}
                 <div className="field">
+                  <label htmlFor="part-number">Part number</label>
+                  <input id="part-number" className="input mono" value={partNumber} onChange={(e) => setPartNumber(e.target.value)} maxLength={40} autoComplete="off" spellCheck={false} aria-describedby="part-number-hint" />
+                  <p id="part-number-hint" className="field__hint">Shoppers can search by it with or without spaces and dashes.</p>
+                </div>
+                <div className="field">
                   <label htmlFor="engine-code">Engine code<span className="field__optional"> (optional)</span></label>
                   <input id="engine-code" className="input mono" value={engineCode} onChange={(e) => setEngineCode(e.target.value)} maxLength={20} spellCheck={false} />
                 </div>
                 <div className="field">
                   <label htmlFor="brand">Brand<span className="field__optional"> (optional)</span></label>
-                  <input id="brand" className="input" value={brand} onChange={(e) => setBrand(e.target.value)} maxLength={60} placeholder="e.g. Nissan, Bosch" />
+                  {newBrand ? (
+                    <>
+                      <input id="brand" className="input" value={brand} onChange={(e) => setBrand(e.target.value)} maxLength={60} placeholder="e.g. Nissan, Bosch" autoFocus />
+                      <p className="field__hint">
+                        A brand not listed yet. Shoppers filter by it, so spell it as the maker does.{' '}
+                        {brands.length > 0 && <button type="button" className="link-btn" onClick={() => { setNewBrand(false); setBrand(''); }}>Pick from the list</button>}
+                      </p>
+                    </>
+                  ) : (
+                    <select id="brand" className="input" value={brand}
+                      onChange={(e) => (e.target.value === NEW_BRAND ? (setNewBrand(true), setBrand('')) : setBrand(e.target.value))}>
+                      <option value="">No brand</option>
+                      {/* A listing's brand from before the list was tidied still shows, so saving doesn't drop it. */}
+                      {[...brands, ...(brand && !brands.includes(brand) ? [brand] : [])].map((b) => <option key={b} value={b}>{b}</option>)}
+                      <option value={NEW_BRAND}>Add a new brand…</option>
+                    </select>
+                  )}
                 </div>
                 <div className="field">
                   <label htmlFor="sub-type">Sub type<span className="field__optional"> (optional)</span></label>
@@ -462,35 +480,83 @@ export function ProductEditPage() {
               </div>
             </section>
 
-            <section className="card" aria-labelledby="step-description">
+            <section className="card" aria-labelledby="step-vehicles">
               <div className="card__head">
-                <h2 id="step-description" className="card__title">Description<span className="field__optional"> (optional)</span></h2>
-                {descriptionHtml.trim() && (
-                  <button type="button" className="link-btn" aria-pressed={previewDescription} onClick={() => setPreviewDescription(!previewDescription)}>
-                    {previewDescription ? 'Edit HTML' : 'Preview'}
-                  </button>
-                )}
+                <h2 id="step-vehicles" className="card__title">2. Confirm the Vehicles It Fits</h2>
+                {rows.length > 0 && <p className="admin-muted"><strong>{ticked.length}</strong> of {rows.length} ticked · {highTicked} high confidence</p>}
               </div>
-              <p className="field__hint">Paste the listing description as HTML, like the one on eBay. Shoppers see it under Description on the part’s page. Scripts and forms are removed before it’s shown.</p>
-              {previewDescription && descriptionHtml.trim() ? (
-                <ListingHtml html={descriptionHtml} className="listing-html--preview" />
+              <div aria-live="polite">
+                {fitError && <p className="field-error">{fitError}</p>}
+                {fitNote && <p className="admin-muted">{fitNote}</p>}
+              </div>
+              {rows.length === 0 ? (
+                <p className="admin-muted">No vehicles yet. Add them from the vehicle list below, or apply the engine-code rule.</p>
               ) : (
-                <>
-                  <label className="sr-only" htmlFor="description-html">Description (HTML)</label>
-                  <textarea id="description-html" className="input mono description-html" rows={12} value={descriptionHtml}
-                    onChange={(e) => setDescriptionHtml(e.target.value)} maxLength={100000} spellCheck={false}
-                    placeholder={'<h3>Product Description</h3>\n<ul><li>Part number: …</li></ul>'} />
-                </>
+                <div className="table-wrap">
+                  <table className="table table--fit">
+                    <thead>
+                      <tr><th scope="col">Fits</th><th scope="col">Vehicle</th><th scope="col">Engine</th><th scope="col">Year</th><th scope="col">Source</th><th scope="col">Confidence</th></tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((r) => (
+                        <tr key={r.fit.vehicleId} className={r.ticked ? undefined : 'is-unticked'}>
+                          <td>
+                            <input type="checkbox" className="tick" checked={r.ticked} aria-label={`Fits ${r.fit.vehicle}`}
+                              onChange={(e) => setRows(rows.map((x) => (x === r ? { ...x, ticked: e.target.checked } : x)))} />
+                          </td>
+                          <td>{r.fit.vehicle}<span className="table__sub">{r.fit.engine}</span></td>
+                          <td className="mono">{r.fit.engineCode ?? '—'}</td>
+                          <td>{r.fit.year == null ? '—' : r.fit.yearTo != null && r.fit.yearTo !== r.fit.year ? `${r.fit.year}–${r.fit.yearTo}` : r.fit.year}</td>
+                          <td>{r.fit.source}</td>
+                          <td><ConfidencePill confidence={r.fit.confidence} /></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
+              <VehiclePicker onAdd={(found) => merge(found, () => true)} />
+              <div className="fit-actions">
+                <button type="button" className="link-btn" disabled={finding} onClick={() => void applyEngineRule()}>Apply Engine-Code Rule</button>
+              </div>
             </section>
 
-            <section className="card" aria-labelledby="step-4">
-              <h2 id="step-4" className="card__title">4. Photos</h2>
+            <section className="card" aria-labelledby="step-description">
+              <h2 id="step-description" className="card__title">3. Description</h2>
+              <p className="field__hint">
+                Built from the shop’s listing template. The title, brand, part number and condition come from above; fill
+                in whichever of these lines apply. Empty ones are left out.
+              </p>
+              <div className="field-row">
+                {DESCRIPTION_INPUTS.map(([key, label, placeholder]) => (
+                  <div className="field" key={key}>
+                    <label htmlFor={`desc-${key}`}>{label}<span className="field__optional"> (optional)</span></label>
+                    <input id={`desc-${key}`} className="input" value={descFields[key]} onChange={setDesc(key)} placeholder={placeholder} maxLength={200} />
+                  </div>
+                ))}
+              </div>
+              <div className="field">
+                <label htmlFor="desc-notes">Notes<span className="field__optional"> (optional)</span></label>
+                <textarea id="desc-notes" className="input" rows={3} value={descFields.notes} onChange={setDesc('notes')} maxLength={2000}
+                  placeholder="Anything else shoppers should know, like what doesn’t come with an engine. A blank line starts a new paragraph." />
+              </div>
+              <p className="field__label">Preview</p>
+              {descriptionToSave === descriptionHtml && descriptionHtml.trim() && !madeFromFields(descriptionHtml) && (
+                <p className="field__hint">This is the listing’s original description. It’s kept as it is until you change a line it shows.</p>
+              )}
+              <ListingHtml html={descriptionToSave} className="listing-html--preview" />
+            </section>
+
+            <section className="card" aria-labelledby="step-photos">
+              <div className="card__head">
+                <h2 id="step-photos" className="card__title">4. Photos</h2>
+                <p className="admin-muted"><strong>{photoCount}</strong> of {MAX_PHOTOS} photos</p>
+              </div>
               {usesSample && <p className="notice">This part is using a sample photo. Upload real photos of this unit to replace it.</p>}
-              {usesEbayPhotos && (
+              {usesListingPhoto && (
                 <div className="notice">
                   <img src={detail!.imageUrl!} alt="" width={64} height={64} style={{ objectFit: 'cover', borderRadius: 4, float: 'left', marginRight: 12 }} />
-                  <p>This listing shows its photos from eBay. You can save changes without uploading any; photos you upload here are added to it.</p>
+                  <p>This listing already has a photo. You can save changes without uploading any; photos you upload here go first.</p>
                 </div>
               )}
               <div className="photos">
@@ -499,7 +565,7 @@ export function ProductEditPage() {
                     onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
                     onDragLeave={() => setDragging(false)} onDrop={onDrop}>
                     <p>Drop photos here or <button type="button" className="link-btn" onClick={() => fileRef.current?.click()}>browse</button></p>
-                    <p className="field__hint">Real photos of this unit, at least one required. JPG, PNG or WebP, up to {MAX_PHOTOS}.</p>
+                    <p className="field__hint">Add up to {MAX_PHOTOS} real photos of this unit, at least one. JPG, PNG or WebP; each is turned into a WebP for the shop.</p>
                     <input ref={fileRef} type="file" accept={PHOTO_TYPES.join(',')} multiple hidden
                       onChange={(e) => { addFiles(Array.from(e.target.files ?? [])); e.target.value = ''; }} />
                   </div>
@@ -508,6 +574,12 @@ export function ProductEditPage() {
                   <figure key={p.id} className="photo-tile">
                     <img src={p.url} alt={`Photo ${i + 1}`} />
                     <button type="button" className="photo-tile__remove" aria-label={`Remove photo ${i + 1}`} onClick={() => setKept(kept.filter((x) => x !== p))}><Icon name="x" size={16} /></button>
+                  </figure>
+                ))}
+                {imported.map((p, i) => (
+                  <figure key={p.id} className="photo-tile">
+                    <img src={p.url} alt={`Photo ${kept.length + i + 1}`} />
+                    <button type="button" className="photo-tile__remove" aria-label={`Remove photo ${kept.length + i + 1}`} onClick={() => setImported(imported.filter((x) => x !== p))}><Icon name="x" size={16} /></button>
                   </figure>
                 ))}
                 {added.map((p, i) => (
@@ -528,7 +600,7 @@ export function ProductEditPage() {
               <ul className="checklist">
                 <Check ok={refOk} label={partNumber.trim() ? 'Part number entered' : refOk ? 'Engine code entered' : 'Part number or engine code'} />
                 <Check ok={highTicked > 0} label={highTicked > 0 ? `High-confidence compatibility (${highTicked})` : 'High-confidence compatibility (recommended)'} />
-                <Check ok={photoOk} label={usesSample ? 'Photo (sample only)' : usesEbayPhotos ? 'Photos from eBay' : 'At least one photo'} />
+                <Check ok={photoOk} label={usesSample ? 'Photo (sample only)' : usesListingPhoto ? 'Photo already on the listing' : 'At least one photo'} />
                 <Check ok={priceOk} label="Price Set" />
               </ul>
               {detail && <p className="admin-muted">Currently {detail.status === 'LIVE' ? 'live in the shop' : detail.status === 'ENDED' ? 'ended (not in the shop)' : 'a draft'}.</p>}

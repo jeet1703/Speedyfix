@@ -50,9 +50,11 @@ public class AdminVehicleController {
         return catalogue.years(make, model);
     }
 
+    /** The engines to choose from, each with its size, fuel and power spelled out ("1.5L diesel, 110HP"). */
     @GetMapping("/engines")
-    public List<String> engines(@RequestParam String make, @RequestParam String model, @RequestParam int yearFrom, @RequestParam int yearTo) {
-        return catalogue.engines(make, model, yearFrom, yearTo);
+    public List<VehicleCatalogue.EngineChoice> engines(@RequestParam String make, @RequestParam String model,
+                                                      @RequestParam int yearFrom, @RequestParam int yearTo) {
+        return catalogue.engineChoices(make, model, yearFrom, yearTo);
     }
 
     public record NewRange(
@@ -75,7 +77,7 @@ public class AdminVehicleController {
         return chosen.stream().map(engine -> {
             String fuel = engine == null ? null : catalogue.fuel(r.make(), r.model(), Math.min(r.yearFrom(), r.yearTo()), engine);
             Vehicle v = vehicles.addRange(VehicleRange.of(r.make(), r.model(), r.yearFrom(), r.yearTo(), engine, fuel));
-            return AdminCatalogService.fitment(v, "Picked from eBay’s vehicle list", AdminCatalogService.Confidence.HIGH);
+            return AdminCatalogService.fitment(v, "Picked from the vehicle list", AdminCatalogService.Confidence.HIGH);
         }).toList();
     }
 }

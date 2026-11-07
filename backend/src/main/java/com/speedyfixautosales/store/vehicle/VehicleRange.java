@@ -66,10 +66,16 @@ public record VehicleRange(String id, String make, String model, int yearFrom, i
 
     /** "1.5L diesel, 110HP", or "All engines". */
     public String engineLabel() {
+        return engineLabel(ebayEngine, fuel);
+    }
+
+    /** eBay's "1461cc 81KW 110HP K9K 646" with its fuel as "1.5L diesel, 110HP"; null engine is "All engines". */
+    public static String engineLabel(String ebayEngine, String fuel) {
         if (ebayEngine == null) {
             return fuel == null ? "All engines" : "All " + fuel + " engines";
         }
-        Integer cc = cc();
+        Matcher m = CC.matcher(ebayEngine);
+        Integer cc = m.find() ? Integer.valueOf(m.group(1)) : null;
         Matcher hp = HP.matcher(ebayEngine);
         String size = cc == null ? ebayEngine : String.format(Locale.UK, "%.1fL", Math.round(cc / 100.0) / 10.0);
         return size + (fuel == null ? "" : " " + fuel) + (hp.find() ? ", " + hp.group(1) + "HP" : "");

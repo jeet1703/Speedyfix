@@ -2,7 +2,7 @@ import { ApiError, BASE, request } from '../api/client';
 import type { Vehicle } from '../api/types';
 import type {
   AdminSession, StaffSession, CategoryOption, CustomerRow, Dashboard, Fitment, Order, OrderStatus, PartRequest, PartRequestStatus, PlateCheck,
-  ProductDetail, ProductFormData, ProductRow, SettingsValues, SettingsView, EbaySyncStatus, InvoiceStatus, CompatibilityImport
+  EngineChoice, ProductDetail, ProductFormData, ProductRow, SettingsValues, SettingsView, InvoiceStatus
 } from './types';
 
 const KEY = 'sf_admin_token';
@@ -61,6 +61,7 @@ export const adminApi = {
   products: () => authed<ProductRow[]>('/api/admin/products'),
   product: (id: string) => authed<ProductDetail>(`/api/admin/products/${encodeURIComponent(id)}`),
   categories: () => authed<CategoryOption[]>('/api/admin/categories'),
+  brands: () => authed<string[]>('/api/admin/brands'),
   vehicles: () => request<Vehicle[]>('/api/vehicles'),
 
   /** Creates the part when id is null. Sends the form as JSON plus any new photos in one multipart request. */
@@ -76,7 +77,7 @@ export const adminApi = {
   catalogueYears: (make: string, model: string) =>
     authed<string[]>(`/api/admin/vehicle-catalogue/years?make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}`),
   catalogueEngines: (make: string, model: string, yearFrom: number, yearTo: number) =>
-    authed<string[]>(`/api/admin/vehicle-catalogue/engines?make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}&yearFrom=${yearFrom}&yearTo=${yearTo}`),
+    authed<EngineChoice[]>(`/api/admin/vehicle-catalogue/engines?make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}&yearFrom=${yearFrom}&yearTo=${yearTo}`),
   addVehicleRange: (range: { make: string; model: string; yearFrom: number; yearTo: number; engines: string[] }) =>
     authed<Fitment[]>('/api/admin/vehicle-catalogue', json('POST', range)),
   fitment: (partNumber: string, engineCode: string, productId: string | null) => {
@@ -108,10 +109,6 @@ export const adminApi = {
   customers: () => authed<CustomerRow[]>('/api/admin/customers'),
 
   settings: () => authed<SettingsView>('/api/admin/settings'),
-  ebaySync: () => authed<EbaySyncStatus>('/api/admin/ebay-sync'),
-  startEbaySync: () => authed<EbaySyncStatus>('/api/admin/ebay-sync', { method: 'POST' }),
-  compatibilityImport: () => authed<CompatibilityImport>('/api/admin/ebay-sync/compatibility'),
-  startCompatibilityImport: () => authed<CompatibilityImport>('/api/admin/ebay-sync/compatibility', { method: 'POST' }),
   saveSettings: (values: SettingsValues) => authed<SettingsView>('/api/admin/settings', json('PUT', values))
 };
 

@@ -31,6 +31,11 @@
 /* Orders */
 .order-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
 .order-lines li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--admin-line); }
+.order-lines li.order-line--photos { flex-wrap: wrap; }
+.order-photos { flex-basis: 100%; display: flex; gap: 8px; overflow-x: auto; padding-top: 4px; }
+.order-photos a { flex: none; display: block; border: 1px solid var(--admin-line); border-radius: 6px; overflow: hidden; }
+.order-photos a:hover, .order-photos a:focus-visible { border-color: var(--accent); }
+.order-photos img { display: block; width: 96px; height: 96px; object-fit: cover; background: var(--surface); }
 .pill--awaiting-payment { background: #fdf3c4; color: #6b4a00; }
 .pill--awaiting-dispatch { background: #fde6dd; color: #9a3412; }
 .pill--dispatched { background: #e4f3e9; color: #17733f; }
@@ -253,8 +258,6 @@ select.input--sm { padding-right: 32px; }
 .admin-pager { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding-top: 8px; }
 .pill--sale { background: #fbe7e7; color: #9b1c1c; }
 /* "Sync with eBay" on the Listings page, with what the last sync did. */
-.ebay-sync { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; max-width: 360px; }
-.ebay-sync__note { font-size: 13px; color: var(--ink-2); text-align: right; margin: 0; }
 /* Vehicle picker (eBay's vehicle list) in the listing editor. */
 .vpick { border: 1px solid var(--admin-line, #e3e6ea); border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 10px; background: #fafafa; }
 .vpick__title { font-weight: 600; margin: 0; }

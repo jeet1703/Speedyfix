@@ -2,6 +2,7 @@ package com.speedyfixautosales.store.admin;
 
 import com.speedyfixautosales.store.catalog.Condition;
 import com.speedyfixautosales.store.catalog.Product;
+import com.speedyfixautosales.store.catalog.ProductPhotoStore;
 import com.speedyfixautosales.store.catalog.ProductStatus;
 import com.speedyfixautosales.store.catalog.Shipping;
 import jakarta.validation.constraints.DecimalMax;
@@ -18,7 +19,8 @@ import java.util.List;
 
 /**
  * The Create listing / Edit listing form. A draft can be saved without a price or photo; AdminCatalogService checks
- * what publishing needs. keepPhotoIds lists the part's current photos to keep (null keeps them all).
+ * what publishing needs. keepPhotoIds lists the part's current photos to keep (null keeps them all); removePhotoIds
+ * lists photos from its eBay listing to take off (null or empty keeps them all).
  * descriptionHtml is the listing description as HTML; null leaves it as it is, blank removes it. salePercent is the
  * percentage off the price during a sale; null for none. weightKg is the packed part's weight for FedEx's
  * delivery prices; null uses the category's typical weight.
@@ -39,8 +41,9 @@ public record ProductForm(
         @NotNull(message = "Choose how the part ships.") Shipping shipping,
         @NotNull(message = "Enter the stock quantity.") @Min(value = 0, message = "Stock can’t be below 0.") @Max(value = 999, message = "Stock must be 999 or fewer.") Integer stock,
         boolean bestSeller,
-        @Size(max = 50) List<String> vehicleIds,
-        @Size(max = 10) List<String> keepPhotoIds,
+        @Size(max = MAX_VEHICLES, message = "A part can list up to " + MAX_VEHICLES + " vehicles.") List<String> vehicleIds,
+        @Size(max = ProductPhotoStore.MAX_PER_PART) List<String> keepPhotoIds,
+        @Size(max = ProductPhotoStore.MAX_PER_PART) List<String> removePhotoIds,
         @NotNull ProductStatus status,
         @Size(max = AdminCatalogService.MAX_DESCRIPTION_HTML, message = "Keep the description under 100,000 characters.") String descriptionHtml,
         @Min(value = 1, message = "A sale takes at least 1% off. Leave it empty for no sale.")
@@ -48,4 +51,7 @@ public record ProductForm(
         @DecimalMin(value = "0.1", message = "Enter a weight of at least 0.1 kg, or leave it empty.")
         @DecimalMax(value = "999", message = "Enter a weight under 1,000 kg.")
         @Digits(integer = 3, fraction = 2, message = "Enter the weight in kilograms, like 7.5.") BigDecimal weightKg) {
+
+    /** Vehicles on one part: a common engine fits many models and years. */
+    public static final int MAX_VEHICLES = 500;
 }

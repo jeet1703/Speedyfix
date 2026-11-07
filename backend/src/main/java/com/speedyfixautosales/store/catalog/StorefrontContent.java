@@ -58,24 +58,29 @@ final class StorefrontContent {
             new Feature("truck", "Our Delivery Partners", "FedEx, UPS, Royal Mail, DHL and DPD, tracked to your door"),
             new Feature("shield", "Quick UK Shipping", "Usually within 7 working days, with a 28-day warranty"));
 
-    // Links go to a category when one exists, otherwise to a search for the part name. Every link has stock behind it
-    // in the business's eBay listings; check the counts again if the range changes.
+    // Every link is a shop category, named as it is in the shop and the admin, so the menu, the shop's category list
+    // and the admin's category choice always agree. The first three groups are the client's three category lists, in
+    // their order; the last holds the stock those lists don't cover. Rebuild Kits stays out while it has one part.
     static final List<MenuGroup> MENU = List.of(
-            group("Engine and Internals", cat("Complete Engines", "engines"), find("Short Engines", "short engine"),
-                    cat("Cylinder Heads", "cylinder-heads"), cat("Engine Parts", "engine-parts"),
-                    find("Crankshafts", "crankshaft"), find("Camshafts", "camshaft"), find("Timing Kits", "timing"),
-                    find("Flywheels", "flywheel"), cat("Engine Mounts", "engine-mounts")),
-            group("Fuel, Air and Turbo", cat("Turbochargers", "turbochargers"), cat("Fuel Injection", "fuel-injection"),
-                    find("Fuel Injectors", "injector"), find("Injector Rails", "rail"),
-                    cat("Air Intake and Throttle Bodies", "air-intake"), cat("Exhaust and Emissions", "egr-emissions")),
-            group("Electrics and Cooling", cat("ECUs and Electronics", "ecus-electronics"),
-                    cat("Instruments and Infotainment", "instruments-infotainment"),
-                    cat("Starters and Alternators", "starters-alternators"), cat("Ignition", "ignition"), cat("Sensors", "electrics-sensors"),
-                    cat("A/C Compressors", "cooling-ac"), find("Water Pumps", "water pump"), find("Oil Coolers", "oil cooler"),
-                    find("Wiring Looms", "loom"), cat("Lights and Mirrors", "lights-mirrors")),
-            group("Transmission and Body", cat("Gearboxes", "gearboxes"), cat("Drivetrain", "drivetrain"),
-                    cat("Steering and Suspension", "steering-suspension"), cat("Body Panels", "body-panels"), cat("Doors", "doors"),
-                    cat("Interior", "interior"), cat("Accessories", "accessories"), cat("Brakes", "brakes")));
+            group("Engines and Drivetrain", cat("Complete Engines", "engines"), cat("Bare Engines", "bare-engines"),
+                    cat("Short Motors", "short-motors"), cat("Bare Cylinder Blocks", "cylinder-blocks"),
+                    cat("Cylinder Heads", "cylinder-heads"), cat("Crankshafts", "crankshafts"), cat("Camshafts", "camshafts"),
+                    cat("Sumps and Pans", "sumps-pans"), cat("Oil Pumps", "oil-pumps"),
+                    cat("Gearboxes and Transfer Cases", "gearboxes"), cat("Differentials and Axles", "drivetrain"),
+                    cat("Coolant Components", "cooling-ac")),
+            group("Turbo, Fuel and Ancillaries", cat("Turbochargers", "turbochargers"),
+                    cat("Alternators and Starter Motors", "starters-alternators"), cat("AC Compressors", "ac-compressors"),
+                    cat("Fuel Injection Pumps and Rails", "fuel-injection"), cat("Fuel Injectors", "fuel-injectors"),
+                    cat("Intake and Exhaust Manifolds", "manifolds"), cat("Throttle Bodies", "air-intake"),
+                    cat("EGR Valves and Coolers", "egr-valves"), cat("Particulate Filters and Exhausts", "egr-emissions"),
+                    cat("Solenoids and Sensors", "electrics-sensors")),
+            group("Electronics and Lighting", cat("ECUs and Electronic Modules", "ecus-electronics"),
+                    cat("Instrument Clusters", "instruments-infotainment"), cat("Audio and Media Systems", "audio-media"),
+                    cat("Wiring Looms", "wiring-looms"), cat("Lights and Mirrors", "lights-mirrors")),
+            group("Body and Other Parts", cat("Body Panels", "body-panels"), cat("Doors", "doors"), cat("Interior", "interior"),
+                    cat("Steering and Suspension", "steering-suspension"), cat("Brakes", "brakes"),
+                    cat("Engine Parts", "engine-parts"), cat("Engine Mounts", "engine-mounts"), cat("Ignition", "ignition"),
+                    cat("Accessories", "accessories"), cat("Other Parts", "other-parts")));
 
     private static MenuGroup group(String title, MenuLink... links) {
         return new MenuGroup(title, List.of(links));
@@ -83,9 +88,5 @@ final class StorefrontContent {
 
     private static MenuLink cat(String label, String categoryId) {
         return new MenuLink(label, "/products?category=" + categoryId);
-    }
-
-    private static MenuLink find(String label, String query) {
-        return new MenuLink(label, "/products?q=" + query.replace(' ', '+'));
     }
 }

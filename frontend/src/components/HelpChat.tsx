@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { api, ApiError, money } from '../api/client';
 import type { Order, Product, Site } from '../api/types';
 import { useStore } from '../state/StoreContext';
@@ -53,6 +53,18 @@ const reducedMotion = () => typeof window !== 'undefined' && !!window.matchMedia
 const formatRef = (ref: string) => ref.toUpperCase().replace(/^SF-?/, 'SF-');
 
 let nextId = 1;
+
+/** The chat opens by itself this long after a visit starts, once a visit (browser tab session). */
+const AUTO_OPEN_DELAY_MS = 2500;
+const GREETED = 'sf_chat_greeted';
+const phone = () => typeof window !== 'undefined' && !!window.matchMedia?.('(max-width: 640px)').matches;
+// Session storage can be blocked (private windows, strict settings): then the chat just doesn't open by itself.
+const seen = (key: string) => {
+  try { return sessionStorage.getItem(key) !== null; } catch { return true; }
+};
+const remember = (key: string) => {
+  try { sessionStorage.setItem(key, '1'); } catch { /* blocked: nothing to remember */ }
+};
 
 /** Splits "**bold** words" into words, each knowing whether it's bold, keeping the spaces. */
 function words(text: string): { word: string; bold: boolean }[] {
@@ -110,6 +122,21 @@ export function HelpChat({ site, ai, fedex }: { site: Site; ai: boolean; fedex: 
   const input = useRef<HTMLInputElement>(null);
 
   const close = () => setOpen(false);
+  // Opened by itself (once a visit) rather than by the shopper: greet them, but don't grab the keyboard.
+  const autoOpened = useRef(false);
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    // Not on phones (the panel would cover the page), nor over checkout or a just-placed order, where it would get in
+    // the way of paying.
+    if (phone() || /^\/(checkout|order-received)\b/.test(pathname) || seen(GREETED)) return;
+    const timer = window.setTimeout(() => {
+      remember(GREETED);
+      autoOpened.current = true;
+      setOpen(true);
+    }, AUTO_OPEN_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [pathname]);
 
   /** The shopper's message appears at once; the assistant's after a short think, then writes itself out. */
   function say(from: Message['from'], words: string, extra?: ReactNode, afterLookup = false) {
@@ -149,7 +176,12 @@ export function HelpChat({ site, ai, fedex }: { site: Site; ai: boolean; fedex: 
         'Hello! Looking for a part? Tell me the part number, what you need, or your reg, and I’ll check our stock. I can also track an order or explain delivery and returns.'
       ]));
     }
-    if (open) requestAnimationFrame(() => input.current?.focus());
+    if (open) {
+      // Once open, the visit counts as greeted, so it doesn't open by itself again.
+      remember(GREETED);
+      if (!autoOpened.current) requestAnimationFrame(() => input.current?.focus());
+      autoOpened.current = false;
+    }
   }, [open]); // runs when the panel opens
 
   useEffect(() => {

@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { adminApi, errorMessage } from '../adminApi';
 import { AdminLayout } from '../AdminLayout';
 import { gbpOrDash, OrderPill, when } from '../components';
@@ -39,6 +39,20 @@ export function OrderDetailPage() {
   useEffect(() => {
     adminApi.order(reference).then(setOrder).catch((err) => setError(errorMessage(err, 'This order didn’t load. Try again.')));
   }, [reference]);
+
+  // Once paid, each part's photos show with its line, so staff can find the right part on the shelf to send.
+  const paid = order?.status === 'AWAITING_DISPATCH' || order?.status === 'DISPATCHED';
+  const [photos, setPhotos] = useState<Record<string, { id: string; url: string }[]>>({});
+  useEffect(() => {
+    if (!order || !paid) return;
+    let live = true;
+    for (const id of new Set(order.lines.map((l) => l.productId))) {
+      adminApi.product(id)
+        .then((p) => live && setPhotos((all) => ({ ...all, [id]: [...p.photos, ...p.importedPhotos] })))
+        .catch(() => live && setPhotos((all) => ({ ...all, [id]: [] })));
+    }
+    return () => { live = false; };
+  }, [order?.reference, paid]);
 
   // The invoice is numbered once the order is paid, so look again whenever its status changes.
   useEffect(() => {
@@ -104,9 +118,22 @@ export function OrderDetailPage() {
               </div>
               <ul className="order-lines">
                 {order.lines.map((l) => (
-                  <li key={l.productId}>
+                  <li key={l.productId} className={paid ? 'order-line--photos' : undefined}>
                     <span>{l.quantity} × {l.name}{l.reference && <span className="table__sub mono">{l.reference}</span>}</span>
                     <span>{gbpOrDash(l.lineTotal)}</span>
+                    {paid && (
+                      <div className="order-photos">
+                        {photos[l.productId] === undefined && <span className="admin-muted">Loading photos…</span>}
+                        {photos[l.productId]?.length === 0 && (
+                          <span className="admin-muted">No photos for this part. <Link to={`/admin/products/${encodeURIComponent(l.productId)}`}>Open the listing</Link></span>
+                        )}
+                        {photos[l.productId]?.map((ph, i) => (
+                          <a key={ph.id} href={ph.url} target="_blank" rel="noreferrer" aria-label={`Photo ${i + 1} of ${l.name}, opens full size`}>
+                            <img src={ph.url} alt="" loading="lazy" />
+                          </a>
+                        ))}
+                      </div>
+                    )}
                   </li>
                 ))}
                 <li><span>Delivery{order.delivery.label ? ` (${order.delivery.label})` : ''}</span><span>{gbpOrDash(order.delivery.price)}</span></li>

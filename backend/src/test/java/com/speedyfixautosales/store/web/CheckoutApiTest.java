@@ -38,7 +38,7 @@ class CheckoutApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(2))
                 .andExpect(jsonPath("$.items[0].id").value("yd25-engine"))
-                .andExpect(jsonPath("$.categories", hasSize(11)));
+                .andExpect(jsonPath("$.categories", hasSize(12)));
     }
 
     @Test
@@ -136,7 +136,11 @@ class CheckoutApiTest {
     void siteEndpointServesHeaderAndFooterData() throws Exception {
         mvc.perform(get("/api/site"))
                 .andExpect(jsonPath("$.site.name").value("SpeedyFix Auto Sales"))
-                .andExpect(jsonPath("$.menu[0].links[0].href").value("/products?category=engines"));
+                .andExpect(jsonPath("$.menu[0].links[0].href").value("/products?category=engines"))
+                .andExpect(jsonPath("$.menu[0].links[1].href").value("/products?category=bare-engines"))
+                // Only categories, so the menu matches the shop's and the admin's category lists.
+                .andExpect(jsonPath("$.menu[*].links[*].href", org.hamcrest.Matchers.everyItem(
+                        org.hamcrest.Matchers.startsWith("/products?category="))));
     }
 
     private String id(String basketJson) throws Exception {

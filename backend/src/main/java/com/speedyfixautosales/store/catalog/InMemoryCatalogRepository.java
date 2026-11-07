@@ -42,16 +42,17 @@ public class InMemoryCatalogRepository implements CatalogRepository {
 
     public InMemoryCatalogRepository() {
         // Popular categories show on the homepage in sortOrder: engines, gearboxes, accessories, turbochargers.
-        category("engines", "Engines", "1552656967-7a0991a13906", true, 1);
-        category("gearboxes", "Gearboxes", "1711199694531-e982a79ea381", true, 2);
+        category("engines", "Complete Engines", "1552656967-7a0991a13906", true, 1);
+        category("bare-engines", "Bare Engines", "1552656967-7a0991a13906", false, 1);
+        category("gearboxes", "Gearboxes and Transfer Cases", "1711199694531-e982a79ea381", true, 2);
         category("accessories", "Accessories", "1537462715879-360eeb61a0ad", true, 3);
         category("turbochargers", "Turbochargers", "1664695221759-21ed7295f697", true, 4);
         category("rebuild-kits", "Rebuild Kits", "1720244253125-f39d7aeccccf", false, 5);
         category("cylinder-heads", "Cylinder Heads", "1786028924575-9948c6a58b22", false, 6);
         category("engine-mounts", "Engine Mounts", "1767340078222-98633f3ffd27", false, 7);
-        category("fuel-injection", "Fuel Injection", "1759148413911-5ded7ed2ec06", false, 8);
-        category("cooling-ac", "Cooling and A/C", "1486262715619-67b85e0b08d3", false, 9);
-        category("electrics-sensors", "Electrics and Sensors", "1584809923235-fabdba83d1df", false, 10);
+        category("fuel-injection", "Fuel Injection Pumps and Rails", "1759148413911-5ded7ed2ec06", false, 8);
+        category("cooling-ac", "Coolant Components", "1486262715619-67b85e0b08d3", false, 9);
+        category("electrics-sensors", "Solenoids and Sensors", "1584809923235-fabdba83d1df", false, 10);
         category("brakes", "Brakes", "1696494561430-de087dd0bd69", false, 11);
 
         product("ej20-head", "Subaru EJ20 cylinder head, remanufactured", "cylinder-heads", Condition.REMANUFACTURED, null,

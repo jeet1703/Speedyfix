@@ -33,6 +33,7 @@
 .plate-input input:focus { outline: none; }
 .plate-input input::placeholder { color: rgba(20, 23, 26, 0.35); }
 .finder .btn--dark { min-height: 56px; }
+.finder .finder__fits { min-height: 44px; margin-top: 12px; }
 @media (max-width: 820px) {
   .finder__inner { grid-template-columns: minmax(0, 1fr); }
   .finder__hint { grid-column: 1; }

@@ -1,6 +1,8 @@
 package com.speedyfixautosales.store.catalog;
 
 import com.speedyfixautosales.store.common.BadRequestException;
+import com.speedyfixautosales.store.photo.PhotoProcessor;
+import com.speedyfixautosales.store.photo.PhotoUrls;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -15,7 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
  * Staff photos in the database ("postgres" profile), so they survive redeploys until they move to Cloudflare R2.
  * Each is a product_photos row (source UPLOAD, r2_key "db:<id>") plus its file in product_photo_files. Uploads use
  * positions below zero, ahead of any photos downloaded from eBay, so the first upload is the listing's main image.
- * Photos downloaded from eBay aren't touched here.
+ * Photos downloaded from eBay are only listed here, and taken off when staff remove them (removeImported).
  */
 @Component
 @Profile("postgres")
@@ -26,9 +28,29 @@ public class JdbcProductPhotoStore implements ProductPhotoStore {
     private static final int FIRST_POSITION = -100;
 
     private final JdbcTemplate jdbc;
+    private final PhotoUrls photoUrls;
 
-    public JdbcProductPhotoStore(JdbcTemplate jdbc) {
+    public JdbcProductPhotoStore(JdbcTemplate jdbc, PhotoUrls photoUrls) {
         this.jdbc = jdbc;
+        this.photoUrls = photoUrls;
+    }
+
+    @Override
+    public List<Imported> imported(String productId) {
+        String large = "-" + PhotoProcessor.LARGE + ".jpg";
+        return jdbc.query("""
+                SELECT id, r2_key FROM product_photos WHERE product_id = ? AND source = 'EBAY' AND r2_key IS NOT NULL
+                ORDER BY position""", (rs, i) -> {
+            String key = rs.getString("r2_key");
+            String small = key.endsWith(large) ? key.substring(0, key.length() - large.length()) + "-" + PhotoProcessor.SMALL + ".jpg" : key;
+            return new Imported(rs.getString("id"), photoUrls.url(key), photoUrls.url(small));
+        }, productId);
+    }
+
+    @Override
+    public void removeImported(String productId, List<String> photoIds) {
+        // The files stay in storage: the eBay sync downloads them again only for a part left with no photos at all.
+        photoIds.forEach(id -> jdbc.update("DELETE FROM product_photos WHERE id = ? AND product_id = ? AND source = 'EBAY'", id, productId));
     }
 
     @Override

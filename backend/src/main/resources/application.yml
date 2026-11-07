@@ -18,7 +18,7 @@ spring:
   servlet:
     multipart:
       max-file-size: 5MB
-      max-request-size: 16MB
+      max-request-size: 40MB
 
 site:
   name: SpeedyFix Auto Sales
@@ -86,10 +86,6 @@ ebay:
   # Secret: set them in the environment, never in this file.
   client-id: ${EBAY_CLIENT_ID:}
   client-secret: ${EBAY_CLIENT_SECRET:}
-  # For importing each listing's compatibility table (eBay's Trading API): the keyset's Dev ID, and a user token from
-  # the seller's eBay account (developer.ebay.com, User Tokens). Both secret; without them the import button is off.
-  dev-id: ${EBAY_DEV_ID:}
-  user-token: ${EBAY_USER_TOKEN:}
   marketplace: EBAY_GB
   # With the keys set, the shop follows the seller's eBay listings: new listings are added (with photos), prices
   # follow eBay, and parts no longer on eBay are ended. EBAY_SELLER is found from the listings when left blank.

@@ -10,38 +10,19 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** The eBay sync for staff: its status, and "Sync now". Every route needs a staff session (AdminWebConfig). */
+/**
+ * The eBay sync: its status, and "Sync now". It also runs on its own every 30 minutes, and the admin no longer has a
+ * button for it; these routes are for checking it by hand. Every route needs a staff session (AdminWebConfig).
+ */
 @RestController
 @RequestMapping("/api/admin/ebay-sync")
 @Profile("postgres")
 public class AdminEbaySyncController {
 
     private final EbaySyncService sync;
-    private final EbayCompatibilityImport compatibility;
 
-    public AdminEbaySyncController(EbaySyncService sync, EbayCompatibilityImport compatibility) {
+    public AdminEbaySyncController(EbaySyncService sync) {
         this.sync = sync;
-        this.compatibility = compatibility;
-    }
-
-    public record CompatibilityStatus(boolean available, EbayCompatibilityImport.Status status) {
-    }
-
-    @GetMapping("/compatibility")
-    public CompatibilityStatus compatibility() {
-        return new CompatibilityStatus(compatibility.available(), compatibility.status());
-    }
-
-    /** Starts copying every listing's eBay compatibility table onto its part (202); poll GET for progress. */
-    @PostMapping("/compatibility")
-    public ResponseEntity<CompatibilityStatus> importCompatibility() {
-        if (!compatibility.available()) {
-            throw new UnavailableException("Importing compatibility needs EBAY_DEV_ID and EBAY_USER_TOKEN (the seller’s eBay sign-in) as well as the eBay keys.");
-        }
-        if (!compatibility.start()) {
-            throw new ConflictException("The compatibility import is already running.");
-        }
-        return ResponseEntity.status(HttpStatus.ACCEPTED).body(compatibility());
     }
 
     @GetMapping

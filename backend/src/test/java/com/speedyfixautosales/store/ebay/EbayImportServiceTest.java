@@ -235,7 +235,7 @@ class EbayImportServiceTest {
         Map<String, Object> starter = jdbc.queryForMap("SELECT * FROM products WHERE ebay_item_id = '365887559527'");
         assertThat(starter.get("status")).isEqualTo("ENDED");
         assertThat(starter.get("part_number")).isEqualTo("A2609060100");
-        assertThat(starter.get("brand")).isEqualTo("Mercedes Benz");
+        assertThat(starter.get("brand")).isEqualTo("Mercedes-Benz"); // one spelling per brand (Brands)
 
         // Running again updates, never duplicates, and doesn't download photos twice.
         EbayImportService.Summary second = importer.run(file, new EbayImportService.Options(false, 0, true, false));

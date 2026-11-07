@@ -75,6 +75,8 @@ export interface ProductDetail {
   /** imageUrl is the demo catalogue's stock photo, not one staff uploaded. */
   samplePhoto: boolean;
   photos: { id: string; url: string }[];
+  /** Photos the part came with from its eBay listing, shown after the uploaded ones. */
+  importedPhotos: { id: string; url: string }[];
   vehicles: Fitment[];
   addedOn: string;
   descriptionHtml: string | null;
@@ -101,6 +103,8 @@ export interface ProductFormData {
   bestSeller: boolean;
   vehicleIds: string[];
   keepPhotoIds: string[];
+  /** Photos from the part's eBay listing to take off. */
+  removePhotoIds: string[];
   status: ProductStatus;
   /** Blank removes the description. */
   descriptionHtml: string;
@@ -184,12 +188,21 @@ export interface CustomerRow {
   recentSearches: string[];
 }
 
+/** An engine from eBay's vehicle list: its eBay name, and what staff read ("1.5L diesel, 110HP"). */
+export interface EngineChoice {
+  name: string;
+  label: string;
+  fuel: string | null;
+  engineCode: string | null;
+}
+
+/** A category to list a part in, with its group in the shop's Products menu. */
 export interface CategoryOption {
   id: string;
   name: string;
+  group: string;
 }
 
-/** The eBay sync: whether it can run on this server, whether it's running, and the last result since start-up. */
 /** An order's VAT invoice (null until paid) and the emails it has sent or tried to send. */
 export interface InvoiceStatus {
   invoiceNumber: string | null;
@@ -209,35 +222,3 @@ export interface InvoiceStatus {
   }[];
 }
 
-export interface EbaySyncStatus {
-  available: boolean;
-  running: boolean;
-  startedAt: string | null;
-  last: {
-    at: string;
-    listingsOnEbay: number;
-    added: number;
-    repriced: number;
-    ended: number;
-    relisted: number;
-    endingSkipped: boolean;
-    problems: string[];
-  } | null;
-  lastError: string | null;
-}
-
-/** Copying each eBay listing's compatibility table onto its part (Listings page). */
-export interface CompatibilityImport {
-  available: boolean;
-  status: {
-    running: boolean;
-    checked: number;
-    total: number;
-    updated: number;
-    rows: number;
-    noTable: number;
-    finishedAt: string | null;
-    error: string | null;
-    problems: string[];
-  };
-}

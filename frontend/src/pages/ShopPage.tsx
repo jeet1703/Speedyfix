@@ -50,16 +50,21 @@ export function ShopPage() {
   const [min, setMin] = useState(params.get('minPrice') ?? '');
   const [max, setMax] = useState(params.get('maxPrice') ?? '');
   const query = params.toString();
+  // With the shopper's vehicle known, "only parts that fit" is on unless they've switched it off (fitsOnly=false).
+  const fitsOnly = !!vehicle && params.get('fitsOnly') !== 'false';
 
   useEffect(() => {
     let live = true;
     setLoading(true);
-    api.shop(new URLSearchParams(query), vehicle?.id)
+    const sent = new URLSearchParams(query);
+    if (fitsOnly) sent.set('fitsOnly', 'true');
+    else sent.delete('fitsOnly');
+    api.shop(sent, vehicle?.id)
       .then((r) => { if (live) { setResult(r); setError(''); } })
       .catch((e: Error) => live && setError(e.message))
       .finally(() => live && setLoading(false));
     return () => { live = false; };
-  }, [query, vehicle?.id]);
+  }, [query, vehicle?.id, fitsOnly]);
 
   // Searches made from any search box land here, so this is where they join the shopper's history.
   const searched = params.get('q');
@@ -92,12 +97,12 @@ export function ShopPage() {
   const category = params.get('category');
   const q = params.get('q');
   const conditions = (params.get('condition') ?? '').split(',').filter(Boolean);
-  const fitsOnly = params.get('fitsOnly') === 'true';
   const categoryName = result?.categories.find((c) => c.id === category)?.name;
   const title = q ? `Results for “${q}”` : categoryName ?? 'Products';
   const hasFilters = conditions.length > 0 || params.has('minPrice') || params.has('maxPrice') || fitsOnly
     || FACETS.some((f) => params.has(f.param));
-  const clearAll = { condition: null, minPrice: null, maxPrice: null, fitsOnly: null, brand: null, subType: null, refinement: null };
+  const allParts = vehicle ? 'false' : null;
+  const clearAll = { condition: null, minPrice: null, maxPrice: null, fitsOnly: allParts, brand: null, subType: null, refinement: null };
 
   /** Ticks or unticks one value of a multi-value filter, keeping its other values. */
   function toggleFacet(param: string, value: string) {
@@ -155,16 +160,6 @@ export function ShopPage() {
               onToggle={(v) => toggleFacet(f.param, v)} />
           ))}
 
-          {vehicle && (
-            <section className="widget">
-              <h2 className="widget__title">Your Vehicle</h2>
-              <label className="check">
-                <input type="checkbox" checked={fitsOnly} onChange={() => update({ fitsOnly: fitsOnly ? null : 'true' })} />
-                Only parts that fit my {vehicle.model}
-              </label>
-            </section>
-          )}
-
           <fieldset className="widget">
             <legend className="widget__title">Condition</legend>
             {CONDITIONS.map((c) => (
@@ -205,6 +200,18 @@ export function ShopPage() {
               </select>
             </label>
           </div>
+
+          {/* The fit filter is on by itself once the shopper's vehicle is known, so its switch sits above the results,
+              where it's seen on phones too (the sidebar is folded away there). */}
+          {vehicle && (
+            <p className={'shop__fits' + (fitsOnly ? '' : ' shop__fits--off')}>
+              {fitsOnly
+                ? <>Showing parts that fit your {vehicle.model}.{' '}
+                    <button type="button" className="link-btn" onClick={() => update({ fitsOnly: 'false' })}>Show All Parts</button></>
+                : <>Showing all parts, including ones that may not fit your {vehicle.model}.{' '}
+                    <button type="button" className="link-btn" onClick={() => update({ fitsOnly: null })}>Only Parts That Fit</button></>}
+            </p>
+          )}
 
           {error && <p className="notice notice--error" role="alert">{error}</p>}
 

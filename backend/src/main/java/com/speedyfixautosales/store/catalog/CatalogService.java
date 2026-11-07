@@ -25,7 +25,7 @@ public class CatalogService {
 
     private static final int SECTION_SIZE = 4;
     /** Best selling and Latest on the homepage only show these categories. */
-    static final Set<String> HOMEPAGE_CATEGORIES = Set.of("engines", "gearboxes");
+    static final Set<String> HOMEPAGE_CATEGORIES = Set.of("engines", "bare-engines", "short-motors", "cylinder-blocks", "gearboxes");
 
     private final CatalogRepository repository;
     private final VehicleService vehicles;

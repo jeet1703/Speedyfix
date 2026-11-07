@@ -1,11 +1,13 @@
 package com.speedyfixautosales.store.admin;
 
 import com.speedyfixautosales.store.account.CustomerService;
+import com.speedyfixautosales.store.catalog.Brands;
 import com.speedyfixautosales.store.catalog.CatalogRepository;
 import com.speedyfixautosales.store.catalog.CatalogService;
 import com.speedyfixautosales.store.catalog.Category;
 import com.speedyfixautosales.store.catalog.Condition;
 import com.speedyfixautosales.store.catalog.Images;
+import com.speedyfixautosales.store.catalog.MenuGroup;
 import com.speedyfixautosales.store.catalog.Product;
 import com.speedyfixautosales.store.catalog.ProductPhotoStore;
 import com.speedyfixautosales.store.catalog.ProductStatus;
@@ -53,6 +55,7 @@ public class AdminCatalogService {
 
     static final int MAX_REFINEMENTS = 5;
     static final int NO_MATCH_LIST_SIZE = 10;
+    private static final String CATEGORY_LINK = "/products?category=";
     private static final ZoneId UK = ZoneId.of("Europe/London");
     private static final SecureRandom RANDOM = new SecureRandom();
     /** Where ProductPhotoController serves the photos staff upload. */
@@ -78,6 +81,9 @@ public class AdminCatalogService {
                           String source, Confidence confidence) {
     }
 
+    public record CategoryOption(String id, String name, String group) {
+    }
+
     public record Photo(String id, String url) {
     }
 
@@ -87,7 +93,7 @@ public class AdminCatalogService {
     public record Detail(String id, String name, String categoryId, Condition condition, String grade, BigDecimal price,
                          String partNumber, String engineCode, String brand, String subType, List<String> refinements,
                          Shipping shipping, int stock, boolean bestSeller, ProductStatus status, WorkStatus workStatus,
-                         String imageUrl, boolean samplePhoto, List<Photo> photos, List<Fitment> vehicles,
+                         String imageUrl, boolean samplePhoto, List<Photo> photos, List<Photo> importedPhotos, List<Fitment> vehicles,
                          LocalDate addedOn, String descriptionHtml, Integer salePercent, BigDecimal sellingPrice,
                          BigDecimal weightKg, BigDecimal defaultWeightKg) {
     }
@@ -168,8 +174,36 @@ public class AdminCatalogService {
                 .toList();
     }
 
-    public List<Category> categories() {
-        return repository.categories();
+    /**
+     * The categories to list a part in, grouped and ordered as in the shop's Products menu, so staff pick from the
+     * same list shoppers browse. Categories the menu leaves out (Rebuild Kits while it's empty) come last, under Other.
+     */
+    /** Every brand a listing has, A to Z: the admin's brand choices, so a part is filed under a brand shoppers can filter by. */
+    public List<String> brands() {
+        return repository.products().stream()
+                .map(Product::brand)
+                .map(Brands::canonical)
+                .filter(Objects::nonNull)
+                .distinct()
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .toList();
+    }
+
+    public List<CategoryOption> categories() {
+        Map<String, Category> byId = new LinkedHashMap<>();
+        repository.categories().forEach(c -> byId.put(c.id(), c));
+        List<CategoryOption> options = new ArrayList<>();
+        for (MenuGroup group : repository.menu()) {
+            for (MenuGroup.MenuLink link : group.links()) {
+                String id = link.href().startsWith(CATEGORY_LINK) ? link.href().substring(CATEGORY_LINK.length()) : null;
+                Category c = id == null ? null : byId.remove(id);
+                if (c != null) {
+                    options.add(new CategoryOption(c.id(), c.name(), group.title()));
+                }
+            }
+        }
+        byId.values().forEach(c -> options.add(new CategoryOption(c.id(), c.name(), "Other")));
+        return options;
     }
 
     public Detail get(String id) {
@@ -270,8 +304,12 @@ public class AdminCatalogService {
 
         String id = existing != null ? existing.id() : newId(form.name());
         List<String> keep = form.keepPhotoIds() == null ? photos.idsFor(id) : form.keepPhotoIds();
+        // Photos from the part's eBay listing: they stay unless staff took them off.
+        List<String> remove = form.removePhotoIds() == null ? List.of() : form.removePhotoIds();
+        List<ProductPhotoStore.Imported> imported = existing == null ? List.of() : photos.imported(id);
+        List<ProductPhotoStore.Imported> importedKept = imported.stream().filter(p -> !remove.contains(p.id())).toList();
         long photoCount = photos.idsFor(id).stream().filter(keep::contains).count()
-                + (files == null ? 0 : files.stream().filter(f -> !f.isEmpty()).count());
+                + (files == null ? 0 : files.stream().filter(f -> !f.isEmpty()).count()) + importedKept.size();
         String sample = repository.sampleImage(id).orElse(null);
         // The publishing checks apply when a listing goes live. A listing that's already live (the eBay import's,
         // which have no photos until the photo download runs) can still have its price, stock or details changed.
@@ -294,7 +332,7 @@ public class AdminCatalogService {
 
         // Check the photos before saving anything, so a bad file can't leave a half-saved listing behind.
         List<MultipartFile> added = files == null ? List.of() : files.stream().filter(f -> !f.isEmpty()).toList();
-        if (photos.idsFor(id).stream().filter(keep::contains).count() + added.size() > ProductPhotoStore.MAX_PER_PART) {
+        if (!added.isEmpty() && photos.idsFor(id).stream().filter(keep::contains).count() + added.size() + importedKept.size() > ProductPhotoStore.MAX_PER_PART) {
             throw new BadRequestException("Add up to " + ProductPhotoStore.MAX_PER_PART + " photos per part.");
         }
         added.forEach(f -> ProductPhotoStore.imageType(ProductPhotoStore.read(f)));
@@ -302,11 +340,16 @@ public class AdminCatalogService {
         // The listing is saved first: in the database a photo has to belong to a listing that exists.
         // With no uploads left: the sample photo, or the image it had (an eBay photo), or "photo coming soon". Never
         // an uploaded photo, which may just have been removed.
+        // For a part with eBay photos, its first one that's kept.
         String previous = existing == null || existing.imageUrl() == null || existing.imageUrl().contains(UPLOADED_PHOTO_PATH)
-                ? null : existing.imageUrl();
-        String fallbackImage = sample != null ? sample : previous != null ? previous : photoUrls.url(Images.PLACEHOLDER_KEY);
+                || !imported.isEmpty() ? null : existing.imageUrl();
+        String fallbackImage = !importedKept.isEmpty() ? importedKept.get(0).thumbnailUrl()
+                : sample != null ? sample : previous != null ? previous : photoUrls.url(Images.PLACEHOLDER_KEY);
         repository.save(product(id, form, partNumber, engineCode, refinements, vehicleIds, fallbackImage, existing));
         List<String> photoIds = photos.update(id, keep, added);
+        if (importedKept.size() < imported.size()) {
+            photos.removeImported(id, remove);
+        }
         Product saved = product(id, form, partNumber, engineCode, refinements, vehicleIds,
                 photoIds.isEmpty() ? fallbackImage : photoUrl(photoIds.get(0)), existing);
         repository.save(saved);
@@ -320,7 +363,7 @@ public class AdminCatalogService {
     private static Product product(String id, ProductForm form, String partNumber, String engineCode, List<String> refinements,
                                    List<String> vehicleIds, String imageUrl, Product existing) {
         return new Product(id, form.name().trim(), form.categoryId(), form.condition(), blankToNull(form.grade()),
-                form.price(), partNumber, engineCode, blankToNull(form.brand()), blankToNull(form.subType()), refinements,
+                form.price(), partNumber, engineCode, Brands.canonical(form.brand()), blankToNull(form.subType()), refinements,
                 imageUrl, vehicleIds, form.shipping(), form.stock(), form.bestSeller(),
                 existing != null ? existing.addedOn() : LocalDate.now(UK), form.status(), form.salePercent());
     }
@@ -380,6 +423,7 @@ public class AdminCatalogService {
 
     private Detail detail(Product p) {
         List<Photo> uploaded = photos.idsFor(p.id()).stream().map(id -> new Photo(id, photoUrl(id))).toList();
+        List<Photo> imported = photos.imported(p.id()).stream().map(i -> new Photo(i.id(), i.thumbnailUrl())).toList();
         List<Fitment> fits = p.fitsVehicleIds().stream()
                 .map(vehicles::findById)
                 .flatMap(Optional::stream)
@@ -388,7 +432,7 @@ public class AdminCatalogService {
         return new Detail(p.id(), p.name(), p.categoryId(), p.condition(), p.grade(), p.price(), p.partNumber(),
                 p.engineCode(), p.brand(), p.subType(), p.refinements(), p.shipping(), p.stock(), p.bestSeller(), p.status(),
                 workStatus(p), p.imageUrl(), p.imageUrl() != null && !p.hasPhoto() && !Images.isPlaceholder(p.imageUrl()),
-                uploaded, fits, p.addedOn(), repository.descriptionHtml(p.id()).orElse(null), p.salePercent(), p.sellingPrice(),
+                uploaded, imported, fits, p.addedOn(), repository.descriptionHtml(p.id()).orElse(null), p.salePercent(), p.sellingPrice(),
                 parcelSizes.weight(p.id()).orElse(null), ParcelSizes.typicalWeight(p.categoryId()));
     }
 
