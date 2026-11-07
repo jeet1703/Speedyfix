@@ -222,3 +222,21 @@ export interface InvoiceStatus {
   }[];
 }
 
+
+/** The eBay sync: whether it can run on this server, whether it's running, and the last result since start-up. */
+export interface EbaySyncStatus {
+  available: boolean;
+  running: boolean;
+  startedAt: string | null;
+  last: {
+    at: string;
+    listingsOnEbay: number;
+    added: number;
+    repriced: number;
+    ended: number;
+    relisted: number;
+    endingSkipped: boolean;
+    problems: string[];
+  } | null;
+  lastError: string | null;
+}

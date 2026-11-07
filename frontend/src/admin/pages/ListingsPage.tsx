@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { adminApi, errorMessage } from '../adminApi';
 import { AdminLayout } from '../AdminLayout';
+import { EbaySyncButton } from '../EbaySyncButton';
 import { Chips, gbpOrDash, WorkPill } from '../components';
 import type { ProductRow } from '../types';
 import { Pagination } from '../../components/Pagination';
@@ -69,6 +70,7 @@ export function ListingsPage() {
 
   return (
     <AdminLayout title="Listings" actions={<>
+      <EbaySyncButton onDone={() => void adminApi.products().then(setRows).catch(() => undefined)} />
       <Link className="btn btn--primary" to="/admin/products/new">Create Listing</Link>
     </>}>
       {saved?.saved && (
