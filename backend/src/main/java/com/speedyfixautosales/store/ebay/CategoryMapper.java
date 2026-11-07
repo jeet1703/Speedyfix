@@ -89,9 +89,10 @@ final class CategoryMapper {
 
     /**
      * eBay categories that hold parts the shop files elsewhere, as found when every listing was checked (migrations
-     * V21, V22 and V24): complete engines, bare engines, short motors and bare blocks share one eBay category, automatic
-     * gearboxes sit under "Gearboxes, Racks & Pinions", doors under body panels, airbag control modules under interior
-     * trim. First match wins.
+     * V21, V22, V24, V26 and V27): complete engines, bare engines, short motors and bare blocks share one eBay category,
+     * automatic gearboxes sit under "Gearboxes, Racks & Pinions", doors under body panels, airbag control modules under
+     * interior trim, gearbox oil coolers and selectors under gearboxes, turbo pipes under turbos, bumper brackets under
+     * mounts. First match wins.
      */
     private static final List<Fix> FIXES = List.of(
             Fix.of(Set.of("engines", "bare-engines", "cylinder-blocks"), "short motor|short block|half engine", "short-motors"),
@@ -101,12 +102,24 @@ final class CategoryMapper {
             Fix.of(Set.of("steering-suspension", "drivetrain"),
                     "^(?!.*(steering|mount|flywheel|cooler|selector)).*(automatic (engine )?gearbox|gearbox assembly|\\bgearbox\\b.*speed|transfer (box|case) assembly)",
                     "gearboxes"),
-            Fix.of(Set.of("body-panels", "interior"), "^(?!.*(card|trim|handle|hinge|seal)).*(complete door|door assembly|side door)", "doors"),
+            // "Complete Door Assembly No Door Card" is a door; a door card on its own isn't.
+            Fix.of(Set.of("body-panels", "interior"),
+                    "^(?!.*((?<!no door )(?<!no )(door )?card|trim|handle|hinge|seal)).*(complete door|door assembly|side door)", "doors"),
             Fix.of(Set.of("interior"), "(airbag|safety bag|srs).*control (module|unit)", "ecus-electronics"),
             Fix.of(Set.of("ecus-electronics"), "starter motor", "starters-alternators"),
             Fix.of(Set.of("gearboxes", "brakes"), "control module", "ecus-electronics"),
+            Fix.of(Set.of("gearboxes"), "^(?!.*(knob|surround|cable)).*selector", "ecus-electronics"),
+            Fix.of(Set.of("gearboxes"), "cooler", "cooling-ac"),
+            // eBay's "Transmission & Drivetrain Mounts" holds gearbox mounts; its "Mounts, Brackets & Hardware" bumper brackets.
+            Fix.of(Set.of("drivetrain"), "^(?!.*(drive ?shaft|prop ?shaft)).*\\bmount", "engine-mounts"),
+            Fix.of(Set.of("engine-mounts"), "bumper|bonnet|tailgate|\\bwing\\b", "body-panels"),
+            Fix.of(Set.of("engine-mounts"), "drive ?shaft|prop ?shaft", "drivetrain"),
             Fix.of(Set.of("fuel-injection"), "^(?!.*(rail|ramp)).*injector", "fuel-injectors"),
-            Fix.of(Set.of("cooling-ac"), "compressor", "ac-compressors"),
+            Fix.of(Set.of("cooling-ac"), "compressor|^(?!.*(pipe|hose)).*(\\ba/?c\\b|air con\\w*).*pump", "ac-compressors"),
+            // Turbo oil feed and return pipes, intake pipes and intercooler hoses, like the rest of the engine's pipes.
+            Fix.of(Set.of("turbochargers"), "pipe|hose", "engine-parts"),
+            Fix.of(Set.of("turbochargers"), "vacuum valve|regulator", "electrics-sensors"),
+            Fix.of(Set.of("fuel-injection"), "^(?!.*(fuel|inject)).*turbo", "engine-parts"),
             Fix.of(Set.of("egr-emissions"), "\\begr\\b", "egr-valves"),
             Fix.of(Set.of("air-intake", "fuel-injection", "egr-emissions", "ecus-electronics", "engine-parts", "turbochargers"),
                     "^(?!.*(dpf|particulate|particular filter|catalytic)).*(sensor|solenoid)", "electrics-sensors"),
@@ -114,6 +127,7 @@ final class CategoryMapper {
             Fix.of(Set.of("engine-parts"), "camshaft", "camshafts"),
             Fix.of(Set.of("engine-parts"), "^(?!.*pipe).*sump", "sumps-pans"),
             Fix.of(Set.of("engine-parts"), "oil pump", "oil-pumps"),
+            Fix.of(Set.of("engine-parts"), "^(?!.*(bracket|mount|pipe|hose|gasket)).*mani ?fold", "manifolds"),
             Fix.of(Set.of("instruments-infotainment"), "^(?!.*(speedo|instrument|cluster|gauge))", "audio-media"));
 
     /** The shop category for a listing: the eBay category's, unless the title shows it belongs elsewhere (FIXES). */

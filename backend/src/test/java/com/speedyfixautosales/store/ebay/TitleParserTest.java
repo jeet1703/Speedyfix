@@ -59,7 +59,7 @@ class TitleParserTest {
         assertThat(CategoryMapper.refine("steering-suspension", "Jaguar XJ X351 3.0L SDV6 8 Speed Automatic Gearbox ZF Gen 2 2015-2019"))
                 .isEqualTo("gearboxes");
         assertThat(CategoryMapper.refine("steering-suspension", "Land Rover Discovery Steering Rack 4 3.0L Diesel AH223K748AB")).isEqualTo("steering-suspension");
-        assertThat(CategoryMapper.refine("drivetrain", "Volvo V40 V60 V70 S60 S80 Rear Gearbox Mount 2.0L Diesel 31430442")).isEqualTo("drivetrain");
+        assertThat(CategoryMapper.refine("drivetrain", "Volvo V40 V60 V70 S60 S80 Rear Gearbox Mount 2.0L Diesel 31430442")).isEqualTo("engine-mounts");
         assertThat(CategoryMapper.refine("body-panels", "Ford Focus Front Right Complete Door Assembly Blue No Wing Mirror 2012-2018")).isEqualTo("doors");
         assertThat(CategoryMapper.refine("interior", "Jeep Grand Cherokee SRS Safety Bag Control Module 68222888AA 2011-2019")).isEqualTo("ecus-electronics");
         assertThat(CategoryMapper.refine("ecus-electronics", "Jaguar F-Pace Starter Motor X761 2.0L Diesel GX7311001AD")).isEqualTo("starters-alternators");
@@ -73,6 +73,28 @@ class TitleParserTest {
         assertThat(CategoryMapper.refine("engine-parts", "Mercedes-Benz A200 Diesel 2.1L CDi W176 Crankshaft Pulley")).isEqualTo("engine-parts");
         assertThat(CategoryMapper.refine("instruments-infotainment", "Jaguar XE CD Radio Player Head Unit 2.0L Diesel")).isEqualTo("audio-media");
         assertThat(CategoryMapper.refine("instruments-infotainment", "Nissan Qashqai Speedometer Instrument Cluster 4EA5A")).isEqualTo("instruments-infotainment");
+    }
+
+    /** The listings V26 and V27 moved by hand: new ones like them are filed right when they're imported. */
+    @Test
+    void partsFoundMisfiledAreFiledRightFromNowOn() {
+        assertThat(CategoryMapper.refine("gearboxes", "Ford Ranger Automatic Gearbox Oil Cooler 2.0L Diesel JB3G7A095AA 2019-2023")).isEqualTo("cooling-ac");
+        assertThat(CategoryMapper.refine("gearboxes", "Jaguar XE F Pace1 Automatic Gear Selector HX7314C559AA 2.0L Diesel 2015-2021")).isEqualTo("ecus-electronics");
+        assertThat(CategoryMapper.refine("gearboxes", "Nissan Pulsar Gearbox Assembly 6 Speed Manual Petrol 1.2L 320103323R 2014-2019")).isEqualTo("gearboxes");
+        assertThat(CategoryMapper.refine("cooling-ac", "Land Rover Discovery Sport AC Air Conditioning Pump 2.0L CPLA19D629BE 17-24")).isEqualTo("ac-compressors");
+        assertThat(CategoryMapper.refine("cooling-ac", "Nissan Renault Air Con Conditioning Pipe 924804EB0A 1.6L Diesel Used 2014-2021")).isEqualTo("cooling-ac");
+        assertThat(CategoryMapper.refine("interior", "Jaguar F Pace Rear Left Complete Door Assembly Storm Grey No Door Card 16-20")).isEqualTo("doors");
+        assertThat(CategoryMapper.refine("interior", "Jaguar F Pace Rear Left Door Card Assembly Black 16-20")).isEqualTo("interior");
+        assertThat(CategoryMapper.refine("drivetrain", "Volvo V40 V60 V70 S60 S80 Rear Gearbox Mount 2.0L Diesel 31430442 2011-2015")).isEqualTo("engine-mounts");
+        assertThat(CategoryMapper.refine("drivetrain", "Kia Pro Ceed GT 1.6L G4FJ Dual Mass Flywheel 232602B710 2013-2019")).isEqualTo("drivetrain");
+        assertThat(CategoryMapper.refine("engine-mounts", "Mercedes Benz E Class Rear Right Bumper Mount Bracket 3.0L A2128850765 09-18")).isEqualTo("body-panels");
+        assertThat(CategoryMapper.refine("engine-mounts", "Range Rover Evoque Drive Shaft Mount GJ324H473AC 2018-2023")).isEqualTo("drivetrain");
+        assertThat(CategoryMapper.refine("turbochargers", "Ford Ranger Engine Turbocharger Oil Feed Pipe 2.0L Diesel JB3Q6K679CB 2018-2022")).isEqualTo("engine-parts");
+        assertThat(CategoryMapper.refine("turbochargers", "Volvo V70 V60 V40 S80 Turbocharger Vacuum Valve Regulator 2.0L 31339808 11-15")).isEqualTo("electrics-sensors");
+        assertThat(CategoryMapper.refine("turbochargers", "Jaguar XE X760 Turbocharger & Actuator 2.0L Diesel G4D36K682AJ 2015-2025")).isEqualTo("turbochargers");
+        assertThat(CategoryMapper.refine("fuel-injection", "Nissan Navara Engine Turbo Connector 897192 2010-2015")).isEqualTo("engine-parts");
+        assertThat(CategoryMapper.refine("engine-parts", "Suzuki Vitara Intake Mani Fold 1311061MA0 2015-2020")).isEqualTo("manifolds");
+        assertThat(CategoryMapper.refine("engine-parts", "Mercedes Benz A CLASS Exhaust Manifold Mount Bracket A6541425100 2020-2025")).isEqualTo("engine-parts");
     }
 
     @Test
