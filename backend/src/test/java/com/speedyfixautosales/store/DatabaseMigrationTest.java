@@ -167,7 +167,7 @@ class DatabaseMigrationTest {
                 "import_runs");
 
         assertThat(jdbc.queryForList("SELECT id FROM categories WHERE popular ORDER BY sort_order", String.class))
-                .containsExactly("engines", "gearboxes", "turbochargers");
+                .containsExactly("engines", "gearboxes", "turbochargers", "accessories");
         assertThat(jdbc.queryForObject("SELECT count(*) FROM settings", Integer.class)).isEqualTo(1);
     }
 

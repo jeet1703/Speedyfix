@@ -6,6 +6,8 @@
 .topbar__links { display: flex; flex-wrap: wrap; gap: 6px 24px; }
 
 .header { position: sticky; top: 0; z-index: 40; background: var(--surface); border-bottom: 1px solid var(--line); }
+/* While the Products menu is open it sits above the help chat (.chat, z-index 55), which otherwise covers its right edge. */
+.header:has(.nav__products > button[aria-expanded='true']) { z-index: 56; }
 .header__inner { display: flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 78px; }
 
 .logo { display: flex; flex-direction: column; line-height: 1; text-decoration: none; }

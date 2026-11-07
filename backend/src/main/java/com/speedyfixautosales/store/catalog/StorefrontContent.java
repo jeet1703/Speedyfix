@@ -77,7 +77,7 @@ final class StorefrontContent {
             group("Electronics and Lighting", cat("ECUs and Electronic Modules", "ecus-electronics"),
                     cat("Instrument Clusters", "instruments-infotainment"), cat("Audio and Media Systems", "audio-media"),
                     cat("Wiring Looms", "wiring-looms"), cat("Lights and Mirrors", "lights-mirrors")),
-            group("Body and Other Parts", cat("Body Panels", "body-panels"), cat("Doors", "doors"), cat("Interior", "interior"),
+            group("Accessories", cat("Body Panels", "body-panels"), cat("Doors", "doors"), cat("Interior", "interior"),
                     cat("Steering and Suspension", "steering-suspension"), cat("Brakes", "brakes"),
                     cat("Engine Parts", "engine-parts"), cat("Engine Mounts", "engine-mounts"), cat("Ignition", "ignition"),
                     cat("Accessories", "accessories"), cat("Other Parts", "other-parts")));
