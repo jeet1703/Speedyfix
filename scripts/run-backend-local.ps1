@@ -19,8 +19,15 @@ if (Test-Path $envFile) {
     Write-Warning "render.env not found: FedEx and PayPal stay off."
 }
 
-# Test money only, whatever render.env says.
+# Test money only, whatever render.env says: render.env holds the live PayPal keys (as on Render), so the sandbox app's
+# keys (PAYPAL_SANDBOX_*) are used here. Without them, PayPal stays off rather than sending live keys to the sandbox.
 $env:PAYPAL_ENVIRONMENT = 'sandbox'
+if ($env:PAYPAL_SANDBOX_CLIENT_ID -and $env:PAYPAL_SANDBOX_CLIENT_SECRET) {
+    $env:PAYPAL_CLIENT_ID = $env:PAYPAL_SANDBOX_CLIENT_ID
+    $env:PAYPAL_CLIENT_SECRET = $env:PAYPAL_SANDBOX_CLIENT_SECRET
+} else {
+    Remove-Item env:PAYPAL_CLIENT_ID, env:PAYPAL_CLIENT_SECRET -ErrorAction SilentlyContinue
+}
 # Guests can check out locally: Google sign-in only works on addresses registered in Google Cloud.
 $env:ORDERS_REQUIRE_SIGN_IN = 'false'
 # Email sign-up and sign-in: codes are emailed through Resend (or appear in this window if render.env has no key).
