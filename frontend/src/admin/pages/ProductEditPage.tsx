@@ -109,6 +109,9 @@ export function ProductEditPage() {
   const [fitNote, setFitNote] = useState('');
   const [fitError, setFitError] = useState('');
   const [finding, setFinding] = useState(false);
+  const [suggesting, setSuggesting] = useState(false);
+  // AI suggestions that didn't match a vehicle in the list, shown so staff can add them by hand.
+  const [aiMissed, setAiMissed] = useState<string[]>([]);
 
   const [name, setName] = useState('');
   const [categoryId, setCategoryId] = useState('');
@@ -203,6 +206,36 @@ export function ProductEditPage() {
       const have = new Set(prev.map((r) => r.fit.vehicleId));
       return [...prev, ...found.filter((f) => !have.has(f.vehicleId)).map((fit) => ({ fit, ticked: tick(fit) }))];
     });
+  }
+
+  /** Gemini's suggestions, matched to the vehicle list on the server; added unticked, since AI can be wrong. */
+  async function suggestWithAi() {
+    setFitNote('');
+    setFitError('');
+    setAiMissed([]);
+    setSuggesting(true);
+    try {
+      const d = descFields;
+      const notes = [d.part && `Part: ${d.part}`, d.make && `Make: ${d.make}`, d.model && `Model: ${d.model}`,
+        d.yearRange && `Years: ${d.yearRange}`, d.engine && `Engine: ${d.engine}`, d.notes].filter(Boolean).join('\n');
+      const found = await adminApi.suggestVehicles({
+        title: name.trim(), partNumber: partNumber.trim(), engineCode: engineCode.trim(), brand: brand.trim(),
+        category: categories.find((c) => c.id === categoryId)?.name ?? '', notes
+      });
+      const before = new Set(rows.map((r) => r.fit.vehicleId));
+      merge(found.vehicles, () => false);
+      setAiMissed(found.notMatched);
+      const added = found.vehicles.filter((f) => !before.has(f.vehicleId)).length;
+      setFitNote(found.vehicles.length
+        ? `AI suggested ${found.vehicles.length} ${found.vehicles.length === 1 ? 'vehicle' : 'vehicles'}` +
+          (added < found.vehicles.length ? ` (${found.vehicles.length - added} already listed)` : '') +
+          '. They’re unticked: check each one, then tick the ones that are right.'
+        : 'AI couldn’t suggest any vehicles from these details. Add the part number or engine code and try again.');
+    } catch (err) {
+      setFitError(errorMessage(err, 'The AI suggestion didn’t work. Try again.'));
+    } finally {
+      setSuggesting(false);
+    }
   }
 
   async function applyEngineRule() {
@@ -491,7 +524,12 @@ export function ProductEditPage() {
             <section className="card" aria-labelledby="step-vehicles">
               <div className="card__head">
                 <h2 id="step-vehicles" className="card__title">2. Confirm the Vehicles It Fits</h2>
-                {rows.length > 0 && <p className="admin-muted"><strong>{ticked.length}</strong> of {rows.length} ticked · {highTicked} high confidence</p>}
+                {rows.length > 0 && (
+                  <p className="admin-muted">
+                    <strong>{ticked.length}</strong> of {rows.length} ticked · {highTicked} high confidence
+                    {ticked.length < rows.length && <> · <button type="button" className="link-btn" onClick={() => setRows(rows.filter((r) => r.ticked))}>Remove Unticked</button></>}
+                  </p>
+                )}
               </div>
               <div aria-live="polite">
                 {fitError && <p className="field-error">{fitError}</p>}
@@ -503,7 +541,7 @@ export function ProductEditPage() {
                 <div className="table-wrap">
                   <table className="table table--fit">
                     <thead>
-                      <tr><th scope="col">Fits</th><th scope="col">Vehicle</th><th scope="col">Engine</th><th scope="col">Year</th><th scope="col">Source</th><th scope="col">Confidence</th></tr>
+                      <tr><th scope="col">Fits</th><th scope="col">Vehicle</th><th scope="col">Engine</th><th scope="col">Year</th><th scope="col">Source</th><th scope="col">Confidence</th><th scope="col"><span className="sr-only">Remove</span></th></tr>
                     </thead>
                     <tbody>
                       {rows.map((r) => (
@@ -517,12 +555,31 @@ export function ProductEditPage() {
                           <td>{r.fit.year == null ? '—' : r.fit.yearTo != null && r.fit.yearTo !== r.fit.year ? `${r.fit.year}–${r.fit.yearTo}` : r.fit.year}</td>
                           <td>{r.fit.source}</td>
                           <td><ConfidencePill confidence={r.fit.confidence} /></td>
+                          <td>
+                            <button type="button" className="icon-btn" aria-label={`Remove ${r.fit.vehicle}, ${r.fit.engine}`} title="Remove from the list"
+                              onClick={() => setRows(rows.filter((x) => x !== r))}><Icon name="x" size={16} /></button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
               )}
+              <div className="ai-suggest">
+                <div className="ai-suggest__head">
+                  <button type="button" className="btn btn--outline" disabled={suggesting || !name.trim()} onClick={() => void suggestWithAi()}>
+                    {suggesting ? 'Asking AI…' : 'Suggest Vehicles With AI'}
+                  </button>
+                  <p className="field__hint">
+                    Gemini reads the title, part number, engine code, brand and description lines above and suggests the
+                    vehicles it thinks this part fits. <strong>AI can make mistakes:</strong> suggestions are added unticked,
+                    so check each one before you tick it. It can take up to a minute.
+                  </p>
+                </div>
+                {aiMissed.length > 0 && (
+                  <p className="admin-muted">Also suggested, but not found in the vehicle list (add them by hand if right): {aiMissed.join('; ')}.</p>
+                )}
+              </div>
               <VehiclePicker onAdd={(found) => merge(found, () => true)} />
               <EbayPaste ebayUrl={ebayUrl} onAdd={(found) => merge(found, () => true)} />
               <div className="fit-actions">

@@ -66,8 +66,9 @@ public class AdminCatalogService {
         NEEDS_FITMENT, MISSING_PHOTO, DRAFT, LIVE
     }
 
+    /** LOW: suggested by AI (FitmentSuggester) and not yet checked by anyone. */
     public enum Confidence {
-        HIGH, MEDIUM
+        HIGH, MEDIUM, LOW
     }
 
     public record Row(String id, String name, String categoryName, String partNumber, String engineCode, String brand,

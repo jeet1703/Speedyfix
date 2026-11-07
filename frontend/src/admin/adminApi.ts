@@ -81,6 +81,8 @@ export const adminApi = {
   addVehicleRange: (range: { make: string; model: string; yearFrom: number; yearTo: number; engines: string[] }) =>
     authed<Fitment[]>('/api/admin/vehicle-catalogue', json('POST', range)),
   /** Vehicles from a compatibility table copied off an eBay listing page. */
+  suggestVehicles: (part: { title: string; partNumber: string; engineCode: string; brand: string; category: string; notes: string }) =>
+    authed<{ vehicles: Fitment[]; notMatched: string[] }>('/api/admin/vehicle-catalogue/suggest', json('POST', part)),
   pastedVehicles: (text: string) => authed<Fitment[]>('/api/admin/vehicle-catalogue/pasted', json('POST', { text })),
   fitment: (partNumber: string, engineCode: string, productId: string | null) => {
     const q = new URLSearchParams();

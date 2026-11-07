@@ -6,7 +6,8 @@ export type ProductStatus = 'DRAFT' | 'LIVE' | 'ENDED';
 export type WorkStatus = 'NEEDS_FITMENT' | 'MISSING_PHOTO' | 'DRAFT' | 'LIVE';
 export type Condition = 'USED' | 'REMANUFACTURED' | 'NEW';
 export type Shipping = 'PARCEL' | 'PALLET';
-export type Confidence = 'HIGH' | 'MEDIUM';
+/** LOW: an AI suggestion nobody has checked yet. */
+export type Confidence = 'HIGH' | 'MEDIUM' | 'LOW';
 
 export type StaffRole = 'MASTER';
 

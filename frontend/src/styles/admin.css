@@ -267,6 +267,9 @@ select.input--sm { padding-right: 32px; }
 .vpick { border: 1px solid var(--admin-line, #e3e6ea); border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 10px; background: #fafafa; }
 .ebay-sync { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; max-width: 360px; }
 .ebay-sync__note { font-size: 13px; color: var(--ink-2); text-align: right; margin: 0; }
+.ai-suggest { border: 1px dashed var(--line); border-radius: var(--radius); padding: 12px; margin: 12px 0; }
+.ai-suggest__head { display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
+.ai-suggest__head .field__hint { flex: 1 1 260px; margin: 0; }
 .vpick__title { font-weight: 600; margin: 0; }
 .vpick__row { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.4fr) minmax(0, 0.7fr) minmax(0, 0.7fr); gap: 10px; }
 .vpick__engines { border: 0; padding: 0; margin: 0; }

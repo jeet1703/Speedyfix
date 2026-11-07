@@ -2,6 +2,7 @@ package com.speedyfixautosales.store.admin;
 
 import com.speedyfixautosales.store.common.BadRequestException;
 import com.speedyfixautosales.store.vehicle.CompatibilityTable;
+import com.speedyfixautosales.store.vehicle.FitmentSuggester;
 import com.speedyfixautosales.store.vehicle.Vehicle;
 import com.speedyfixautosales.store.vehicle.VehicleCatalogue;
 import com.speedyfixautosales.store.vehicle.VehicleRange;
@@ -30,10 +31,12 @@ public class AdminVehicleController {
 
     private final VehicleCatalogue catalogue;
     private final VehicleService vehicles;
+    private final FitmentSuggester suggester;
 
-    public AdminVehicleController(VehicleCatalogue catalogue, VehicleService vehicles) {
+    public AdminVehicleController(VehicleCatalogue catalogue, VehicleService vehicles, FitmentSuggester suggester) {
         this.catalogue = catalogue;
         this.vehicles = vehicles;
+        this.suggester = suggester;
     }
 
     @GetMapping("/makes")
@@ -101,5 +104,29 @@ public class AdminVehicleController {
         return ranges.stream()
                 .map(r -> AdminCatalogService.fitment(vehicles.addRange(r), "Pasted from eBay", AdminCatalogService.Confidence.HIGH))
                 .toList();
+    }
+
+    /** The part as staff have entered it so far: Gemini works from these. */
+    public record SuggestRequest(
+            @NotBlank(message = "Enter the title first.") @Size(max = 200) String title,
+            @Size(max = 40) String partNumber,
+            @Size(max = 20) String engineCode,
+            @Size(max = 60) String brand,
+            @Size(max = 100) String category,
+            @Size(max = 2000) String notes) {
+    }
+
+    /** AI suggestions, matched to the vehicle list, and the suggestions that couldn't be matched. */
+    public record Suggested(List<AdminCatalogService.Fitment> vehicles, List<String> notMatched) {
+    }
+
+    /** Gemini's suggestions for the part, as rows to tick (low confidence: AI can be wrong). */
+    @PostMapping("/suggest")
+    public Suggested suggest(@Valid @RequestBody SuggestRequest r) {
+        FitmentSuggester.Result result = suggester.suggest(
+                new FitmentSuggester.Part(r.title(), r.partNumber(), r.engineCode(), r.brand(), r.category(), r.notes()));
+        return new Suggested(result.ranges().stream()
+                .map(range -> AdminCatalogService.fitment(vehicles.addRange(range), "AI suggestion", AdminCatalogService.Confidence.LOW))
+                .toList(), result.notMatched());
     }
 }

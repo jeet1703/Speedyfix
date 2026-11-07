@@ -12,7 +12,8 @@ export function WorkPill({ status }: { status: WorkStatus }) {
 }
 
 export function ConfidencePill({ confidence }: { confidence: Confidence }) {
-  return <span className={`pill pill--${confidence === 'HIGH' ? 'live' : 'missing-photo'}`}>{confidence === 'HIGH' ? 'High' : 'Medium'}</span>;
+  const [tone, label] = confidence === 'HIGH' ? ['live', 'High'] : confidence === 'MEDIUM' ? ['missing-photo', 'Medium'] : ['needs-fitment', 'Low (AI)'];
+  return <span className={`pill pill--${tone}`}>{label}</span>;
 }
 
 export const REQUEST_LABEL: Record<PartRequestStatus, string> = { NEW: 'New', QUOTED: 'Quoted', CLOSED: 'Closed' };
