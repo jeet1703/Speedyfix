@@ -36,10 +36,11 @@ final class StorefrontContent {
             "turbochargers", stock("1655103955676-c9fbc4b65525", 900, 1140));
 
     static final List<Slide> SLIDES = List.of(
-            new Slide("turbochargers", "Category Spotlight", "Turbochargers",
-                    "Remanufactured and used turbos, matched to your engine code. We test each one before dispatch.",
-                    stock("1655103955676-c9fbc4b65525", 1920, 900),
-                    "Shop Turbochargers", "/products?category=turbochargers", "View All Categories", "/products"),
+            // Hidden for now (8 November 2026): uncomment to show the turbochargers slide again.
+            // new Slide("turbochargers", "Category Spotlight", "Turbochargers",
+            //         "Remanufactured and used turbos, matched to your engine code. We test each one before dispatch.",
+            //         stock("1655103955676-c9fbc4b65525", 1920, 900),
+            //         "Shop Turbochargers", "/products?category=turbochargers", "View All Categories", "/products"),
             new Slide("engines", "Category Spotlight", "Complete Engines",
                     "Used engines from donor vehicles. We test and grade each one before we list it.",
                     stock("1779263569870-e7a0fbc25686", 1920, 900),

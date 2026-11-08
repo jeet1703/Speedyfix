@@ -40,7 +40,7 @@ class StoreApiTest {
     void homeReturnsEveryHomepageSection() throws Exception {
         mvc.perform(get("/api/home"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.slides", hasSize(4)))
+                .andExpect(jsonPath("$.slides", hasSize(3)))
                 .andExpect(jsonPath("$.popularCategories[*].id", contains("engines", "gearboxes", "accessories", "turbochargers")))
                 .andExpect(jsonPath("$.bestSelling", hasSize(4)))
                 .andExpect(jsonPath("$.bestSelling[*].categoryId", everyItem(in(List.of("engines", "gearboxes")))))
