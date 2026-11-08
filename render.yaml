@@ -113,6 +113,11 @@ services:
       paths:
         - frontend/**
     routes:
+      # The sitemap is built by the backend from the live catalogue; served here so it's on the shop's own domain.
+      # Must come before the /* rule. Update the address if the backend's changes.
+      - type: rewrite
+        source: /sitemap.xml
+        destination: https://speedyfix-backend-dzgw.onrender.com/sitemap.xml
       - type: rewrite
         source: /*
         destination: /index.html

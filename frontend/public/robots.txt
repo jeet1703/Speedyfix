@@ -7,5 +7,5 @@ Disallow: /order-received/
 Disallow: /account
 Disallow: /wishlist
 
-# Built from the live catalogue by the backend. Update this address when the shop moves to its own domain.
-Sitemap: https://speedyfix-backend.onrender.com/sitemap.xml
+# Built from the live catalogue by the backend; the shop's own address serves it (a rewrite in render.yaml).
+Sitemap: https://www.speedyfixautosales.com/sitemap.xml
