@@ -73,6 +73,7 @@ public class JdbcProductPhotoStore implements ProductPhotoStore {
     @Transactional
     public List<String> update(String productId, List<String> keepIds, List<MultipartFile> files) {
         List<String> current = idsFor(productId);
+        List<String> before = order(productId);
         List<String> kept = current.stream().filter(id -> keepIds != null && keepIds.contains(id)).toList();
         List<MultipartFile> added = files == null ? List.of() : files.stream().filter(f -> !f.isEmpty()).toList();
         if (kept.size() + added.size() > MAX_PER_PART) {
@@ -97,9 +98,43 @@ public class JdbcProductPhotoStore implements ProductPhotoStore {
             jdbc.update("INSERT INTO product_photo_files (photo_id, content_type, data) VALUES (?, ?, ?)", id, types.get(i), data.get(i));
             ids.add(id);
         }
-        for (int i = 0; i < ids.size(); i++) {
-            jdbc.update("UPDATE product_photos SET position = ? WHERE id = ?", FIRST_POSITION + i, ids.get(i));
+        // New uploads go straight after the kept ones, and every photo keeps its place relative to the others,
+        // including eBay photos staff have moved among the uploads (reorder).
+        List<String> all = new ArrayList<>();
+        int lastUpload = -1;
+        for (String id : before) {
+            if (id.equals(kept.isEmpty() ? null : kept.get(kept.size() - 1))) {
+                lastUpload = all.size();
+            }
+            if (!current.contains(id) || kept.contains(id)) {
+                all.add(id);
+            }
         }
+        all.addAll(lastUpload + 1, ids.subList(kept.size(), ids.size()));
+        renumber(productId, all);
         return List.copyOf(ids);
+    }
+
+    @Override
+    public List<String> order(String productId) {
+        return jdbc.queryForList("SELECT id FROM product_photos WHERE product_id = ? ORDER BY position", String.class, productId);
+    }
+
+    @Override
+    public void reorder(String productId, List<String> photoIds) {
+        List<String> current = order(productId);
+        List<String> wanted = new ArrayList<>(photoIds == null ? List.of() : photoIds.stream().filter(current::contains).distinct().toList());
+        current.stream().filter(id -> !wanted.contains(id)).forEach(wanted::add);
+        renumber(productId, wanted);
+    }
+
+    /** Positions FIRST_POSITION, FIRST_POSITION + 1, ... in this order, parking them first so the unique (product, position) can't clash. */
+    private void renumber(String productId, List<String> ids) {
+        for (int i = 0; i < ids.size(); i++) {
+            jdbc.update("UPDATE product_photos SET position = ? WHERE id = ? AND product_id = ?", -10_000 - i, ids.get(i), productId);
+        }
+        for (int i = 0; i < ids.size(); i++) {
+            jdbc.update("UPDATE product_photos SET position = ? WHERE id = ? AND product_id = ?", FIRST_POSITION + i, ids.get(i), productId);
+        }
     }
 }

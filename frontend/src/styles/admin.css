@@ -122,6 +122,7 @@ select.input--sm { padding-right: 32px; }
 .ref-chip { display: inline-flex; align-items: center; gap: 4px; background: #efede9; border-radius: 4px; padding: 2px 4px 2px 8px; font-size: 13px; }
 .ref-chip button { display: inline-flex; background: none; border: 0; padding: 4px; cursor: pointer; color: var(--ink-2); }
 .fit-actions { display: flex; flex-wrap: wrap; gap: 20px; align-items: center; }
+.fit-all { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
 .ebay-paste { display: flex; flex-direction: column; gap: 10px; border: 1px solid var(--admin-line); border-radius: 8px; padding: 12px 14px; }
 .ebay-paste:not([open]) { gap: 0; }
 .ebay-paste summary { cursor: pointer; font-weight: 600; }
@@ -137,6 +138,10 @@ select.input--sm { padding-right: 32px; }
 .photo-tile { position: relative; margin: 0; aspect-ratio: 1; border-radius: 8px; overflow: hidden; background: #ece9e3; }
 .photo-tile img { width: 100%; height: 100%; object-fit: cover; }
 .photo-tile figcaption { position: absolute; left: 8px; bottom: 8px; font-size: 12px; font-weight: 600; background: rgba(20, 23, 26, 0.8); color: #fff; padding: 2px 8px; border-radius: 4px; }
+.photo-tile__move { position: absolute; top: 6px; left: 6px; display: flex; gap: 4px; }
+.photo-tile__move button { min-width: 32px; height: 32px; padding: 0 8px; border: 0; border-radius: 16px; background: rgba(20, 23, 26, 0.8); color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; }
+.photo-tile__move button:disabled { opacity: 0.35; cursor: default; }
+.photo-tile__move button:hover:not(:disabled), .photo-tile__move button:focus-visible { background: var(--accent); }
 .photo-tile__remove { position: absolute; top: 6px; right: 6px; width: 32px; height: 32px; border-radius: 50%; border: 0; background: rgba(20, 23, 26, 0.8); color: #fff; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
 .checklist { display: flex; flex-direction: column; gap: 12px; font-size: 15px; }
 .checklist li { display: flex; align-items: center; gap: 10px; }

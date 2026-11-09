@@ -28,6 +28,9 @@ const SHIPPING: { value: Shipping; label: string }[] = [
 ];
 /** As many as eBay allows on a listing (the server's limit too). */
 const MAX_PHOTOS = 24;
+/** The Source of rows Gemini suggested (AdminVehicleController); they're added unticked. */
+const AI_SOURCE = 'AI suggestion';
+
 /** The server's limit on vehicles per part (ProductForm.MAX_VEHICLES). */
 const MAX_VEHICLES = 500;
 const MAX_REFINEMENTS = 5;
@@ -139,6 +142,9 @@ export function ProductEditPage() {
   const [kept, setKept] = useState<{ id: string; url: string }[]>([]);
   // Photos from the part's eBay listing that are staying; any removed are sent as removePhotoIds.
   const [imported, setImported] = useState<{ id: string; url: string }[]>([]);
+  // The saved photos' order (uploaded and from eBay together), and whether staff changed it.
+  const [photoOrder, setPhotoOrder] = useState<string[]>([]);
+  const [orderChanged, setOrderChanged] = useState(false);
   const [added, setAdded] = useState<NewPhoto[]>([]);
   const [photoError, setPhotoError] = useState('');
   const [dragging, setDragging] = useState(false);
@@ -193,6 +199,8 @@ export function ProductEditPage() {
     setBestSeller(d.bestSeller);
     setKept(d.photos);
     setImported(d.importedPhotos ?? []);
+    setPhotoOrder(d.photoOrder ?? [...d.photos, ...(d.importedPhotos ?? [])].map((p) => p.id));
+    setOrderChanged(false);
     setAdded((prev) => {
       prev.forEach((p) => URL.revokeObjectURL(p.url));
       return [];
@@ -269,6 +277,7 @@ export function ProductEditPage() {
 
   const ticked = rows.filter((r) => r.ticked);
   const highTicked = ticked.filter((r) => r.fit.confidence === 'HIGH').length;
+  const aiUnticked = rows.filter((r) => !r.ticked && r.fit.source === AI_SOURCE).length;
   const priceValue = price.trim() === '' ? null : Number(price);
   const priceOk = priceValue !== null && Number.isFinite(priceValue) && priceValue > 0;
   const saleValue = sale.trim() === '' ? null : Number(sale);
@@ -278,6 +287,23 @@ export function ProductEditPage() {
   // Same rounding as the server: to the penny, half a penny up.
   const salePrice = priceOk && saleValue && saleOk ? Math.round(priceValue! * (100 - saleValue)) / 100 : null;
   const photoCount = kept.length + imported.length + added.length;
+  // Saved photos as the shop shows them; the first is the main image.
+  const at = (photoId: string) => { const i = photoOrder.indexOf(photoId); return i < 0 ? Number.MAX_SAFE_INTEGER : i; };
+  const savedPhotos = [...kept.map((p) => ({ ...p, imported: false })), ...imported.map((p) => ({ ...p, imported: true }))]
+    .sort((a, b) => at(a.id) - at(b.id));
+
+  /** Moves a saved photo to position `to` (0 = main photo). */
+  function movePhoto(photoId: string, to: number) {
+    const ids = savedPhotos.map((p) => p.id).filter((x) => x !== photoId);
+    ids.splice(Math.max(0, Math.min(to, ids.length)), 0, photoId);
+    setPhotoOrder(ids);
+    setOrderChanged(true);
+  }
+
+  function removeSaved(photo: { id: string; imported: boolean }) {
+    if (photo.imported) setImported(imported.filter((x) => x.id !== photo.id));
+    else setKept(kept.filter((x) => x.id !== photo.id));
+  }
   const usesSample = photoCount === 0 && !!detail?.samplePhoto;
   // A listing whose photo was never downloaded still shows it from its link; "photo coming soon" isn't a photo.
   const usesListingPhoto = photoCount === 0 && !detail?.samplePhoto && !!detail?.imageUrl && !detail.imageUrl.endsWith('/placeholder.svg')
@@ -311,7 +337,8 @@ export function ProductEditPage() {
         name: name.trim(), categoryId, condition, grade, price: priceValue, partNumber: partNumber.trim(),
         engineCode: engineCode.trim(), brand: brand.trim(), subType: subType.trim(), refinements, shipping, stock: stockValue, bestSeller,
         vehicleIds: ticked.map((r) => r.fit.vehicleId), keepPhotoIds: kept.map((p) => p.id),
-        removePhotoIds: (detail?.importedPhotos ?? []).filter((p) => !imported.some((i) => i.id === p.id)).map((p) => p.id), status, descriptionHtml: descriptionToSave, salePercent: saleValue, weightKg: weightValue
+        removePhotoIds: (detail?.importedPhotos ?? []).filter((p) => !imported.some((i) => i.id === p.id)).map((p) => p.id),
+        photoOrder: orderChanged ? savedPhotos.map((p) => p.id) : null, status, descriptionHtml: descriptionToSave, salePercent: saleValue, weightKg: weightValue
       }, added.map((p) => p.file));
       const message = status === 'LIVE'
         ? (isLive ? 'Changes saved. The listing is live in the shop.' : 'Listed. The part is now in the shop.')
@@ -359,7 +386,7 @@ export function ProductEditPage() {
     );
   }
 
-  const previewImage = added[0]?.url ?? kept[0]?.url ?? imported[0]?.url ?? (usesSample || usesListingPhoto ? detail?.imageUrl : null);
+  const previewImage = (orderChanged ? savedPhotos[0]?.url : undefined) ?? added[0]?.url ?? savedPhotos[0]?.url ?? (usesSample || usesListingPhoto ? detail?.imageUrl : null);
   const reference = partNumber.trim() ? `Part no. ${partNumber.trim()}` : engineCode.trim() ? `Engine code ${engineCode.trim()}` : '';
 
   return (
@@ -371,8 +398,54 @@ export function ProductEditPage() {
             {saveError && <p ref={errorRef} className="notice notice--error" role="alert" tabIndex={-1}>{saveError}</p>}
             {loadError && <p className="notice notice--error" role="alert">{loadError}</p>}
 
+            <section className="card" aria-labelledby="step-photos">
+              <div className="card__head">
+                <h2 id="step-photos" className="card__title">1. Photos</h2>
+                <p className="admin-muted"><strong>{photoCount}</strong> of {MAX_PHOTOS} photos</p>
+              </div>
+              {usesSample && <p className="notice">This part is using a sample photo. Upload real photos of this unit to replace it.</p>}
+              {usesListingPhoto && (
+                <div className="notice">
+                  <img src={detail!.imageUrl!} alt="" width={64} height={64} style={{ objectFit: 'cover', borderRadius: 4, float: 'left', marginRight: 12 }} />
+                  <p>This listing already has a photo. You can save changes without uploading any; photos you upload here go first.</p>
+                </div>
+              )}
+              <div className="photos">
+                {photoCount < MAX_PHOTOS && (
+                  <div className={'dropzone' + (dragging ? ' dropzone--over' : '')}
+                    onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+                    onDragLeave={() => setDragging(false)} onDrop={onDrop}>
+                    <p>Drop photos here or <button type="button" className="link-btn" onClick={() => fileRef.current?.click()}>browse</button></p>
+                    <p className="field__hint">Add up to {MAX_PHOTOS} real photos of this unit, at least one. JPG, PNG or WebP; each is turned into a WebP for the shop.</p>
+                    <input ref={fileRef} type="file" accept={PHOTO_TYPES.join(',')} multiple hidden
+                      onChange={(e) => { addFiles(Array.from(e.target.files ?? [])); e.target.value = ''; }} />
+                  </div>
+                )}
+                {savedPhotos.map((p, i) => (
+                  <figure key={p.id} className="photo-tile">
+                    <img src={p.url} alt={`Photo ${i + 1}`} />
+                    <figcaption>{i === 0 ? 'Main photo' : `Photo ${i + 1}`}</figcaption>
+                    <button type="button" className="photo-tile__remove" aria-label={`Remove photo ${i + 1}`} onClick={() => removeSaved(p)}><Icon name="x" size={16} /></button>
+                    <div className="photo-tile__move">
+                      <button type="button" disabled={i === 0} aria-label={`Move photo ${i + 1} earlier`} onClick={() => movePhoto(p.id, i - 1)}>←</button>
+                      {i > 0 && <button type="button" onClick={() => movePhoto(p.id, 0)}>Make Main</button>}
+                      <button type="button" disabled={i === savedPhotos.length - 1} aria-label={`Move photo ${i + 1} later`} onClick={() => movePhoto(p.id, i + 1)}>→</button>
+                    </div>
+                  </figure>
+                ))}
+                {added.map((p, i) => (
+                  <figure key={p.url} className="photo-tile">
+                    <img src={p.url} alt={`New photo ${i + 1}`} />
+                    <figcaption>Not saved yet</figcaption>
+                    <button type="button" className="photo-tile__remove" aria-label={`Remove new photo ${i + 1}`} onClick={() => removeAdded(p)}><Icon name="x" size={16} /></button>
+                  </figure>
+                ))}
+              </div>
+              {photoError && <p className="field-error" role="alert">{photoError}</p>}
+            </section>
+
             <section className="card" aria-labelledby="step-details">
-              <h2 id="step-details" className="card__title">1. Part Details</h2>
+              <h2 id="step-details" className="card__title">2. Part Details</h2>
               <div className="field">
                 <label htmlFor="title">Title shown to shoppers</label>
                 <input id="title" className="input" value={name} onChange={(e) => setName(e.target.value)} maxLength={200} />
@@ -501,7 +574,7 @@ export function ProductEditPage() {
 
             <section className="card" aria-labelledby="step-vehicles">
               <div className="card__head">
-                <h2 id="step-vehicles" className="card__title">2. Confirm the Vehicles It Fits</h2>
+                <h2 id="step-vehicles" className="card__title">3. Confirm the Vehicles It Fits</h2>
                 {rows.length > 0 && (
                   <p className="admin-muted">
                     <strong>{ticked.length}</strong> of {rows.length} ticked · {highTicked} high confidence
@@ -519,7 +592,15 @@ export function ProductEditPage() {
                 <div className="table-wrap">
                   <table className="table table--fit">
                     <thead>
-                      <tr><th scope="col">Fits</th><th scope="col">Vehicle</th><th scope="col">Engine</th><th scope="col">Year</th><th scope="col">Source</th><th scope="col">Confidence</th><th scope="col"><span className="sr-only">Remove</span></th></tr>
+                      <tr><th scope="col">
+                        <label className="fit-all">
+                          <input type="checkbox" className="tick" checked={ticked.length === rows.length}
+                            ref={(el) => { if (el) el.indeterminate = ticked.length > 0 && ticked.length < rows.length; }}
+                            onChange={(e) => setRows(rows.map((r) => ({ ...r, ticked: e.target.checked })))}
+                            aria-label={ticked.length === rows.length ? 'Untick all vehicles' : 'Tick all vehicles'} />
+                          Fits
+                        </label>
+                      </th><th scope="col">Vehicle</th><th scope="col">Engine</th><th scope="col">Year</th><th scope="col">Source</th><th scope="col">Confidence</th><th scope="col"><span className="sr-only">Remove</span></th></tr>
                     </thead>
                     <tbody>
                       {rows.map((r) => (
@@ -548,6 +629,11 @@ export function ProductEditPage() {
                   <button type="button" className="btn btn--outline" disabled={suggesting || !name.trim()} onClick={() => void suggestWithAi()}>
                     {suggesting ? 'Asking AI…' : 'Suggest Vehicles With AI'}
                   </button>
+                  {aiUnticked > 0 && (
+                    <button type="button" className="btn btn--primary" onClick={() => setRows(rows.map((r) => (r.fit.source === AI_SOURCE ? { ...r, ticked: true } : r)))}>
+                      Tick All {aiUnticked} AI {aiUnticked === 1 ? 'Suggestion' : 'Suggestions'}
+                    </button>
+                  )}
                   <p className="field__hint">
                     Gemini reads the title, part number, engine code, brand and description lines above and suggests the
                     vehicles it thinks this part fits. <strong>AI can make mistakes:</strong> suggestions are added unticked,
@@ -563,7 +649,7 @@ export function ProductEditPage() {
             </section>
 
             <section className="card" aria-labelledby="step-description">
-              <h2 id="step-description" className="card__title">3. Description</h2>
+              <h2 id="step-description" className="card__title">4. Description</h2>
               <p className="field__hint">
                 Built from the shop’s listing template. The title, brand, part number and condition come from above; fill
                 in whichever of these lines apply. Empty ones are left out.
@@ -586,52 +672,6 @@ export function ProductEditPage() {
                 <p className="field__hint">This is the listing’s original description. It’s kept as it is until you change a line it shows.</p>
               )}
               <ListingHtml html={descriptionToSave} className="listing-html--preview" />
-            </section>
-
-            <section className="card" aria-labelledby="step-photos">
-              <div className="card__head">
-                <h2 id="step-photos" className="card__title">4. Photos</h2>
-                <p className="admin-muted"><strong>{photoCount}</strong> of {MAX_PHOTOS} photos</p>
-              </div>
-              {usesSample && <p className="notice">This part is using a sample photo. Upload real photos of this unit to replace it.</p>}
-              {usesListingPhoto && (
-                <div className="notice">
-                  <img src={detail!.imageUrl!} alt="" width={64} height={64} style={{ objectFit: 'cover', borderRadius: 4, float: 'left', marginRight: 12 }} />
-                  <p>This listing already has a photo. You can save changes without uploading any; photos you upload here go first.</p>
-                </div>
-              )}
-              <div className="photos">
-                {photoCount < MAX_PHOTOS && (
-                  <div className={'dropzone' + (dragging ? ' dropzone--over' : '')}
-                    onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-                    onDragLeave={() => setDragging(false)} onDrop={onDrop}>
-                    <p>Drop photos here or <button type="button" className="link-btn" onClick={() => fileRef.current?.click()}>browse</button></p>
-                    <p className="field__hint">Add up to {MAX_PHOTOS} real photos of this unit, at least one. JPG, PNG or WebP; each is turned into a WebP for the shop.</p>
-                    <input ref={fileRef} type="file" accept={PHOTO_TYPES.join(',')} multiple hidden
-                      onChange={(e) => { addFiles(Array.from(e.target.files ?? [])); e.target.value = ''; }} />
-                  </div>
-                )}
-                {kept.map((p, i) => (
-                  <figure key={p.id} className="photo-tile">
-                    <img src={p.url} alt={`Photo ${i + 1}`} />
-                    <button type="button" className="photo-tile__remove" aria-label={`Remove photo ${i + 1}`} onClick={() => setKept(kept.filter((x) => x !== p))}><Icon name="x" size={16} /></button>
-                  </figure>
-                ))}
-                {imported.map((p, i) => (
-                  <figure key={p.id} className="photo-tile">
-                    <img src={p.url} alt={`Photo ${kept.length + i + 1}`} />
-                    <button type="button" className="photo-tile__remove" aria-label={`Remove photo ${kept.length + i + 1}`} onClick={() => setImported(imported.filter((x) => x !== p))}><Icon name="x" size={16} /></button>
-                  </figure>
-                ))}
-                {added.map((p, i) => (
-                  <figure key={p.url} className="photo-tile">
-                    <img src={p.url} alt={`New photo ${i + 1}`} />
-                    <figcaption>Not saved yet</figcaption>
-                    <button type="button" className="photo-tile__remove" aria-label={`Remove new photo ${i + 1}`} onClick={() => removeAdded(p)}><Icon name="x" size={16} /></button>
-                  </figure>
-                ))}
-              </div>
-              {photoError && <p className="field-error" role="alert">{photoError}</p>}
             </section>
           </div>
 

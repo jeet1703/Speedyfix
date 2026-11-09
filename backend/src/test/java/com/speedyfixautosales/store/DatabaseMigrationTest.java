@@ -188,14 +188,40 @@ class DatabaseMigrationTest {
         // Keeping only the second reorders it to the front and deletes the first, file and all; eBay's photo stays.
         assertThat(photoStore.update("up", List.of(ids.get(1)), List.of())).containsExactly(ids.get(1));
         assertThat(photoStore.get(ids.get(0))).isEmpty();
-        assertThat(jdbc.queryForObject("SELECT count(*) FROM product_photo_files", Integer.class)).isEqualTo(1);
-        assertThat(jdbc.queryForObject("SELECT count(*) FROM product_photos WHERE source = 'EBAY'", Integer.class)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM product_photo_files WHERE photo_id IN (?, ?)", Integer.class, ids.get(0), ids.get(1))).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM product_photos WHERE product_id = 'up' AND source = 'EBAY'", Integer.class)).isEqualTo(1);
 
         catalog.invalidate();
         assertThat(catalog.product("up")).get().satisfies(p -> {
             assertThat(p.imageUrl()).endsWith("/api/product-photos/" + ids.get(1));
             assertThat(p.hasPhoto()).isTrue();
         });
+    }
+
+    @Test
+    void staffCanMakeAnyPhotoTheMainOneAndUploadsKeepThatOrder() {
+        jdbc.update("INSERT INTO products (id, name, category_id, condition, price, status) VALUES ('ro', 'Reordered part', 'engines', 'USED', 10, 'LIVE')");
+        jdbc.update("""
+                INSERT INTO product_photos (id, product_id, position, r2_key, source) VALUES
+                    ('ro1', 'ro', 0, 'listings/ro/1.jpg', 'EBAY'), ('ro2', 'ro', 1, 'listings/ro/2.jpg', 'EBAY'),
+                    ('ro3', 'ro', 2, 'listings/ro/3.jpg', 'EBAY'), ('ro4', 'ro', 3, 'listings/ro/4.jpg', 'EBAY')""");
+
+        // Photo 4 to the front; the others keep their order behind it.
+        photoStore.reorder("ro", List.of("ro4"));
+        assertThat(photoStore.order("ro")).containsExactly("ro4", "ro1", "ro2", "ro3");
+        catalog.invalidate();
+        assertThat(catalog.product("ro")).get().satisfies(p -> assertThat(p.imageUrl()).contains("listings/ro/4"));
+
+        // An upload goes in front of the eBay photos (none uploaded before), and the moved order holds.
+        List<String> up = photoStore.update("ro", List.of(), List.of(new MockMultipartFile("photos", "a.png", "image/png", PNG)));
+        assertThat(photoStore.order("ro")).containsExactly(up.get(0), "ro4", "ro1", "ro2", "ro3");
+
+        // A full order from the editor, with an id that isn't this part's ignored.
+        photoStore.reorder("ro", List.of("ro2", "someone-else", up.get(0)));
+        assertThat(photoStore.order("ro")).containsExactly("ro2", up.get(0), "ro4", "ro1", "ro3");
+        // Saving again with no changes keeps it.
+        photoStore.update("ro", up, List.of());
+        assertThat(photoStore.order("ro")).containsExactly("ro2", up.get(0), "ro4", "ro1", "ro3");
     }
 
     @Test

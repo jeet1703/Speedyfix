@@ -50,7 +50,9 @@ public record ProductForm(
         @Max(value = Product.MAX_SALE_PERCENT, message = "A sale can take up to 90% off.") Integer salePercent,
         @DecimalMin(value = "0.1", message = "Enter a weight of at least 0.1 kg, or leave it empty.")
         @DecimalMax(value = "999", message = "Enter a weight under 1,000 kg.")
-        @Digits(integer = 3, fraction = 2, message = "Enter the weight in kilograms, like 7.5.") BigDecimal weightKg) {
+        @Digits(integer = 3, fraction = 2, message = "Enter the weight in kilograms, like 7.5.") BigDecimal weightKg,
+        /** The saved photos' ids in the order staff put them, the main photo first; null leaves the order alone. */
+        @Size(max = 2 * ProductPhotoStore.MAX_PER_PART) List<String> photoOrder) {
 
     /** Vehicles on one part: a common engine fits many models and years. */
     public static final int MAX_VEHICLES = 500;

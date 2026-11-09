@@ -96,7 +96,9 @@ public class AdminCatalogService {
                          Shipping shipping, int stock, boolean bestSeller, ProductStatus status, WorkStatus workStatus,
                          String imageUrl, boolean samplePhoto, List<Photo> photos, List<Photo> importedPhotos, List<Fitment> vehicles,
                          LocalDate addedOn, String descriptionHtml, Integer salePercent, BigDecimal sellingPrice,
-                         BigDecimal weightKg, BigDecimal defaultWeightKg) {
+                         BigDecimal weightKg, BigDecimal defaultWeightKg,
+                         /** Every photo's id (uploaded and from eBay) in the shop's order: the first is the main image. */
+                         List<String> photoOrder) {
     }
 
     /** vehicle is null for plates the data source didn't recognise. */
@@ -349,6 +351,9 @@ public class AdminCatalogService {
         if (importedKept.size() < imported.size()) {
             photos.removeImported(id, remove);
         }
+        if (form.photoOrder() != null && !form.photoOrder().isEmpty()) {
+            photos.reorder(id, form.photoOrder());
+        }
         Product saved = product(id, form, partNumber, engineCode, refinements, vehicleIds,
                 photoIds.isEmpty() ? fallbackImage : photoUrl(photoIds.get(0)), existing);
         repository.save(saved);
@@ -432,7 +437,7 @@ public class AdminCatalogService {
                 p.engineCode(), p.brand(), p.subType(), p.refinements(), p.shipping(), p.stock(), p.bestSeller(), p.status(),
                 workStatus(p), p.imageUrl(), p.imageUrl() != null && !p.hasPhoto() && !Images.isPlaceholder(p.imageUrl()),
                 uploaded, imported, fits, p.addedOn(), repository.descriptionHtml(p.id()).orElse(null), p.salePercent(), p.sellingPrice(),
-                parcelSizes.weight(p.id()).orElse(null), ParcelSizes.typicalWeight(p.categoryId()));
+                parcelSizes.weight(p.id()).orElse(null), ParcelSizes.typicalWeight(p.categoryId()), photos.order(p.id()));
     }
 
     /** Compatibility is optional, so a part with no vehicles isn't unfinished; one without a real photo is. */

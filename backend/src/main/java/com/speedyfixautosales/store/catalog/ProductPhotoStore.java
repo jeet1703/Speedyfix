@@ -41,6 +41,18 @@ public interface ProductPhotoStore {
     default void removeImported(String productId, List<String> photoIds) {
     }
 
+    /** All the part's photos, uploaded and from eBay, in the order the shop shows them (the first is the main image). */
+    default List<String> order(String productId) {
+        return idsFor(productId);
+    }
+
+    /**
+     * Puts the part's photos in the given order, so the first is the main image. Ids that aren't the part's photos are
+     * ignored; its photos not listed keep their order, after the listed ones.
+     */
+    default void reorder(String productId, List<String> photoIds) {
+    }
+
     static byte[] read(MultipartFile f) {
         try {
             return f.getBytes();

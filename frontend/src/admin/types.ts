@@ -78,6 +78,8 @@ export interface ProductDetail {
   photos: { id: string; url: string }[];
   /** Photos the part came with from its eBay listing, shown after the uploaded ones. */
   importedPhotos: { id: string; url: string }[];
+  /** Every photo's id (uploaded and from eBay) in the shop's order: the first is the main image. */
+  photoOrder?: string[];
   vehicles: Fitment[];
   addedOn: string;
   descriptionHtml: string | null;
@@ -106,6 +108,8 @@ export interface ProductFormData {
   keepPhotoIds: string[];
   /** Photos from the part's eBay listing to take off. */
   removePhotoIds: string[];
+  /** The saved photos in the order staff put them, main first; null leaves the order alone. */
+  photoOrder: string[] | null;
   status: ProductStatus;
   /** Blank removes the description. */
   descriptionHtml: string;
