@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayDeque;
@@ -44,7 +45,9 @@ public class AdminAuthService {
     static final int MIN_SECRET_LENGTH = 32;
     static final Duration SESSION_LENGTH = Duration.ofHours(12);
     static final Duration FAILURE_WINDOW = Duration.ofMinutes(15);
+    /** After this many wrong tries from one address, sign-in is locked for LOCKOUT from the last one. */
     static final int MAX_FAILURES_PER_CLIENT = 5;
+    static final Duration LOCKOUT = Duration.ofMinutes(15);
     // Client addresses come from X-Forwarded-For, which a caller can vary, so there's an overall cap too.
     static final int MAX_FAILURES_OVERALL = 50;
 
@@ -66,11 +69,16 @@ public class AdminAuthService {
     private record Account(Staff staff, byte[] passwordHash) {
     }
 
+    /** One address's wrong tries since its last lockout (forgotten after FAILURE_WINDOW without one), and its lock. */
+    private record Attempts(int failures, Instant lastFailure, Instant lockedUntil) {
+    }
+
     private final Account master;
     private final SecretKey key;
     private final Map<String, Instant> signedOut = new ConcurrentHashMap<>();
-    private final Map<String, Deque<Instant>> failures = new ConcurrentHashMap<>();
+    private final Map<String, Attempts> failures = new ConcurrentHashMap<>();
     private final Deque<Instant> allFailures = new ArrayDeque<>();
+    private Clock clock = Clock.systemUTC();
 
     public AdminAuthService(@Value("${admin.email:}") String email,
                             @Value("${admin.password:}") String password,
@@ -106,22 +114,32 @@ public class AdminAuthService {
         if (!enabled()) {
             throw new UnavailableException("Admin sign-in isn’t set up yet. Set ADMIN_EMAIL and ADMIN_PASSWORD (12+ characters) on the server.");
         }
-        Instant now = Instant.now();
+        Instant now = clock.instant();
         synchronized (allFailures) {
             prune(allFailures, now);
-            Deque<Instant> mine = failures.getOrDefault(client, new ArrayDeque<>());
-            prune(mine, now);
-            if (mine.size() >= MAX_FAILURES_PER_CLIENT || allFailures.size() >= MAX_FAILURES_OVERALL) {
+            Attempts mine = current(client, now);
+            if (mine.lockedUntil() != null) {
+                throw new TooManyRequestsException("Too many failed sign-ins. Try again in " + minutes(now, mine.lockedUntil()) + ".");
+            }
+            if (allFailures.size() >= MAX_FAILURES_OVERALL) {
                 throw new TooManyRequestsException("Too many failed sign-ins. Wait 15 minutes and try again.");
             }
             // Check the password even when the email is wrong, so neither answer comes back faster.
             boolean emailMatches = email != null && master.staff().email().equals(email.trim().toLowerCase(Locale.ROOT));
             boolean passwordMatches = password != null && MessageDigest.isEqual(master.passwordHash(), sha256(password));
             if (!emailMatches || !passwordMatches) {
-                // Entries are only created here, so the overall cap also bounds the map's size.
-                failures.computeIfAbsent(client, c -> mine).addLast(now);
                 allFailures.addLast(now);
-                throw new UnauthorizedException("That email or password isn’t right.");
+                int count = mine.failures() + 1;
+                // Entries are only created here, so the overall cap also bounds the map's size.
+                if (count >= MAX_FAILURES_PER_CLIENT) {
+                    failures.put(client, new Attempts(0, now, now.plus(LOCKOUT)));
+                    throw new TooManyRequestsException("That email or password isn’t right. After "
+                            + MAX_FAILURES_PER_CLIENT + " wrong tries, sign-in is locked for 15 minutes.");
+                }
+                failures.put(client, new Attempts(count, now, null));
+                int left = MAX_FAILURES_PER_CLIENT - count;
+                throw new UnauthorizedException("That email or password isn’t right. " + left + (left == 1 ? " try" : " tries")
+                        + " left before a 15-minute wait.");
             }
             failures.remove(client);
         }
@@ -153,12 +171,32 @@ public class AdminAuthService {
 
     @Scheduled(fixedDelayString = "PT1H")
     void removeExpired() {
-        Instant now = Instant.now();
+        Instant now = clock.instant();
         signedOut.values().removeIf(e -> e.isBefore(now));
         synchronized (allFailures) {
-            failures.values().forEach(d -> prune(d, now));
-            failures.values().removeIf(Deque::isEmpty);
+            failures.keySet().removeIf(client -> current(client, now).failures() == 0 && current(client, now).lockedUntil() == null);
         }
+    }
+
+    /** The address's tries as they stand now: a lock that has run out, or tries older than FAILURE_WINDOW, are forgotten. */
+    private Attempts current(String client, Instant now) {
+        Attempts a = failures.get(client);
+        if (a == null || (a.lockedUntil() != null && !now.isBefore(a.lockedUntil()))
+                || (a.lockedUntil() == null && a.lastFailure().plus(FAILURE_WINDOW).isBefore(now))) {
+            return new Attempts(0, now, null);
+        }
+        return a;
+    }
+
+    /** "12 minutes", rounded up, never "0 minutes". */
+    private static String minutes(Instant now, Instant until) {
+        long m = Math.max(1, (Duration.between(now, until).getSeconds() + 59) / 60);
+        return m + (m == 1 ? " minute" : " minutes");
+    }
+
+    /** Tests move time on with a fixed clock. */
+    void useClock(Clock clock) {
+        this.clock = clock;
     }
 
     private Optional<Claims> claims(String token) {

@@ -71,11 +71,11 @@ class AdminApiTest {
         mvc.perform(post("/api/admin/session").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"owner@example.com\",\"password\":\"nope\"}"))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.detail").value("That email or password isn’t right."));
+                .andExpect(jsonPath("$.detail").value("That email or password isn’t right. 4 tries left before a 15-minute wait."));
         mvc.perform(post("/api/admin/session").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"someone@example.com\",\"password\":\"test-password-123\"}"))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.detail").value("That email or password isn’t right."));
+                .andExpect(jsonPath("$.detail").value(startsWith("That email or password isn’t right.")));
     }
 
     @Test
