@@ -98,8 +98,9 @@ export const adminApi = {
 
   orders: () => authed<Order[]>('/api/admin/orders'),
   order: (reference: string) => authed<Order>(`/api/admin/orders/${encodeURIComponent(reference)}`),
-  setOrderStatus: (reference: string, status: OrderStatus, courier?: string, trackingNumber?: string) =>
-    authed<Order>(`/api/admin/orders/${encodeURIComponent(reference)}`, json('PATCH', { status, courier, trackingNumber })),
+  /** restock: when cancelling a dispatched order, put its parts back on sale (they're back with us). */
+  setOrderStatus: (reference: string, status: OrderStatus, courier?: string, trackingNumber?: string, restock?: boolean) =>
+    authed<Order>(`/api/admin/orders/${encodeURIComponent(reference)}`, json('PATCH', { status, courier, trackingNumber, restock })),
   ebaySync: () => authed<EbaySyncStatus>('/api/admin/ebay-sync'),
   startEbaySync: () => authed<EbaySyncStatus>('/api/admin/ebay-sync', { method: 'POST' }),
   orderInvoice: (reference: string) => authed<InvoiceStatus>(`/api/admin/orders/${encodeURIComponent(reference)}/invoice`),

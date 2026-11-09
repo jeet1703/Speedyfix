@@ -108,13 +108,26 @@ public class OrderService {
      * Staff move an order on: AWAITING_PAYMENT to AWAITING_DISPATCH once paid, then DISPATCHED with the courier and
      * tracking number. Any order not yet dispatched can be cancelled, which puts its parts back in stock.
      */
-    public synchronized Order setStatus(String reference, Order.Status status, String courier, String trackingNumber) {
+    public Order setStatus(String reference, Order.Status status, String courier, String trackingNumber) {
+        return setStatus(reference, status, courier, trackingNumber, false);
+    }
+
+    /**
+     * As above, and a dispatched order can be cancelled too (sent back, refused, lost in the post). Its parts have left
+     * the shop, so they only go back in stock with restock, once they're back; the dispatch details are kept.
+     */
+    public synchronized Order setStatus(String reference, Order.Status status, String courier, String trackingNumber,
+                                        boolean restock) {
         Order order = get(reference);
         if (order.status() == status) {
             return order;
         }
-        if (order.status() == Order.Status.DISPATCHED || order.status() == Order.Status.CANCELLED) {
-            throw new ConflictException("This order is already " + (order.status() == Order.Status.DISPATCHED ? "dispatched" : "cancelled") + ".");
+        if (order.status() == Order.Status.CANCELLED) {
+            throw new ConflictException("This order is already cancelled.");
+        }
+        boolean dispatched = order.status() == Order.Status.DISPATCHED;
+        if (dispatched && status != Order.Status.CANCELLED) {
+            throw new ConflictException("This order is already dispatched.");
         }
         Order.Dispatch dispatch = null;
         switch (status) {
@@ -133,7 +146,12 @@ public class OrderService {
                 }
                 dispatch = new Order.Dispatch(courier.trim(), trackingNumber == null || trackingNumber.isBlank() ? null : trackingNumber.trim(), Instant.now());
             }
-            case CANCELLED -> order.lines().forEach(l -> catalog.reduceStock(l.productId(), -l.quantity()));
+            case CANCELLED -> {
+                if (!dispatched || restock) {
+                    order.lines().forEach(l -> catalog.reduceStock(l.productId(), -l.quantity()));
+                }
+                dispatch = order.dispatch();
+            }
         }
         Order updated = order.withStatus(status, dispatch);
         orders.save(updated);

@@ -39,6 +39,7 @@ export function OrderDetailPage() {
   const [courier, setCourier] = useState('');
   const [tracking, setTracking] = useState('');
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [restock, setRestock] = useState(false);
   const [invoice, setInvoice] = useState<InvoiceStatus | null>(null);
 
   useEffect(() => {
@@ -88,7 +89,8 @@ export function OrderDetailPage() {
     setNotice('');
     setBusy(true);
     try {
-      setOrder(await adminApi.setOrderStatus(reference, status, courierName ?? courier.trim(), courierName ? '' : tracking.trim()));
+      setOrder(await adminApi.setOrderStatus(reference, status, courierName ?? courier.trim(), courierName ? '' : tracking.trim(),
+        status === 'CANCELLED' && restock));
       setNotice(message);
       setConfirmCancel(false);
     } catch (err) {
@@ -108,6 +110,8 @@ export function OrderDetailPage() {
   }
 
   const open = order && (order.status === 'AWAITING_PAYMENT' || order.status === 'AWAITING_DISPATCH');
+  // A dispatched order can still be cancelled (sent back, refused, lost); its parts only go back on sale if ticked.
+  const sent = order?.status === 'DISPATCHED';
 
   return (
     <AdminLayout title={order ? `Order ${order.reference}` : 'Order'} crumbs={[{ label: 'Orders', to: '/admin/orders' }, { label: reference }]}>
@@ -209,7 +213,11 @@ export function OrderDetailPage() {
               </section>
             )}
 
-            {order.status === 'CANCELLED' && <p className="notice">This order was cancelled and its parts were put back in stock.</p>}
+            {order.status === 'CANCELLED' && (
+              <p className="notice">{order.dispatch
+                ? 'This order was cancelled after it was sent. Check the parts are back in stock, and that the buyer has been refunded in PayPal.'
+                : 'This order was cancelled and its parts were put back in stock.'}</p>
+            )}
           </div>
 
           <aside className="edit-side">
@@ -258,13 +266,26 @@ export function OrderDetailPage() {
               </section>
             )}
 
-            {open && (
+            {(open || sent) && (
               <section className="card" aria-labelledby="cancel-title">
                 <h2 id="cancel-title" className="card__title">Cancel Order</h2>
-                <p className="admin-muted">Puts the parts back in stock. This can’t be undone.</p>
+                {sent ? (
+                  <>
+                    <p className="admin-muted">For an order that came back, was refused or was lost. The buyer is emailed that it’s cancelled and will be refunded: refund them in PayPal (or the way they paid). This can’t be undone.</p>
+                    <label className="check">
+                      <input type="checkbox" checked={restock} onChange={(e) => setRestock(e.target.checked)} />
+                      The parts are back with us: put them back on sale
+                    </label>
+                  </>
+                ) : (
+                  <p className="admin-muted">Puts the parts back in stock. This can’t be undone.</p>
+                )}
                 {confirmCancel ? (
                   <div className="request-actions">
-                    <button type="button" className="btn btn--dark" disabled={busy} onClick={() => void change('CANCELLED', 'Order cancelled. The parts are back in stock.')}>Yes, Cancel the Order</button>
+                    <button type="button" className="btn btn--dark" disabled={busy}
+                      onClick={() => void change('CANCELLED', sent && !restock ? 'Order cancelled. The parts weren’t put back on sale.' : 'Order cancelled. The parts are back in stock.')}>
+                      Yes, Cancel the Order
+                    </button>
                     <button type="button" className="btn btn--outline" onClick={() => setConfirmCancel(false)}>Keep It</button>
                   </div>
                 ) : (
