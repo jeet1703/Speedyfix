@@ -20,6 +20,18 @@
       href="%BASE_URL%img/stock/1655103955676-c9fbc4b65525-1920x900.webp"
       imagesrcset="%BASE_URL%img/stock/1655103955676-c9fbc4b65525-828x900.webp 828w, %BASE_URL%img/stock/1655103955676-c9fbc4b65525-1280x600.webp 1280w, %BASE_URL%img/stock/1655103955676-c9fbc4b65525-1920x900.webp 1920w"
       imagesizes="100vw" />
+    <!-- Google Ads tag. Advertising cookies stay off until the visitor accepts them in the cookie notice
+         (CookieNotice.tsx, which stores the choice under sf_adsConsent); until then Google gets cookieless pings only. -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=AW-18469920109"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      var sfAds = 'denied';
+      try { if (localStorage.getItem('sf_adsConsent') === '"granted"') sfAds = 'granted'; } catch (e) {}
+      gtag('consent', 'default', { ad_storage: sfAds, ad_user_data: sfAds, ad_personalization: sfAds, analytics_storage: sfAds });
+      gtag('js', new Date());
+      gtag('config', 'AW-18469920109');
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -1,7 +1,9 @@
 import { useEffect, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
+import { isContactLink, trackContact } from '../state/ads';
 import { useSite } from '../state/SiteContext';
 import { BasketDrawer } from './BasketDrawer';
+import { CookieNotice } from './CookieNotice';
 import { Footer } from './Footer';
 import { Header } from './Header';
 import { HomeSkeleton, Skeleton } from './Skeleton';
@@ -36,6 +38,16 @@ export function Layout({ title, description, noindex = false, jsonLd, children }
 }) {
   const { data, error, waking, retry } = useSite();
   const { pathname, search } = useLocation();
+
+  // A tap on any phone, WhatsApp or email link in the shop counts as a contact in Google Ads.
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      const link = (e.target as Element | null)?.closest?.('a[href]');
+      if (link && isContactLink(link.getAttribute('href') ?? '')) trackContact();
+    };
+    document.addEventListener('click', onClick);
+    return () => document.removeEventListener('click', onClick);
+  }, []);
 
   useEffect(() => {
     document.title = title ? `${title} | SpeedyFix Auto Sales` : 'SpeedyFix Auto Sales | Engines and engine parts';
@@ -121,6 +133,7 @@ export function Layout({ title, description, noindex = false, jsonLd, children }
       <Footer site={data.site} />
       <BasketDrawer />
       <Toast />
+      <CookieNotice />
       <HelpChat site={data.site} ai={data.chatAi} fedex={data.deliveryQuotes} />
     </>
   );

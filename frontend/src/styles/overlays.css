@@ -81,3 +81,13 @@
   .chat__bubble { padding: 0; width: 52px; }
 }
 .chat__disclaimer { margin: 0; padding: 6px 12px 0; font-size: 11px; color: var(--ink-3); background: var(--surface); }
+
+/* Cookie notice: bottom-left, clear of the help chat bubble (bottom-right). Above the chat (55), below the basket drawer (60). */
+.cookie-notice { position: fixed; left: 20px; bottom: 20px; z-index: 56; width: min(420px, calc(100vw - 40px)); padding: 16px 18px; background: var(--ink); color: #fff; border-radius: 12px; box-shadow: 0 18px 48px rgba(20, 23, 26, 0.3); font-size: 14px; line-height: 1.5; }
+.cookie-notice p { margin: 0 0 12px; }
+.cookie-notice a { color: #fff; text-decoration: underline; }
+.cookie-notice__actions { display: flex; gap: 10px; }
+.cookie-notice__actions .btn { flex: 1; min-height: 44px; }
+@media (max-width: 560px) {
+  .cookie-notice { bottom: 84px; }
+}

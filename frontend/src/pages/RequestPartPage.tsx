@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
+import { trackContact } from '../state/ads';
 import { api, ApiError } from '../api/client';
 import type { PartRequestReceived, ReplyBy } from '../api/types';
 import { Layout } from '../components/Layout';
@@ -37,6 +38,7 @@ export function RequestPartPage() {
     setBusy(true);
     try {
       setSent(await api.requestPart(form));
+      trackContact();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'We couldn’t send your request. Try again.');

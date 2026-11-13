@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import type { Site } from '../api/types';
+import { reopenCookieNotice } from '../state/ads';
 
 /*
  * Terms of sale and privacy notice. Written for this shop from UK consumer law (Consumer Contracts Regulations 2013,
@@ -190,7 +191,7 @@ export function PrivacyBody(site: Site) {
         <li><strong>Render</strong> (website and database hosting, servers in Frankfurt, Germany).</li>
         <li><strong>Cloudflare</strong> (storage for listing photos).</li>
         <li><strong>PayPal</strong> (payments).</li>
-        <li><strong>Google</strong> (Sign in with Google, and AI wording in the help chat).</li>
+        <li><strong>Google</strong> (Sign in with Google, AI wording in the help chat, and measuring our Google Ads adverts).</li>
         <li><strong>DVSA</strong> (vehicle lookups).</li>
         <li><strong>Couriers</strong> ({site.couriers}): your name, address and phone number, to deliver your order.</li>
       </ul>
@@ -198,10 +199,17 @@ export function PrivacyBody(site: Site) {
 
       <h2 className="info__heading">Cookies and Browser Storage</h2>
       <p>
-        We don’t use advertising or tracking cookies. The shop keeps your basket, wishlist, recent searches and sign-in in
-        your browser’s storage so they’re there when you come back. Google may set a cookie when you use Sign in with
-        Google, and PayPal sets cookies while you pay; see their own privacy notices.
+        The shop keeps your basket, wishlist, recent searches and sign-in in your browser’s storage so they’re there when
+        you come back. Google may set a cookie when you use Sign in with Google, and PayPal sets cookies while you pay;
+        see their own privacy notices.
       </p>
+      <p>
+        We advertise with Google Ads. If you accept advertising cookies, Google sets cookies that tell us which adverts
+        brought visitors to the shop and whether they got in touch. If you reject them, no advertising cookies are set and
+        Google receives only anonymous counts with no cookies. The shop works the same either way, and you can change your
+        choice at any time.
+      </p>
+      <p><button type="button" className="btn btn--outline" onClick={reopenCookieNotice}>Change Cookie Choice</button></p>
 
       <h2 className="info__heading">Your Rights</h2>
       <p>
