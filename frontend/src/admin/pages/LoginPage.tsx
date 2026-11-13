@@ -9,6 +9,7 @@ export function LoginPage() {
   const from = (useLocation().state as { from?: string } | null)?.from;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -57,8 +58,12 @@ export function LoginPage() {
         </div>
         <div className="field">
           <label htmlFor="admin-password">Password</label>
-          <input id="admin-password" className="input" type="password" autoComplete="current-password" value={password}
+          <input id="admin-password" className="input" type={showPassword ? 'text' : 'password'} autoComplete="current-password" value={password}
             onChange={(e) => setPassword(e.target.value)} maxLength={200} aria-invalid={error ? true : undefined} />
+          <label className="check">
+            <input type="checkbox" checked={showPassword} onChange={(e) => setShowPassword(e.target.checked)} />
+            Show password
+          </label>
         </div>
         <button type="submit" className="btn btn--primary btn--block" disabled={busy}>{busy ? 'Signing In…' : 'Sign In'}</button>
         <p className="field__hint">Sessions last 12 hours, or until you close this tab.</p>

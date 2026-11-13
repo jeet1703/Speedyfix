@@ -147,8 +147,8 @@ mail:
   account-from: ${MAIL_ACCOUNT_FROM:SpeedyFix Auto Sales <account@speedyfixautosales.com>}
   # Where buyers' replies go.
   reply-to: ${MAIL_REPLY_TO:eBay.speedyfix@gmail.com}
-  # Gets a copy of each paid order, invoice attached. Blank: none.
-  staff-orders: ${MAIL_STAFF_ORDERS:}
+  # Gets a copy of each paid order, invoice attached. Set MAIL_STAFF_ORDERS blank for none.
+  staff-orders: ${MAIL_STAFF_ORDERS:eBay.speedyfix@gmail.com}
 
 orders:
   # true: only signed-in shoppers (Google, or email once it's on) can check out. Off by default, so guests can order

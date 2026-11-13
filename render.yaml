@@ -85,7 +85,7 @@ services:
       - key: MAIL_FROM
         value: "SpeedyFix Auto Sales <orders@speedyfixautosales.com>"
       - key: MAIL_STAFF_ORDERS
-        sync: false
+        value: "eBay.speedyfix@gmail.com"
       # Google Gemini for the help chat's AI answers (optional: without it the chat answers by itself).
       - key: GEMINI_API_KEY
         sync: false
