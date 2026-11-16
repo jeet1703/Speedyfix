@@ -24,11 +24,14 @@ public record SiteProperties(
         String returns,
         String vatNumber,
         String companyNumber,
+        /** ICO data protection registration number; blank until it's issued. */
+        String icoNumber,
         List<String> corsAllowedOrigins) {
 
     public SiteProperties {
         corsAllowedOrigins = corsAllowedOrigins == null ? List.of() : List.copyOf(corsAllowedOrigins);
         videoUrl = videoUrl == null ? "" : videoUrl;
         landline = landline == null ? "" : landline;
+        icoNumber = icoNumber == null ? "" : icoNumber.trim();
     }
 }

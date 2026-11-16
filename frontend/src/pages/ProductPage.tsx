@@ -234,7 +234,7 @@ function Perks({ shipping }: { shipping: 'PARCEL' | 'PALLET' }) {
   const { data } = useSite();
   return (
     <ul className="perks">
-      <li><Icon name="shield" size={20} />{data?.site.warranty} warranty.</li>
+      <li><Icon name="shield" size={20} />14-day returns. Warranty: {data?.site.warranty}.</li>
       <li><Icon name="truck" size={20} />{data?.deliveryQuotes
         ? shipping === 'PALLET' ? 'Tracked FedEx Freight delivery, priced at checkout, never more than £100 in the UK.' : 'Tracked FedEx delivery, priced at checkout. Free in the UK for parts up to 5 kg.'
         : shipping === 'PALLET' ? 'Pallet delivery across the UK, £79.' : 'Tracked parcel delivery, £9.95 or free from £100.'}</li>

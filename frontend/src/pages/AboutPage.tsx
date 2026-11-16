@@ -27,7 +27,7 @@ export function AboutPage() {
   const categories = (shop?.categories ?? []).filter((c) => c.count > 0).sort((a, b) => b.count - a.count);
 
   return (
-    <Layout title="About Us" description={site ? `${site.companyName}: used, remanufactured and new car parts from ${site.shipsFrom}, with a ${site.warranty} warranty and UK delivery.` : undefined}>
+    <Layout title="About Us" description={site ? `${site.companyName}: used, remanufactured and new car parts from ${site.shipsFrom}, with 14-day returns and UK delivery.` : undefined}>
       <PageTitle title="About Us" crumbs={[{ label: 'About Us' }]} />
 
       <section className="about-hero">
@@ -48,7 +48,7 @@ export function AboutPage() {
           <dl className="about-stats">
             <div><dt>Parts in stock</dt><dd>{shop ? shop.total.toLocaleString('en-GB') : '…'}</dd></div>
             <div><dt>Categories</dt><dd>{shop ? categories.length : '…'}</dd></div>
-            <div><dt>Warranty</dt><dd>{site?.warranty ?? '…'}</dd></div>
+            <div><dt>Returns</dt><dd>14 days</dd></div>
             <div><dt>UK delivery</dt><dd>7 days</dd></div>
           </dl>
         </div>
@@ -71,7 +71,7 @@ export function AboutPage() {
             <li>
               <Icon name="shield" size={26} />
               <h3>Covered</h3>
-              <p>Every part comes with a {site?.warranty ?? '28-day'} warranty from delivery, on top of your rights under UK consumer law.</p>
+              <p>Change your mind within 14 days of delivery and send it back for a refund. Aftermarket and refurbished parts also come with a 3 months replacement warranty, on top of your rights under UK consumer law.</p>
             </li>
             <li>
               <Icon name="wrench" size={26} />

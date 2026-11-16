@@ -54,6 +54,9 @@ export function CheckoutPage() {
   }, [customer]);
   const [errors, setErrors] = useState<Partial<Record<keyof OrderForm, string>>>({});
   const [serverError, setServerError] = useState('');
+  // The shopper must tick that they accept the terms before they can pay; the server refuses an order without it.
+  const [agreed, setAgreed] = useState(false);
+  const [termsError, setTermsError] = useState('');
   const [busy, setBusy] = useState(false);
   const summary = useRef<HTMLDivElement>(null);
   const lines = basket?.lines ?? [];
@@ -126,10 +129,12 @@ export function CheckoutPage() {
     const delivery = quoting && addressOk && !chosen
       ? (options ? 'Choose a delivery option.' : 'Press “Calculate delivery” and choose how you’d like it delivered.')
       : '';
+    const terms = agreed ? '' : 'Tick the box to accept the terms and conditions.';
     setErrors(found);
     setDeliveryError(delivery);
+    setTermsError(terms);
     setServerError('');
-    if (Object.keys(found).length > 0 || delivery || !basket) {
+    if (Object.keys(found).length > 0 || delivery || terms || !basket) {
       requestAnimationFrame(() => summary.current?.focus());
       return false;
     }
@@ -140,7 +145,7 @@ export function CheckoutPage() {
   async function place(): Promise<Order | null> {
     setBusy(true);
     try {
-      return await api.placeOrder(basket!.id, form, token, chosen?.id ?? null);
+      return await api.placeOrder(basket!.id, form, agreed, token, chosen?.id ?? null);
     } catch (err) {
       setServerError(err instanceof ApiError ? err.message : 'We couldn’t place your order. Try again.');
       requestAnimationFrame(() => summary.current?.focus());
@@ -229,13 +234,14 @@ export function CheckoutPage() {
       <div className="container">
         <form className="two-col" onSubmit={submit} noValidate>
           <div className="checkout">
-            {(errorList.length > 0 || deliveryError || serverError) && (
+            {(errorList.length > 0 || deliveryError || termsError || serverError) && (
               <div className="notice notice--error" role="alert" tabIndex={-1} ref={summary}>
                 <p><strong>{serverError ? 'Your order wasn’t placed' : 'Check your details'}</strong></p>
                 {serverError ? <p>{serverError}</p> : (
                   <ul>
                     {errorList.map(([k, m]) => <li key={k}><a href={`#co-${k}`}>{m}</a></li>)}
                     {deliveryError && <li><a href="#co-delivery">{deliveryError}</a></li>}
+                    {termsError && <li><a href="#co-terms">{termsError}</a></li>}
                   </ul>
                 )}
               </div>
@@ -324,6 +330,22 @@ export function CheckoutPage() {
 
             <fieldset className="checkout__group">
               <legend className="panel__title">Payment</legend>
+              <div className="field">
+                <label className="check">
+                  <input id="co-terms" type="checkbox" checked={agreed} aria-invalid={termsError ? true : undefined}
+                    aria-describedby={termsError ? 'co-terms-error' : undefined}
+                    onChange={(e) => { setAgreed(e.target.checked); if (e.target.checked) setTermsError(''); }} />
+                  <span>
+                    I’ve read and accept the <Link to="/terms" target="_blank">terms and conditions</Link>, including the{' '}
+                    <Link to="/delivery" target="_blank">returns and cancellation policy</Link>.
+                  </span>
+                </label>
+                {termsError && <p id="co-terms-error" className="field-error">{termsError}</p>}
+                <p className="field__hint">
+                  Buying for yourself? You can cancel for any reason up to 14 days after your parts arrive, and you’re
+                  covered by UK consumer law if a part is faulty.
+                </p>
+              </div>
               <div className="notice">
                 {data?.paypalClientId ? (
                   <>
@@ -359,7 +381,7 @@ export function CheckoutPage() {
             {data?.paypalClientId
               ? <p className="panel__note"><strong>Pay with PayPal or a card in the Payment section{busy ? ' (placing your order…)' : ''}.</strong></p>
               : <button type="submit" className="btn btn--primary btn--block" disabled={busy}>{busy ? 'Placing Order…' : 'Place Order'}</button>}
-            <p className="panel__note">By placing your order you agree to our <Link to="/terms">terms and conditions</Link>. Read our <Link to="/privacy">privacy policy</Link> to see how we use your details.</p>
+            <p className="panel__note">Read our <Link to="/privacy" target="_blank">privacy policy</Link> to see how we use your details.</p>
           </aside>
         </form>
       </div>

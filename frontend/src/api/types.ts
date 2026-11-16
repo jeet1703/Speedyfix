@@ -89,6 +89,8 @@ export interface Site {
   vatNumber: string;
   /** Companies House registration number. */
   companyNumber: string;
+  /** ICO data protection registration number; blank until it's issued. */
+  icoNumber: string;
 }
 
 export interface SiteData {

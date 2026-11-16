@@ -6,11 +6,15 @@ import com.speedyfixautosales.store.vehicle.Vehicle;
 import com.speedyfixautosales.store.vehicle.VehicleService;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -26,6 +30,20 @@ public class PartRequestService {
     public PartRequestService(PartRequestStore store, VehicleService vehicles) {
         this.store = store;
         this.vehicles = vehicles;
+    }
+
+    /** How long a part request is kept, as the privacy policy promises (12 months). */
+    static final Duration KEPT_FOR = Duration.ofDays(365);
+
+    private static final Logger log = LoggerFactory.getLogger(PartRequestService.class);
+
+    /** Once a day, deletes part requests (and their photos) older than KEPT_FOR. */
+    @Scheduled(initialDelayString = "PT5M", fixedDelayString = "PT24H")
+    public void deleteOld() {
+        int deleted = store.deleteReceivedBefore(Instant.now().minus(KEPT_FOR));
+        if (deleted > 0) {
+            log.info("Deleted {} part requests older than 12 months", deleted);
+        }
     }
 
     public record Received(String reference, String vehicle, PartRequest.ReplyBy replyBy) {

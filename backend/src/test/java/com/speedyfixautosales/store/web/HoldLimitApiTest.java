@@ -27,7 +27,7 @@ class HoldLimitApiTest {
         mvc.perform(post("/api/baskets/" + basketId + "/items").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"productId\":\"gm-sensor\",\"quantity\":" + quantity + "}")).andExpect(status().isOk());
         return mvc.perform(post("/api/orders").contentType(MediaType.APPLICATION_JSON).content("""
-                {"basketId":"%s","name":"Hold Tester","email":"%s","phone":"07700 900123",
+                {"termsAccepted":true,"basketId":"%s","name":"Hold Tester","email":"%s","phone":"07700 900123",
                  "line1":"1 Example Street","town":"London","postcode":"SW1A 1AA"}""".formatted(basketId, email)));
     }
 

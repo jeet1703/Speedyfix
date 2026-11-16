@@ -69,6 +69,8 @@ select.input { appearance: none; padding-right: 36px; background: var(--surface)
 .widget__cats a:hover { color: var(--accent-hover); }
 .widget__cats a[aria-current] { font-weight: 600; color: var(--accent-hover); }
 .check { display: flex; align-items: center; gap: 10px; font-size: 14px; cursor: pointer; }
+.field > .check { font-weight: 400; align-items: flex-start; }
+.field > .check input { flex: none; margin-top: 1px; }
 .check input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent-hover); cursor: pointer; }
 .price-range { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .price-range .input { min-height: 40px; font-size: 14px; }
@@ -340,6 +342,8 @@ select.input { appearance: none; padding-right: 36px; background: var(--surface)
 .info__faq dd { margin: 4px 0 0; color: var(--ink-2); }
 .info a, .specs dd a { color: var(--accent-hover); }
 .info__note { font-size: 14px; color: var(--ink-3); }
+/* The cancellation form: set apart so it reads as something to copy. */
+.info__form { padding: 14px 16px; border: 1px dashed var(--line-2); border-radius: var(--radius); background: var(--surface-2); font-size: 14px; line-height: 1.9; }
 
 /* About us */
 .about-hero { background: var(--ink); color: var(--line-2); padding: 56px 0; box-shadow: inset 0 -4px 0 var(--accent); }

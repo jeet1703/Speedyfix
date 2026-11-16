@@ -107,9 +107,9 @@ export const api = {
    * token links the order to the signed-in shopper's account; leave it out for a guest checkout. deliveryOption is
    * the id of the delivery chosen at checkout (the server prices it again); null for the cheapest.
    */
-  placeOrder: (basketId: string, form: OrderForm, token?: string | null, deliveryOption?: string | null) =>
+  placeOrder: (basketId: string, form: OrderForm, termsAccepted: boolean, token?: string | null, deliveryOption?: string | null) =>
     request<Order>('/api/orders', {
-      method: 'POST', body: JSON.stringify({ basketId, ...form, deliveryOption: deliveryOption ?? null }), headers: token ? bearer(token) : undefined
+      method: 'POST', body: JSON.stringify({ basketId, ...form, termsAccepted, deliveryOption: deliveryOption ?? null }), headers: token ? bearer(token) : undefined
     }),
   getOrder: (reference: string) => request<Order>(`/api/orders/${encodeURIComponent(reference)}`),
   /** The help chat's AI answer to the conversation so far (the last message is the shopper's). */

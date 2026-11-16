@@ -22,6 +22,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -327,9 +328,29 @@ public class EbayImportService {
         return d.aspects().stream().filter(a -> a.name().equalsIgnoreCase(name)).map(EbayItemSource.Aspect::value).findFirst().orElse(null);
     }
 
-    /** The listing's HTML without eBay's name: "Trusted eBay seller" becomes "Trusted seller", template comments go. */
+    // The "Warranty:" and "Returns:" paragraphs of the eBay listing template, which state eBay's terms, not the shop's.
+    private static final Pattern WARRANTY_PARAGRAPH = Pattern.compile("<p[^>]*>\\s*<strong[^>]*>\\s*Warranty:?\\s*</strong>.*?</p>",
+            Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+    private static final Pattern RETURNS_PARAGRAPH = Pattern.compile("<p[^>]*>\\s*<strong[^>]*>\\s*Returns:?\\s*</strong>.*?</p>",
+            Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+
+    /** The shop's own wording for a listing. Keep in step with listingDescription.ts, V28 and ReturnPolicyBody in legal.tsx. */
+    static final String SHOP_WARRANTY = "<p><strong>Warranty:</strong><br>Aftermarket and refurbished parts come with a "
+            + "<strong>3 months replacement warranty</strong> from the date of delivery. The warranty covers the part only and "
+            + "does not include labour or fitting costs.</p>";
+    static final String SHOP_RETURNS = "<p><strong>Returns:</strong><br>Changed your mind? Tell us within "
+            + "<strong>14 days of delivery</strong> and return the part at your own cost for a refund. If a part is faulty or "
+            + "not as described, you are covered by UK consumer law. See our Delivery and Returns page for the full policy, "
+            + "including the terms for trade buyers.</p>";
+
+    /**
+     * The listing's HTML without eBay's name ("Trusted eBay seller" becomes "Trusted seller", template comments go), and
+     * with the shop's own warranty and returns wording in place of the eBay template's.
+     */
     static String withoutEbay(String html) {
-        return TRUSTED_EBAY_SELLER.matcher(EBAY_COMMENT.matcher(html).replaceAll("")).replaceAll("Trusted seller");
+        String clean = TRUSTED_EBAY_SELLER.matcher(EBAY_COMMENT.matcher(html).replaceAll("")).replaceAll("Trusted seller");
+        clean = WARRANTY_PARAGRAPH.matcher(clean).replaceAll(Matcher.quoteReplacement(SHOP_WARRANTY));
+        return RETURNS_PARAGRAPH.matcher(clean).replaceAll(Matcher.quoteReplacement(SHOP_RETURNS));
     }
 
     private static String firstReal(String... values) {

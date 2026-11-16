@@ -37,13 +37,16 @@ site:
   company-number: "16664355"
   # Set to a YouTube embed URL (https://www.youtube.com/embed/<id>) once the client supplies the video.
   video-url: ""
-  # Shown on every product page. Confirm the warranty terms and dispatch location with the client.
-  warranty: "28-day"
+  # ICO data protection registration number, shown on the privacy page once it's set (SITE_ICO_NUMBER). Blank: the
+  # page says we're registered, without a number.
+  ico-number: ${SITE_ICO_NUMBER:}
+  # Shown on every product page as "Warranty: ...". Keep in step with ReturnPolicyBody in legal.tsx.
+  warranty: "3 months on aftermarket and refurbished parts"
   ships-from: "Uxbridge, UK"
   couriers: "FedEx, UPS, Royal Mail, DHL and DPD"
   # A summary of the returns policy on the Delivery and returns page (ReturnPolicyBody in legal.tsx), which is the
   # source of truth: keep the two in step.
-  returns: "30-day returns, with authorisation before returning. Items bought by mistake must be unopened in the original packaging, and the buyer pays shipping both ways. A non-refundable 20% restocking fee applies. No returns on opened packages, installed parts or electrical parts."
+  returns: "Changed your mind? Tell us within 14 days of delivery and send the part back at your own cost for a refund, with no restocking fee. If a part is faulty or not as described, you can have a full refund within 30 days, or a repair or replacement after that, and we pay for the return. Trade buyers have a separate policy."
   cors-allowed-origins:
     - http://localhost:5173
     # A second local dev server takes 5174 when 5173 is busy.

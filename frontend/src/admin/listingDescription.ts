@@ -115,8 +115,8 @@ ${notes}
 <div style="${BOX}"><h3 style="${H3}">Why Buy From Us?</h3><ul><li>Trusted seller</li><li>Fast response time</li><li>Competitive pricing</li><li>100% customer satisfaction focus</li></ul></div>
 <div style="color: #fff; font-family: Arial, Helvetica, sans-serif; background: #111; text-align: center; padding: 15px; border-radius: 0 0 6px 6px;"><p style="margin: 0; font-size: 24px;"><strong>Terms &amp; Conditions</strong></p></div>
 <div style="${FONT} padding: 0 4px;">
-<p><strong>Warranty:</strong><br>All parts are supplied with a <strong>28-day warranty</strong> from the date of delivery. Warranty covers the part only and does not include labour or fitting costs.</p>
-<p><strong>Returns:</strong><br>Returns accepted within 30 days. A <strong>30% handling/restocking fee</strong> will apply if the item has been used for testing or ordered by mistake.<br>Original postage costs will be deducted from any refund. Items must be returned in the same condition as supplied.</p>
+<p><strong>Warranty:</strong><br>Aftermarket and refurbished parts come with a <strong>3 months replacement warranty</strong> from the date of delivery. The warranty covers the part only and does not include labour or fitting costs.</p>
+<p><strong>Returns:</strong><br>Changed your mind? Tell us within <strong>14 days of delivery</strong> and return the part at your own cost for a refund. If a part is faulty or not as described, you are covered by UK consumer law. See our Delivery and Returns page for the full policy, including the terms for trade buyers.</p>
 <p><strong>UK Delivery:</strong><br>UK delivery within <strong>7 working days</strong> (estimated). Delivery times may vary due to courier delays.</p>
 <p><strong>International Delivery:</strong><br>We ship via <strong>UK Pallets or FedEx</strong>. Standard Economy or Express Priority available (extra charges apply).<br>Estimated <strong>3 to 10 working days after dispatch</strong>.<br>Buyers are responsible for customs clearance and any import VAT or duties, as the UK is no longer part of the EU.</p>
 <p style="text-align: center;"><strong>Have A Good Day</strong></p>

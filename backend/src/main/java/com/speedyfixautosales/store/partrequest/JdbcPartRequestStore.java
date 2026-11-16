@@ -70,6 +70,12 @@ public class JdbcPartRequestStore implements PartRequestStore {
         return find(reference);
     }
 
+    @Override
+    public int deleteReceivedBefore(java.time.Instant cutoff) {
+        // Photos go with them (ON DELETE CASCADE).
+        return jdbc.update("DELETE FROM part_requests WHERE received_at < ?", Timestamp.from(cutoff));
+    }
+
     /** Photos come back without their bytes. */
     private List<PartRequest> load(String where, Object... args) {
         Map<String, List<PartRequest.Photo>> photos = new HashMap<>();

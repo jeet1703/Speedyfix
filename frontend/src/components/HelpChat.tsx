@@ -222,7 +222,7 @@ export function HelpChat({ site, ai, fedex }: { site: Site; ai: boolean; fedex: 
         say('bot', `Here’s how returns work: ${site.returns}`, <Link to="/delivery" onClick={close}>Full Returns Policy</Link>);
         break;
       case 'warranty':
-        say('bot', 'Aftermarket and refurbished parts come with a **3 months replacement warranty**. It covers the part only, not labour, towing or rentals. There’s no warranty on new genuine parts or electrical parts.', <Link to="/delivery" onClick={close}>Full Returns and Warranty Policy</Link>);
+        say('bot', 'Aftermarket and refurbished parts come with a **3 months replacement warranty**. It covers the part only, not labour, towing or rentals. Every part is also covered by your legal rights if it’s faulty or not as described.', <Link to="/delivery" onClick={close}>Full Returns and Warranty Policy</Link>);
         break;
       case 'contact':
         say('bot', `Of course. The quickest way to reach the team is WhatsApp, or you can call or email ${site.email}.`, person);

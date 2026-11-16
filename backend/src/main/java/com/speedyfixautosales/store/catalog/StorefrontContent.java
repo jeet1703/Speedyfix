@@ -57,7 +57,7 @@ final class StorefrontContent {
     static final List<Feature> FEATURES = List.of(
             new Feature("wrench", "Expert Team", "We test and grade every part"),
             new Feature("truck", "Our Delivery Partners", "FedEx, UPS, Royal Mail, DHL and DPD, tracked to your door"),
-            new Feature("shield", "Quick UK Shipping", "Usually within 7 working days, with a 28-day warranty"));
+            new Feature("shield", "Quick UK Shipping", "Usually within 7 working days, tracked all the way"));
 
     // Every link is a shop category, named as it is in the shop and the admin, so the menu, the shop's category list
     // and the admin's category choice always agree. The first three groups are the client's three category lists, in

@@ -7,7 +7,7 @@ import { PageTitle } from '../components/PageTitle';
 import { useSite } from '../state/SiteContext';
 import { PrivacyBody, ReturnPolicyBody, TermsBody } from './legal';
 
-/** Information pages. Terms and privacy are drafts for the client's legal adviser to review (see PENDING.md). */
+/** Information pages. The terms and privacy text still wants a review by the client's legal adviser (see PENDING.md). */
 /** fedex: parcel delivery is priced by FedEx from the postcode at checkout (SiteData.deliveryQuotes). */
 const PAGES: Record<string, { title: string; body: (site: Site, fedex: boolean) => ReactNode }> = {
   '/delivery': {
@@ -46,7 +46,7 @@ const PAGES: Record<string, { title: string; body: (site: Site, fedex: boolean) 
         <dt>Is the part in the photos the one I’ll get?</dt>
         <dd>Yes. Our photos are of the actual unit for sale, not stock images.</dd>
         <dt>What warranty do I get?</dt>
-        <dd>A 3 months replacement warranty on aftermarket and refurbished parts, covering the part only (not labour, towing or rentals). No warranty on new genuine parts or electrical parts. See <Link to="/delivery">Delivery and Returns</Link>.</dd>
+        <dd>A 3 months replacement warranty on aftermarket and refurbished parts, covering the part only (not labour, towing or rentals). Every part, with or without a warranty, is also covered by your legal rights if it’s faulty or not as described. See <Link to="/delivery">Delivery and Returns</Link>.</dd>
         <dt>How long does delivery take?</dt>
         <dd>UK orders usually arrive within 7 working days, with {site.couriers}. {fedex ? 'Engines and gearboxes go by FedEx Freight.' : 'Engines and gearboxes travel by pallet.'} See <Link to="/delivery">Delivery and Returns</Link>.</dd>
         <dt>Which couriers do you use?</dt>

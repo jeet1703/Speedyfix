@@ -195,6 +195,8 @@ public class OrderEmails {
                     + "<a href=\"" + esc(orderUrl) + "\" style=\"color:#F26B1D\">order page</a> once they’re on their way."));
         }
         html.append(p("Questions? Reply to this email, or call " + esc(site.phone()) + ", quoting " + order.reference() + "."));
+        html.append(p("<strong>Your right to cancel.</strong> " + esc(cancelRights(order))
+                + " <a href=\"" + esc(publicUrl + "/terms") + "\" style=\"color:#F26B1D\">Terms and conditions</a>"));
         html.append(end());
         String text = "Thank you, " + first + ". Your order " + order.reference() + " is confirmed.\n\n"
                 + "We've received your payment of " + money(order.total()) + ". Your VAT invoice " + invoice.invoice().label() + " is attached.\n\n"
@@ -212,9 +214,20 @@ public class OrderEmails {
                         : "We'll check and pack your parts, then send them. Your order page shows the courier and tracking number once "
                                 + "they're on their way: " + orderUrl + "\n\n")
                 + "Questions? Reply to this email, or call " + site.phone() + ", quoting " + order.reference() + ".\n\n"
+                + "Your right to cancel. " + cancelRights(order) + " Terms and conditions: " + publicUrl + "/terms\n\n"
                 + footerText();
         return new EmailSender.Email(to, subject, html.toString(), text,
                 List.of(new EmailSender.Attachment(invoice.fileName(), invoice.pdf())));
+    }
+
+    /** What the law says a buyer must be told, in an email they can keep, about cancelling and faulty parts. */
+    private String cancelRights(Order order) {
+        return "If you bought for yourself and not for a business, you can cancel this order for any reason up to 14 days "
+                + "after you receive your parts. Tell us by replying to this email or calling " + site.phone() + ", quoting "
+                + order.reference() + ", then return the parts within 14 days at your own cost. We refund the parts and "
+                + "standard delivery within 14 days of getting them back. If a part is faulty or not as described, you have "
+                + "further rights under the Consumer Rights Act 2015, and we pay for its return. The full policy and a "
+                + "cancellation form are in section 6 of our terms.";
     }
 
     EmailSender.Email staffEmail(Order order, InvoiceService.Document invoice, String to) {

@@ -81,7 +81,7 @@ class CheckoutApiTest {
                 .content("{\"productId\":\"gm-sensor\",\"quantity\":2}"));
 
         String body = mvc.perform(post("/api/orders").contentType(MediaType.APPLICATION_JSON).content("""
-                        {"basketId":"%s","name":"Test Shopper","email":"shopper@example.com","phone":"07700 900123",
+                        {"termsAccepted":true,"basketId":"%s","name":"Test Shopper","email":"shopper@example.com","phone":"07700 900123",
                          "line1":"1 Example Street","town":"London","postcode":"sw1a1aa"}""".formatted(basketId)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.reference").value(matchesPattern("SF-[A-Z2-9]{8}")))
@@ -98,7 +98,7 @@ class CheckoutApiTest {
     @Test
     void orderNeedsAValidPostcode() throws Exception {
         mvc.perform(post("/api/orders").contentType(MediaType.APPLICATION_JSON).content("""
-                        {"basketId":"x","name":"A","email":"a@example.com","phone":"07700 900123",
+                        {"termsAccepted":true,"basketId":"x","name":"A","email":"a@example.com","phone":"07700 900123",
                          "line1":"1 Street","town":"London","postcode":"12345"}"""))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.detail").value("Enter a full UK postcode, like SW1A 1AA."));

@@ -68,7 +68,7 @@ class AccountApiTest {
         mvc.perform(post("/api/baskets/" + basketId + "/items").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"productId\":\"gm-sensor\",\"quantity\":1}")).andExpect(status().isOk());
         var order = post("/api/orders").contentType(MediaType.APPLICATION_JSON).content("""
-                {"basketId":"%s","name":"Erin Shopper","email":"%s","phone":"07700 900123",
+                {"termsAccepted":true,"basketId":"%s","name":"Erin Shopper","email":"%s","phone":"07700 900123",
                  "line1":"1 Example Street","town":"London","postcode":"sw1a1aa"}""".formatted(basketId, email));
         if (authorization != null) {
             order.header(HttpHeaders.AUTHORIZATION, authorization);

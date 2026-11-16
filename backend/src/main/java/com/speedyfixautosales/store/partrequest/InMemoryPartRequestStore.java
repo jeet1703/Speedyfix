@@ -55,6 +55,17 @@ public class InMemoryPartRequestStore implements PartRequestStore {
     }
 
     @Override
+    public synchronized int deleteReceivedBefore(java.time.Instant cutoff) {
+        List<PartRequest> old = requests.values().stream().filter(r -> r.receivedAt().isBefore(cutoff)).toList();
+        for (PartRequest r : old) {
+            requests.remove(r.reference());
+            oldestFirst.remove(r.reference());
+            storedPhotoBytes -= photoBytes(r);
+        }
+        return old.size();
+    }
+
+    @Override
     public List<PartRequest> all() {
         return requests.values().stream().sorted(Comparator.comparing(PartRequest::receivedAt).reversed()).toList();
     }

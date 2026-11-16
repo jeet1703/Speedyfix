@@ -12,8 +12,10 @@ import com.speedyfixautosales.store.order.OrderPaymentService;
 import com.speedyfixautosales.store.order.OrderService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import org.springframework.beans.factory.annotation.Value;
@@ -96,6 +98,8 @@ public class OrderController {
     }
 
     public record PlaceOrderRequest(
+            /** The shopper ticked "I accept the terms and conditions" at checkout. No order without it. */
+            @NotNull(message = "Tick the box to accept the terms and conditions.") @AssertTrue(message = "Tick the box to accept the terms and conditions.") Boolean termsAccepted,
             @NotBlank(message = "Your basket has expired. Add the parts again.") String basketId,
             @NotBlank(message = "Enter your full name.") @Size(max = 100) String name,
             @NotBlank(message = "Enter your email address.") @Email(message = "Enter an email address like name@example.com.") @Size(max = 200) String email,

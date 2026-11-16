@@ -37,7 +37,7 @@ class WorldwideOrderApiTest {
                 .andExpect(jsonPath("$.basket.vatIncluded").value(0.0))
                 .andExpect(jsonPath("$.options[0].id").value("MANUAL"));
         mvc.perform(post("/api/orders").contentType(MediaType.APPLICATION_JSON).content("""
-                        {"basketId":"%s","name":"Ravi Kumar","email":"ravi@example.com","phone":"+91 98765 43210",
+                        {"termsAccepted":true,"basketId":"%s","name":"Ravi Kumar","email":"ravi@example.com","phone":"+91 98765 43210",
                          "line1":"12 MG Road","town":"New Delhi","postcode":"110001","country":"in"}""".formatted(basketId)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.address.country").value("IN"))
@@ -50,7 +50,7 @@ class WorldwideOrderApiTest {
     void aUkOrderStillNeedsAFullPostcode() throws Exception {
         String basketId = basketWithSensor();
         mvc.perform(post("/api/orders").contentType(MediaType.APPLICATION_JSON).content("""
-                        {"basketId":"%s","name":"Erin Shopper","email":"erin@example.com","phone":"07700 900123",
+                        {"termsAccepted":true,"basketId":"%s","name":"Erin Shopper","email":"erin@example.com","phone":"07700 900123",
                          "line1":"1 Example Street","town":"London","postcode":"SW1A"}""".formatted(basketId)))
                 .andExpect(status().isBadRequest());
     }

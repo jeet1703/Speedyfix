@@ -74,16 +74,22 @@ The order page still says "check its status in the help chat"; once dispatch ema
 2. Put them on Render: `FEDEX_API_KEY`, `FEDEX_SECRET_KEY`, `FEDEX_ACCOUNT_NUMBER` (in `CREDENTIALS.local.md`), `FEDEX_ENVIRONMENT=live`, once the client has chosen how to price delivery (above). **Never put the sandbox keys on the live server**: they show FedEx's test prices (£100+ for a small part). Without any keys, the flat prices apply.
 3. Update `frontend/public/llms.txt`, which states the flat £9.95. The Delivery page, terms, product pages, basket, checkout and help chat switch to FedEx wording by themselves (`deliveryQuotes`); the `<noscript>` text in `index.html` only says "free on orders of £100 or more", which stays true.
 
-## 2. Legal pages (later, decided 4 November)
+## 2. Legal pages (rewritten 16 November)
 
-Drafts are on the site at **/terms** and **/privacy** (`frontend/src/pages/legal.tsx`), written for this shop from UK consumer law, UK GDPR and the business's own eBay terms. They are **not legal advice**: the business's adviser should review them. Points to confirm (marked `[to confirm]` on the pages):
+The terms, returns policy and privacy notice (`frontend/src/pages/legal.tsx`) are in force at **/terms**, **/delivery** and **/privacy**. They were written from UK consumer law and UK GDPR and are **not legal advice**: the business's adviser should still review them.
 
-- **ICO registration number.** Businesses handling personal data normally pay the ICO data protection fee (ico.org.uk/fee). The privacy page needs the number.
-- **Returns.** UK law gives consumers 14 days to cancel without a reason, and a restocking fee can't be charged for simply changing their mind, only a reduction where the part was used beyond inspection. The site's wording now follows that (30-day goodwill returns; up to 30% off the refund only if fitted, used or tested). The eBay listing template still says a 30% fee applies to parts "ordered by mistake", which should be brought into line.
-- Who pays return postage, and whether the original delivery charge is refunded (by law, the standard delivery charge must be refunded on cancellation).
-- The 48-hour window to report delivery damage.
-- Business (trade) customers' liability cap.
-- How long part requests are kept (then add a clean-up job to delete them, as the privacy notice will promise).
+- **Consumers** get the 14-day right to cancel (no restocking fee, standard delivery refunded, buyer pays return postage), the Consumer Rights Act rights for faulty parts, and the model cancellation form. The same summary goes in the order confirmation email.
+- **Trade buyers** keep the business's own policy (supplied 5 November): 20% restocking fee, no returns on electrical or new genuine parts, no cancellation after payment.
+- **Warranty:** 3 months on aftermarket and refurbished parts (`site.warranty` in `application.yml`).
+- **Checkout:** the shopper must tick that they accept the terms; the server refuses an order without it.
+- **Part requests** are deleted after 12 months (`PartRequestService.deleteOld`).
+- **Listings:** the admin's listing template, the eBay import and migration V28 replace the old "28-day warranty" and "30% restocking fee" paragraphs. The live **eBay** listings themselves still carry eBay's wording.
+
+Still to do:
+
+- **ICO registration number:** set `SITE_ICO_NUMBER` on Render when it arrives; the privacy page then shows it.
+- Confirm the return cost quoted for pallet items ("up to about £100 within the UK").
+- Legal adviser's review of all three pages.
 
 ---
 

@@ -226,8 +226,10 @@ public class ChatService {
                         + " on arrival. Usually 3 to 10 working days after dispatch.");
                 out.put("returns", site.returns());
                 out.put("warranty", "3 months replacement warranty on aftermarket and refurbished parts, covering the part only "
-                        + "(no labour, towing or rentals). No returns or warranty on new genuine parts. No warranty and no returns "
-                        + "on electrical parts (switches, sensors, regulators, ignition modules, computers, relays, solenoids and the like).");
+                        + "(no labour, towing or rentals). Other parts have no extra warranty, but every part, including electrical "
+                        + "and new genuine parts, is covered by the buyer's legal rights if it is faulty or not as described: a full "
+                        + "refund within 30 days of delivery, then repair or replacement. Trade (business) buyers have a stricter "
+                        + "policy; see the Delivery and Returns page.");
                 out.put("payment", "PayPal, or debit or credit card through PayPal. Prices include VAT.");
                 out.put("contact", (site.landline().isBlank() ? "" : "Landline " + site.landline() + ". ")
                         + "Mobile and WhatsApp " + site.phone() + ", email " + site.email() + ". Address: " + site.address() + ".");

@@ -18,7 +18,7 @@ export function AboutShort({ site }: { site: Site }) {
           <Link className="btn btn--outline" to="/about">More About Us</Link>
         </div>
         <dl className="home-about__facts">
-          <div><dt>Warranty</dt><dd>{site.warranty}</dd><span>on every part, from delivery</span></div>
+          <div><dt>Returns</dt><dd>14 days</dd><span>to change your mind</span></div>
           <div><dt>Ships from</dt><dd>{town}</dd><span>securely packed and tracked</span></div>
           <div><dt>Fit check</dt><dd>By reg</dd><span>or send us your VIN</span></div>
           <div><dt>Pay by</dt><dd>PayPal</dd><span>or debit or credit card</span></div>

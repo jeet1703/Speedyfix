@@ -22,5 +22,8 @@ public interface PartRequestStore {
     Optional<PartRequest.Photo> photo(String reference, int index);
 
     /** The updated request, or empty if there's no such request. */
+    /** Deletes requests (and their photos) received before the given time. Returns how many went. */
+    int deleteReceivedBefore(java.time.Instant cutoff);
+
     Optional<PartRequest> setStatus(String reference, PartRequest.Status status);
 }

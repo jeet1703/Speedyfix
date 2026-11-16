@@ -308,7 +308,7 @@ class AdminApiTest {
         mvc.perform(post("/api/baskets/" + basket + "/items").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"productId\":\"gm-sensor\",\"quantity\":2}"));
         String placed = mvc.perform(post("/api/orders").contentType(MediaType.APPLICATION_JSON).content("""
-                        {"basketId":"%s","name":"Test buyer","email":"buyer@example.com","phone":"07700 900123",
+                        {"termsAccepted":true,"basketId":"%s","name":"Test buyer","email":"buyer@example.com","phone":"07700 900123",
                          "line1":"1 High Street","town":"Leeds","postcode":"LS1 1AA"}""".formatted(basket)))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
