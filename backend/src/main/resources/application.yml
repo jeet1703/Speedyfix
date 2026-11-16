@@ -37,9 +37,9 @@ site:
   company-number: "16664355"
   # Set to a YouTube embed URL (https://www.youtube.com/embed/<id>) once the client supplies the video.
   video-url: ""
-  # ICO data protection registration number, shown on the privacy page once it's set (SITE_ICO_NUMBER). Blank: the
-  # page says we're registered, without a number.
-  ico-number: ${SITE_ICO_NUMBER:}
+  # ICO data protection registration number, shown on the privacy page. Set SITE_ICO_NUMBER blank and the page says
+  # we're registered, without a number.
+  ico-number: ${SITE_ICO_NUMBER:00016268384}
   # Shown on every product page as "Warranty: ...". Keep in step with ReturnPolicyBody in legal.tsx.
   warranty: "3 months on aftermarket and refurbished parts"
   ships-from: "Uxbridge, UK"

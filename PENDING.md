@@ -87,7 +87,7 @@ The terms, returns policy and privacy notice (`frontend/src/pages/legal.tsx`) ar
 
 Still to do:
 
-- **ICO registration number:** set `SITE_ICO_NUMBER` on Render when it arrives; the privacy page then shows it.
+- **ICO registration number:** the privacy page shows 00016268384 (`site.ico-number`). Check it against the ICO certificate: registration references usually start with Z (like ZA123456), so this may be the application or payment reference.
 - Confirm the return cost quoted for pallet items ("up to about £100 within the UK").
 - Legal adviser's review of all three pages.
 

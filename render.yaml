@@ -86,9 +86,9 @@ services:
         value: "SpeedyFix Auto Sales <orders@speedyfixautosales.com>"
       - key: MAIL_STAFF_ORDERS
         value: "eBay.speedyfix@gmail.com"
-      # The ICO data protection registration number, shown on the privacy page once it's set.
+      # The ICO data protection registration number, shown on the privacy page.
       - key: SITE_ICO_NUMBER
-        sync: false
+        value: "00016268384"
       # Google Gemini for the help chat's AI answers (optional: without it the chat answers by itself).
       - key: GEMINI_API_KEY
         sync: false
