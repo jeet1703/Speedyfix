@@ -87,7 +87,7 @@ The terms, returns policy and privacy notice (`frontend/src/pages/legal.tsx`) ar
 
 Still to do:
 
-- **ICO registration number:** the privacy page shows 00016268384 (`site.ico-number`). Check it against the ICO certificate: registration references usually start with Z (like ZA123456), so this may be the application or payment reference.
+- **ICO registration:** ZC296627 (`site.ico-number`), registered 7 November 2026. It expires on 6 November 2027: renew the fee before then.
 - Confirm the return cost quoted for pallet items ("up to about £100 within the UK").
 - Legal adviser's review of all three pages.
 

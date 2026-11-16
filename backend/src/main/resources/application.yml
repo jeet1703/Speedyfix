@@ -39,7 +39,7 @@ site:
   video-url: ""
   # ICO data protection registration number, shown on the privacy page. Set SITE_ICO_NUMBER blank and the page says
   # we're registered, without a number.
-  ico-number: ${SITE_ICO_NUMBER:00016268384}
+  ico-number: ${SITE_ICO_NUMBER:ZC296627}
   # Shown on every product page as "Warranty: ...". Keep in step with ReturnPolicyBody in legal.tsx.
   warranty: "3 months on aftermarket and refurbished parts"
   ships-from: "Uxbridge, UK"

@@ -88,7 +88,7 @@ services:
         value: "eBay.speedyfix@gmail.com"
       # The ICO data protection registration number, shown on the privacy page.
       - key: SITE_ICO_NUMBER
-        value: "00016268384"
+        value: "ZC296627"
       # Google Gemini for the help chat's AI answers (optional: without it the chat answers by itself).
       - key: GEMINI_API_KEY
         sync: false
